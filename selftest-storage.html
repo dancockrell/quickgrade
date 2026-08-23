@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuickGrade — storage fallback test</title>
+<style>
+ body{font:14px/1.55 system-ui,sans-serif;background:#0f1115;color:#e8ecf3;margin:0;padding:22px}
+ .pass{color:#22c07a;font-weight:700}.fail{color:#ff4d5e;font-weight:700}
+ #summary{font-size:17px;padding:12px;border-radius:8px;background:#171a21;border:1px solid #2b3140;margin-bottom:14px}
+ code{background:#1d222b;padding:1px 5px;border-radius:4px}
+</style>
+</head>
+<body>
+<h1>Storage fallback</h1>
+<p>Disables IndexedDB before <code>lib.js</code> loads, the way opening the page from a
+<code>file://</code> URL does, then runs the same reads and writes the app performs.</p>
+<div id="summary">running…</div>
+<div id="out"></div>
+
+<script>
+  /* Must happen before lib.js captures it. */
+  try { Object.defineProperty(window, 'indexedDB', { value: undefined, configurable: true }); }
+  catch (e) { window.indexedDB = undefined; }
+  localStorage.removeItem('qg.store.tests');
+  localStorage.removeItem('qg.store.students');
+  localStorage.removeItem('qg.store.kv');
+</script>
+<script src="js/lib.js"></script>
+<script>
+(function () {
+'use strict';
+var Q = window.QG, out = document.getElementById('out'), res = [];
+function check(name, ok, detail) {
+  res.push(ok);
+  out.insertAdjacentHTML('beforeend', '<div><span class="' + (ok ? 'pass' : 'fail') + '">' +
+    (ok ? 'PASS' : 'FAIL') + '</span> ' + name +
+    (detail ? ' <span style="color:#98a2b6">— ' + detail + '</span>' : '') + '</div>');
+}
+
+Q.DB.ready().then(function () {
+  check('falls back instead of throwing', Q.DB.mode() === 'local' || Q.DB.mode() === 'memory',
+    'mode = ' + Q.DB.mode());
+
+  return Q.DB.put('tests', { id: 't1', title: 'Unit 4', mc: { count: 3 } })
+    .then(function () { return Q.DB.putMany('students', [
+      { sid: '100001', name: 'Avery Nguyen', cls: 'Bio' },
+      { sid: '100002', name: 'Ben Carter', cls: 'Bio' },
+      { sid: '100003', name: 'Chloe Diaz', cls: 'Bio' }]); })
+    .then(function () { return Q.DB.get('tests', 't1'); })
+    .then(function (t) {
+      check('put then get round-trips', t && t.title === 'Unit 4', JSON.stringify(t && t.title));
+      return Q.DB.all('students');
+    })
+    .then(function (list) {
+      check('all() returns every record', list.length === 3, list.length + ' students');
+      return Q.DB.del('students', '100002');
+    })
+    .then(function () { return Q.DB.all('students'); })
+    .then(function (list) {
+      check('del() removes one record', list.length === 2 &&
+        !list.some(function (s) { return s.sid === '100002'; }), list.length + ' left');
+      return Q.DB.put('kv', { k: 'grades:t1', v: { '100001': { w: { 0: { p: 4 } } } } });
+    })
+    .then(function () { return Q.DB.get('kv', 'grades:t1'); })
+    .then(function (kv) {
+      check('nested grade objects survive', kv && kv.v['100001'].w[0].p === 4);
+      /* blobs are deliberately memory-only so images cannot blow the quota */
+      return Q.DB.put('blobs', { id: 'b1', data: 'data:image/jpeg;base64,AAAA' });
+    })
+    .then(function () { return Q.DB.get('blobs', 'b1'); })
+    .then(function (b) {
+      check('images work in-session', b && b.data.indexOf('data:image') === 0);
+      check('images are NOT written to localStorage (quota safety)',
+        localStorage.getItem('qg.store.blobs') === null);
+      check('durable stores ARE written to localStorage',
+        !!localStorage.getItem('qg.store.tests') && !!localStorage.getItem('qg.store.students'));
+
+      var raw = JSON.parse(localStorage.getItem('qg.store.students'));
+      check('localStorage keeps records under their key path',
+        raw['100001'] && raw['100001'].name === 'Avery Nguyen');
+      return Q.DB.delMany('students', ['100001', '100003']);
+    })
+    .then(function () { return Q.DB.all('students'); })
+    .then(function (l) { check('delMany() clears the rest', l.length === 0); })
+    .then(function () { return Q.DB.clear('tests'); })
+    .then(function () { return Q.DB.all('tests'); })
+    .then(function (l) { check('clear() empties a store', l.length === 0); })
+    .catch(function (e) { check('no exception during the run', false, e.message); })
+    .then(function () {
+      var bad = res.filter(function (r) { return !r; }).length;
+      document.getElementById('summary').innerHTML = bad
+        ? '<span class="fail">' + bad + ' of ' + res.length + ' FAILED</span>'
+        : '<span class="pass">All ' + res.length + ' checks passed</span>';
+      window.__storagetest = { total: res.length, failed: bad };
+    });
+});
+})();
+</script>
+</body>
+</html>

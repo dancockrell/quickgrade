@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>QuickGrade — self test</title>
+<style>
+ body{font:14px/1.5 system-ui,sans-serif;background:#0f1115;color:#e8ecf3;margin:0;padding:20px}
+ h1{font-size:20px} h2{font-size:15px;margin:22px 0 6px;color:#98a2b6}
+ .pass{color:#22c07a;font-weight:700}.fail{color:#ff4d5e;font-weight:700}
+ pre{background:#171a21;border:1px solid #2b3140;border-radius:8px;padding:10px;overflow:auto;font-size:12px}
+ canvas{border:1px solid #2b3140;border-radius:6px;margin:6px 8px 6px 0;background:#fff;vertical-align:top}
+ #summary{font-size:17px;padding:12px;border-radius:8px;background:#171a21;border:1px solid #2b3140}
+ table{border-collapse:collapse;font-size:12.5px}td,th{border:1px solid #2b3140;padding:4px 8px;text-align:left}
+</style>
+</head>
+<body>
+<h1>QuickGrade self test</h1>
+<p>Renders synthetic answer sheets straight from the shared geometry in <code>sheet.js</code>,
+distorts them the way a hand-held camera would, and pushes them through the real
+<code>vision.js</code> decode path.</p>
+<div id="summary">running…</div>
+<div id="out"></div>
+
+<script src="js/lib.js"></script>
+<script src="js/ooxml.js"></script>
+<script src="js/sheet.js"></script>
+<script src="js/vision.js"></script>
+<script>
+(function () {
+'use strict';
+var S = QG.Sheet, V = QG.Vision, X = QG.OOXML, L = S.L;
+var out = document.getElementById('out');
+var results = [];
+
+function log(html) { var d = document.createElement('div'); d.innerHTML = html; out.appendChild(d); return d; }
+function check(name, ok, detail) {
+  results.push({ name: name, ok: ok });
+  log('<div><span class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + '</span> ' +
+      name + (detail ? ' <span style="color:#98a2b6">— ' + detail + '</span>' : '') + '</div>');
+}
+
+/* ------------------------------------------------ synthetic sheet render */
+var DPI = 150;
+function inx(x) { return x * DPI; }
+function uvToPx(pt) {
+  return [inx(L.fid.x0 + pt.u * L.W), inx(L.fid.y0 + pt.v * L.H)];
+}
+function drawBubble(ctx, pt, filled, letter) {
+  var p = uvToPx(pt), r = inx(L.bubbleR);
+  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.2832); ctx.stroke();
+  if (filled) {
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.arc(p[0], p[1], r * 0.86, 0, 6.2832); ctx.fill();
+  } else if (letter) {
+    ctx.fillStyle = '#c0c0c0';
+    ctx.font = Math.round(r * 1.05) + 'px Arial';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(letter, p[0], p[1] + 0.5);
+  }
+}
+
+/**
+ * renderSynthetic(test, pageIdx, {sid, answers}) -> canvas at 150 dpi
+ * Uses ONLY the shared geometry, so a drift between printer and scanner shows up here.
+ */
+function renderSynthetic(test, pageIdx, opts) {
+  var pages = S.layoutTest(test);
+  var pg = pages[pageIdx];
+  var cv = document.createElement('canvas');
+  cv.width = inx(L.page.w); cv.height = inx(L.page.h);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+
+  /* fiducials + keystone */
+  ctx.fillStyle = '#000';
+  var s = inx(L.fid.size), hs = s / 2;
+  [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]]
+    .forEach(function (c) { ctx.fillRect(inx(c[0]) - hs, inx(c[1]) - hs, s, s); });
+  var ks = inx(L.keystone.size);
+  ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
+
+  /* some page furniture so the detector sees realistic clutter */
+  ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.17) + 'px Arial'; ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(test.title, inx(0.60), inx(L.titleY + 0.15));
+  ctx.font = inx(0.10) + 'px Arial'; ctx.fillStyle = '#444';
+  ctx.fillText(test.className + ' · ' + test.date + ' · use pencil, fill bubbles completely',
+               inx(0.60), inx(L.subTitleY + 0.12));
+  ctx.font = inx(0.09) + 'px Arial'; ctx.fillStyle = '#777';
+  ctx.fillText('QuickGrade answer sheet · print at 100% · keep the four corner squares clean',
+               inx(L.footerX), inx(L.footerY + 0.10));
+  ctx.strokeStyle = '#444'; ctx.lineWidth = 1.4;
+  ctx.strokeRect(inx(L.nameBox.x), inx(L.nameBox.y), inx(L.nameBox.w), inx(L.nameBox.h));
+  ctx.strokeRect(inx(L.classBox.x), inx(L.classBox.y), inx(L.classBox.w), inx(L.classBox.h));
+  ctx.fillStyle = '#000'; ctx.font = inx(0.17) + 'px "Comic Sans MS", cursive';
+  ctx.fillText('Avery Nguyen', inx(L.nameBox.x + 0.12), inx(L.nameBox.y + 0.40));
+
+  /* identity grids */
+  var sidD = S.digits(opts.sid, L.idDigits);
+  S.idGrid().forEach(function (row, r) {
+    row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
+  });
+  var codeD = S.digits(test.code, L.codeDigits);
+  S.codeGrid().forEach(function (row, r) {
+    row.forEach(function (pt, d) { drawBubble(ctx, pt, codeD[r] === d, String(d)); });
+  });
+  S.pageRow().forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
+
+  /* answers */
+  pg.mc.forEach(function (item) {
+    var pick = opts.answers[item.q];
+    item.choices.forEach(function (pt, k) { drawBubble(ctx, pt, pick === k, S.LETTERS[k]); });
+    ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.10) + 'px Arial'; ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(item.q + 1), inx(item.x + L.labelW - 0.05), inx(item.y));
+    ctx.textAlign = 'left';
+  });
+
+  /* written boxes with scribble */
+  pg.written.forEach(function (wb) {
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(inx(wb.x), inx(wb.y), inx(wb.bw), inx(wb.bh));
+    ctx.strokeStyle = '#1a1a6a'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (var i = 0; i < 90; i++) {
+      var xx = inx(wb.x + 0.2) + i * 7, yy = inx(wb.y + 0.35) + Math.sin(i / 3) * 9;
+      if (i) ctx.lineTo(xx, yy); else ctx.moveTo(xx, yy);
+    }
+    ctx.stroke();
+  });
+  return cv;
+}
+
+/* ------------------------------------------------------ camera simulation */
+function invert(H) {
+  var a = H.a, b = H.b, c = H.c, d = H.d, e = H.e, f = H.f, g = H.g, h = H.h;
+  var det = a * (e - f * h) - b * (d - f * g) + c * (d * h - e * g);
+  return {
+    m: [
+      [(e - f * h) / det, (c * h - b) / det, (b * f - c * e) / det],
+      [(f * g - d) / det, (a - c * g) / det, (c * d - a * f) / det],
+      [(d * h - e * g) / det, (b * g - a * h) / det, (a * e - b * d) / det]
+    ]
+  };
+}
+function applyInv(inv, x, y) {
+  var m = inv.m;
+  var u = m[0][0] * x + m[0][1] * y + m[0][2];
+  var v = m[1][0] * x + m[1][1] * y + m[1][2];
+  var w = m[2][0] * x + m[2][1] * y + m[2][2];
+  return [u / w, v / w];
+}
+
+/**
+ * simulateCamera(sheetCanvas, {w,h,corners,rot180,noise,vignette})
+ * Projects the sheet onto a larger "photo" with perspective, uneven light and grain.
+ */
+function simulateCamera(sheet, o) {
+  o = o || {};
+  var W = o.w || 1280, H2 = o.h || 960;
+  var dst = document.createElement('canvas');
+  dst.width = W; dst.height = H2;
+  var dctx = dst.getContext('2d');
+  dctx.fillStyle = o.bg || '#6b6f76';
+  dctx.fillRect(0, 0, W, H2);
+
+  var srcQuad = [
+    [inx(L.fid.x0), inx(L.fid.y0)], [inx(L.fid.x1), inx(L.fid.y0)],
+    [inx(L.fid.x1), inx(L.fid.y1)], [inx(L.fid.x0), inx(L.fid.y1)]
+  ];
+  var q = o.corners;
+  if (o.rot180) q = [q[2], q[3], q[0], q[1]];
+  var Hsrc = V.homography(srcQuad[0], srcQuad[1], srcQuad[2], srcQuad[3]);
+  var Hdst = V.homography(q[0], q[1], q[2], q[3]);
+  var inv = invert(Hdst);
+
+  var sctx = sheet.getContext('2d');
+  var sImg = sctx.getImageData(0, 0, sheet.width, sheet.height);
+  var sd = sImg.data, sw = sheet.width, sh = sheet.height;
+  var dImg = dctx.getImageData(0, 0, W, H2), dd = dImg.data;
+
+  /* page bleed so the paper edge (not just the marker rect) appears */
+  var padU = 0.55 / L.W, padV = 0.55 / L.H;
+
+  for (var y = 0; y < H2; y++) {
+    for (var x = 0; x < W; x++) {
+      var uvp = applyInv(inv, x + 0.5, y + 0.5);
+      var u = uvp[0], v = uvp[1];
+      if (u < -padU || u > 1 + padU || v < -padV || v > 1 + padV) continue;
+      var sp = V.project(Hsrc, u, v);
+      var sx = sp[0], sy = sp[1];
+      if (sx < 0 || sy < 0 || sx >= sw - 1 || sy >= sh - 1) continue;
+      var xi = sx | 0, yi = sy | 0, fx = sx - xi, fy = sy - yi;
+      var i00 = (yi * sw + xi) * 4, i10 = i00 + 4, i01 = i00 + sw * 4, i11 = i01 + 4;
+      var o4 = (y * W + x) * 4;
+      /* uneven lighting: bright top-left falling off to the bottom-right */
+      var lightArg = (o.vignette == null ? 0.34 : o.vignette);
+      var light = 1 - lightArg * ((x / W) * 0.55 + (y / H2) * 0.75);
+      for (var k = 0; k < 3; k++) {
+        var A = sd[i00 + k], B = sd[i10 + k], C = sd[i01 + k], D = sd[i11 + k];
+        var val = (A + (B - A) * fx + (C - A) * fy + (A - B - C + D) * fx * fy) * light;
+        if (o.noise) val += (Math.random() - 0.5) * o.noise;
+        dd[o4 + k] = val < 0 ? 0 : val > 255 ? 255 : val;
+      }
+      dd[o4 + 3] = 255;
+    }
+  }
+  dctx.putImageData(dImg, 0, 0);
+  return dst;
+}
+
+function decode(photo, pages) {
+  var W = photo.width, H2 = photo.height;
+  var detW = Math.min(480, W), detH = Math.round(H2 * detW / W);
+  var dc = document.createElement('canvas'); dc.width = detW; dc.height = detH;
+  dc.getContext('2d').drawImage(photo, 0, 0, detW, detH);
+  var gDet = V.toGray(dc.getContext('2d').getImageData(0, 0, detW, detH));
+  var found = V.findSheet(gDet.g, detW, detH);
+  if (!found) return { ok: false, reason: 'sheet not found' };
+
+  var Hc = V.scaleH(found.H, W / detW);
+  var capImg = photo.getContext('2d').getImageData(0, 0, W, H2);
+  var gCap = V.toGray(capImg);
+  var white = V.whiteLevel(gCap.g, W, H2, Hc);
+  var ident = V.decodeIdentity(gCap.g, W, H2, Hc, white);
+  if (ident.page == null || ident.page > pages.length) {
+    return { ok: false, reason: 'page unreadable', ident: ident };
+  }
+  var ans = V.decodeAnswers(gCap.g, W, H2, Hc, white, pages[ident.page - 1]);
+  return { ok: true, ident: ident, ans: ans, H: Hc, capImg: capImg, white: white };
+}
+
+/* ---------------------------------------------------------------- fixture */
+var test = {
+  id: 't1', title: 'Unit 4 — Cell Biology', className: 'Biology P3', date: '2026-08-23',
+  code: '042',
+  mc: { count: 40, choices: 5, key: [], points: 1, text: [], topic: [] },
+  written: [{ label: 'Explain osmosis in your own words.', max: 5, kind: 'essay' },
+            { label: 'Name three organelles and their jobs.', max: 6, kind: 'short' }],
+  options: { prefillId: true, wPerPage: 2, instructions: '', scale: [[90, 'A'], [0, 'F']], topsheet: {} }
+};
+var pages = S.layoutTest(test);
+var SID = '100042';
+var answers = {};
+for (var i = 0; i < test.mc.count; i++) { answers[i] = (i * 7 + 3) % 5; test.mc.key[i] = (i * 3) % 5; }
+answers[5] = -1;   // deliberately left blank
+
+log('<h2>Layout</h2><table><tr><th>rows / column</th><td>' + S.rowsPerCol() + '</td></tr>' +
+    '<tr><th>columns / page</th><td>' + S.colsPerPage(5) + '</td></tr>' +
+    '<tr><th>MC per page</th><td>' + S.mcPerPage(5) + '</td></tr>' +
+    '<tr><th>pages for this test</th><td>' + pages.length + '</td></tr>' +
+    '<tr><th>sheet aspect</th><td>' + L.aspect.toFixed(4) + '</td></tr></table>');
+check('Layout produces at least one MC page and one written page',
+  pages.length >= 2 && pages[0].mc.length > 0 && pages[pages.length - 1].written.length > 0,
+  pages.length + ' pages');
+
+var sheet0 = renderSynthetic(test, 0, { sid: SID, answers: answers });
+var sheet1 = renderSynthetic(test, 1, { sid: SID, answers: {} });
+
+/* --------------------------------------------------------------- cases */
+var CASES = [
+  { name: 'flat, square to the camera', corners: [[190, 120], [1090, 120], [1090, 1330], [190, 1330]],
+    w: 1280, h: 1450, noise: 0, vignette: 0.1 },
+  { name: 'hand-held: tilt + rotation + uneven light + grain',
+    corners: [[250, 190], [1060, 118], [1128, 1290], [176, 1218]],
+    w: 1280, h: 1450, noise: 16, vignette: 0.42 },
+  { name: 'strong perspective (held low and to the left)',
+    corners: [[168, 262], [980, 132], [1160, 1240], [232, 1352]],
+    w: 1280, h: 1450, noise: 12, vignette: 0.5 },
+  { name: 'upside down (page rotated 180°)',
+    corners: [[220, 150], [1080, 150], [1080, 1320], [220, 1320]],
+    rot180: true, w: 1280, h: 1450, noise: 10, vignette: 0.3 },
+  { name: 'small in frame + noise (held far back)',
+    corners: [[430, 330], [860, 322], [872, 1010], [418, 1004]],
+    w: 1280, h: 1350, noise: 20, vignette: 0.35 }
+];
+
+log('<h2>Scan simulations — page 1</h2>');
+var strip = log('<div></div>');
+
+CASES.forEach(function (c) {
+  var photo = simulateCamera(sheet0, c);
+  var small = document.createElement('canvas');
+  small.width = 150; small.height = Math.round(photo.height * 150 / photo.width);
+  small.getContext('2d').drawImage(photo, 0, 0, small.width, small.height);
+  strip.appendChild(small);
+
+  var r = decode(photo, pages);
+  if (!r.ok) { check('decode — ' + c.name, false, r.reason); return; }
+
+  var idOk = r.ident.sid === SID;
+  var codeOk = r.ident.code === '042';
+  var pageOk = r.ident.page === 1;
+
+  var wrong = [], blankSeen = null;
+  pages[0].mc.forEach(function (item) {
+    var got = r.ans.answers[item.q], want = answers[item.q];
+    if (want === -1) { blankSeen = (got === -1); return; }
+    if (got !== want) wrong.push(item.q + 1 + ':' + (got < 0 ? '-' : S.LETTERS[got]) +
+      '≠' + S.LETTERS[want]);
+  });
+
+  check('identity — ' + c.name,
+    idOk && codeOk && pageOk,
+    'sid=' + r.ident.sid + ' code=' + r.ident.code + ' page=' + r.ident.page);
+  check('answers — ' + c.name, wrong.length === 0 && blankSeen === true,
+    wrong.length ? wrong.length + ' wrong: ' + wrong.slice(0, 8).join(', ')
+                 : 'all ' + pages[0].mc.length + ' matched, blank detected correctly');
+});
+
+window.__dbg = { renderSynthetic: renderSynthetic, simulateCamera: simulateCamera, decode: decode,
+                 test: test, pages: pages, CASES: CASES, sheet0: sheet0, sheet1: sheet1, SID: SID };
+
+/* page 2: written crops */
+log('<h2>Page 2 — written-answer crops</h2>');
+(function () {
+  var photo = simulateCamera(sheet1, CASES[1]);
+  var r = decode(photo, pages);
+  if (!r.ok) { check('page 2 decode', false, r.reason); return; }
+  check('page 2 identity', r.ident.sid === SID && r.ident.page === 2,
+    'sid=' + r.ident.sid + ' page=' + r.ident.page);
+  var wb = pages[1].written[0];
+  if (!wb) { check('page 2 has written boxes', false); return; }
+  var crop = V.enhanceCanvas(V.warpRegion(r.capImg, r.H, wb.rect, 700));
+  var d = crop.getContext('2d').getImageData(0, 0, crop.width, crop.height).data;
+  var dark = 0;
+  for (var i = 0; i < d.length; i += 4) if (d[i] < 120) dark++;
+  crop.style.width = '420px';
+  log('').appendChild(crop);
+  check('written crop contains the student\'s ink', dark > 200, dark + ' dark pixels recovered');
+})();
+
+/* ------------------------------------------ printed sheet vs scanner geometry */
+log('<h2>Printable sheet fidelity</h2>');
+var printCheck = new Promise(function (resolve) {
+  var html = S.renderSheets(test, [{ sid: SID, name: 'Avery Nguyen', cls: test.className }],
+                            { prefill: true });
+  var f = document.createElement('iframe');
+  f.style.cssText = 'width:900px;height:700px;border:1px solid #2b3140;border-radius:6px;background:#fff';
+  f.srcdoc = html;
+  log('').appendChild(f);
+  f.onload = function () {
+    try {
+      var doc = f.contentDocument;
+      var page = doc.querySelector('.page');
+      var pr = page.getBoundingClientRect();
+      var pxPerIn = pr.width / L.page.w;
+      function box(node) {
+        var r = node.getBoundingClientRect();
+        return { x0: (r.left - pr.left) / pxPerIn, y0: (r.top - pr.top) / pxPerIn,
+                 x1: (r.right - pr.left) / pxPerIn, y1: (r.bottom - pr.top) / pxPerIn,
+                 cx: (r.left + r.right) / 2 - pr.left, cy: (r.top + r.bottom) / 2 - pr.top };
+      }
+      function centreIn(node) { var b = box(node); return [b.cx / pxPerIn, b.cy / pxPerIn]; }
+
+      /* 1. corner squares land exactly where the scanner looks for them */
+      var fids = [].slice.call(page.querySelectorAll('.fid'));   /* first page only */
+      var want = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1],
+                  [L.fid.x1, L.fid.y1], [L.keystone.x, L.keystone.y]];
+      var maxErr = 0;
+      want.forEach(function (wpt, i) {
+        var c = centreIn(fids[i]);
+        maxErr = Math.max(maxErr, Math.abs(c[0] - wpt[0]), Math.abs(c[1] - wpt[1]));
+      });
+      check('printed corner squares match the scanner geometry',
+        fids.length === 5 && maxErr < 0.01, 'worst offset ' + (maxErr * 1000).toFixed(1) + ' thou');
+
+      /* 2. every printed bubble centre matches a bubble the scanner samples */
+      var pages = S.layoutTest(test);
+      var expected = [];
+      S.idGrid().forEach(function (r) { r.forEach(function (pt) { expected.push(pt); }); });
+      S.codeGrid().forEach(function (r) { r.forEach(function (pt) { expected.push(pt); }); });
+      S.pageRow().forEach(function (pt) { expected.push(pt); });
+      pages[0].mc.forEach(function (it) { it.choices.forEach(function (pt) { expected.push(pt); }); });
+      var expIn = expected.map(function (pt) {
+        return [L.fid.x0 + pt.u * L.W, L.fid.y0 + pt.v * L.H];
+      });
+      var bubs = [].slice.call(page.querySelectorAll('.bub'));
+      var worst = 0, unmatched = 0;
+      bubs.forEach(function (b) {
+        var c = centreIn(b), best = 9;
+        for (var i = 0; i < expIn.length; i++) {
+          var d = Math.max(Math.abs(c[0] - expIn[i][0]), Math.abs(c[1] - expIn[i][1]));
+          if (d < best) best = d;
+        }
+        if (best > 0.012) unmatched++;
+        worst = Math.max(worst, best);
+      });
+      check('every printed bubble sits where the scanner samples',
+        bubs.length === expIn.length && unmatched === 0,
+        bubs.length + ' bubbles, worst offset ' + (worst * 1000).toFixed(1) + ' thou');
+
+      /* 3. the pre-filled ID reads back as the right student number */
+      var filled = [].slice.call(page.querySelectorAll('.bub.fill')).map(centreIn);
+      var idRows = S.idGrid();
+      var readBack = idRows.map(function (row) {
+        for (var d = 0; d < 10; d++) {
+          var px = L.fid.x0 + row[d].u * L.W, py = L.fid.y0 + row[d].v * L.H;
+          for (var k = 0; k < filled.length; k++) {
+            if (Math.abs(filled[k][0] - px) < 0.02 && Math.abs(filled[k][1] - py) < 0.02) return d;
+          }
+        }
+        return '?';
+      }).join('');
+      check('pre-printed ID bubbles encode the student number',
+        readBack === SID, 'read back ' + readBack + ' (expected ' + SID + ')');
+
+      /* 4. nothing printed inside a corner square's quiet zone */
+      var zones = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1],
+                   [L.fid.x1, L.fid.y1], [L.keystone.x, L.keystone.y]].map(function (c, i) {
+        var half = (i === 4 ? L.keystone.size : L.fid.size) / 2 + L.quiet;
+        return { x0: c[0] - half, y0: c[1] - half, x1: c[0] + half, y1: c[1] + half };
+      });
+      var intruders = [];
+      [].slice.call(page.children).forEach(function (node, i) {
+        if (node.classList.contains('fid')) return;
+        var b = box(node);
+        if (b.x1 - b.x0 <= 0 || b.y1 - b.y0 <= 0) return;
+        zones.forEach(function (z, zi) {
+          if (b.x0 < z.x1 && b.x1 > z.x0 && b.y0 < z.y1 && b.y1 > z.y0) {
+            intruders.push((node.className || 'node') + '@zone' + zi +
+              ' [' + b.x0.toFixed(2) + ',' + b.y0.toFixed(2) + '-' +
+              b.x1.toFixed(2) + ',' + b.y1.toFixed(2) + ']');
+          }
+        });
+      });
+      check('no printed element intrudes on a corner square quiet zone',
+        intruders.length === 0, intruders.length ? intruders.slice(0, 4).join(' ; ') :
+        page.children.length + ' elements checked');
+
+      /* 5. content stays on the paper */
+      var off = [].slice.call(page.children).filter(function (n) {
+        var b = box(n);
+        return b.x0 < 0.05 || b.y0 < 0.05 || b.x1 > L.page.w - 0.05 || b.y1 > L.page.h - 0.05;
+      });
+      check('nothing runs off the printable page', off.length === 0,
+        off.length ? off.length + ' element(s) off-page' : 'all inside 8.5 x 11');
+    } catch (e) {
+      check('printable sheet fidelity', false, e.message);
+    }
+    resolve();
+  };
+});
+
+/* --------------------------------------------------- export file sanity */
+log('<h2>Export files</h2>');
+/**
+ * Walks the archive the way a real unzipper does: locates the end-of-central-
+ * directory record, then verifies every central header signature, that the
+ * recorded directory size and offset agree with the file, that each local
+ * header sits where the directory says, and that every CRC matches the data.
+ */
+function inspectZip(blob) {
+  return blob.arrayBuffer().then(function (ab) {
+    var u = new Uint8Array(ab), dv = new DataView(ab), n = u.length;
+    var eo = -1;
+    for (var i = n - 22; i >= 0 && i > n - 66000; i--) {
+      if (dv.getUint32(i, true) === 0x06054b50) { eo = i; break; }
+    }
+    if (eo < 0) throw new Error('no end-of-central-directory record');
+    var count = dv.getUint16(eo + 10, true);
+    var cdSize = dv.getUint32(eo + 12, true);
+    var cdOff = dv.getUint32(eo + 16, true);
+    if (eo !== n - 22) throw new Error('trailing bytes after EOCD');
+    if (cdOff + cdSize !== eo) {
+      throw new Error('central directory size/offset disagree with the file ' +
+        '(' + cdOff + '+' + cdSize + ' != ' + eo + ')');
+    }
+    var p = cdOff, names = [];
+    for (var k = 0; k < count; k++) {
+      if (dv.getUint32(p, true) !== 0x02014b50) throw new Error('bad central header #' + k);
+      var crc = dv.getUint32(p + 16, true);
+      var csize = dv.getUint32(p + 20, true);
+      var nameLen = dv.getUint16(p + 28, true);
+      var extraLen = dv.getUint16(p + 30, true);
+      var cmtLen = dv.getUint16(p + 32, true);
+      var lho = dv.getUint32(p + 42, true);
+      var name = new TextDecoder().decode(u.subarray(p + 46, p + 46 + nameLen));
+      if (dv.getUint32(lho, true) !== 0x04034b50) throw new Error('bad local header for ' + name);
+      var lNameLen = dv.getUint16(lho + 26, true), lExtra = dv.getUint16(lho + 28, true);
+      var dataAt = lho + 30 + lNameLen + lExtra;
+      var data = u.subarray(dataAt, dataAt + csize);
+      if (X.crc32(data) !== crc) throw new Error('CRC mismatch in ' + name);
+      names.push(name);
+      p += 46 + nameLen + extraLen + cmtLen;
+    }
+    if (p !== eo) throw new Error('central directory did not end at the EOCD');
+    return { size: n, count: count, names: names };
+  });
+}
+var xl = X.buildXlsx([
+  { name: 'Gradebook', rows: [[{ v: 'Student', s: X.XS.HEADER }, { v: 'Score', s: X.XS.HEADER }],
+    ['Avery Nguyen', 37], ['Ben "Q" Carter & Co <x>', { v: 0.925, s: X.XS.PCT }]],
+    cols: [24, 10], freezeHeader: true, autoFilter: true },
+  { name: 'Item analysis', rows: [['Q', '% right'], [1, { v: 0.8, s: X.XS.PCT }]] }
+]);
+var dx = X.buildDocx(
+  X.p('Avery Nguyen', { style: 'Heading1' }) +
+  X.p('Unit 4 — Cell "Biology" & <friends>', { size: 9, color: '5B6577' }) +
+  X.table([[{ text: '#' }, { text: 'Your answer' }, { text: 'Correct' }],
+           [{ text: '1', align: 'center' }, { text: 'B', color: 'B3261E' }, { text: 'D' }]],
+          { header: true, widths: [0.1, 0.45, 0.45] }) +
+  X.table([[{ xml: X.p('', { borderBottom: true, spaceBefore: 260 }) + X.p('Teacher', { size: 8 }) }]],
+          { borders: false }) +
+  X.pageBreak() + X.p('Second student')
+);
+function zipCheck(label, blob, expect) {
+  return inspectZip(blob).then(function (z) {
+    var missing = expect.filter(function (e) { return z.names.indexOf(e) < 0; });
+    check(label + ' is a valid ZIP (headers, offsets and CRCs)', missing.length === 0,
+      z.count + ' parts · ' + z.size + ' bytes' + (missing.length ? ' · MISSING ' + missing : ''));
+  }).catch(function (e) {
+    check(label + ' is a valid ZIP (headers, offsets and CRCs)', false, e.message);
+  });
+}
+Promise.all([
+  zipCheck('XLSX', xl, ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml',
+    'xl/_rels/workbook.xml.rels', 'xl/styles.xml', 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml']),
+  zipCheck('DOCX', dx, ['[Content_Types].xml', '_rels/.rels', 'word/document.xml',
+    'word/styles.xml', 'word/_rels/document.xml.rels']),
+  printCheck
+]).then(finish);
+
+var csv = X.toCsv([['Name', 'Note'], ['O\'Brien, Sam', 'said "hi"\nsecond line'], ['=cmd()', 3]]);
+check('CSV quotes commas, quotes and newlines, and defuses formulas',
+  csv.indexOf('"O\'Brien, Sam"') >= 0 && csv.indexOf('""hi""') >= 0 && csv.indexOf("'=cmd()") >= 0);
+
+var esc = X.xml('a & b < c > "d" ');
+check('XML escaper strips control characters', esc === 'a &amp; b &lt; c &gt; &quot;d&quot; ', JSON.stringify(esc));
+
+check('Column names roll over past Z', X.colName(0) === 'A' && X.colName(25) === 'Z' &&
+  X.colName(26) === 'AA' && X.colName(51) === 'AZ' && X.colName(52) === 'BA');
+
+/* readGroup behaviour */
+check('readGroup ignores the printed grey letter baseline',
+  V.readGroup([0.12, 0.11, 0.62, 0.13, 0.12]).index === 2);
+check('readGroup reports a blank row',
+  V.readGroup([0.12, 0.11, 0.13, 0.13, 0.12]).state === 'blank');
+check('readGroup reports a double mark',
+  V.readGroup([0.12, 0.60, 0.58, 0.13, 0.12]).state === 'multi');
+
+function finish() {
+  var bad = results.filter(function (r) { return !r.ok; });
+  var el = document.getElementById('summary');
+  el.innerHTML = bad.length
+    ? '<span class="fail">' + bad.length + ' of ' + results.length + ' checks FAILED</span>'
+    : '<span class="pass">All ' + results.length + ' checks passed</span>';
+  window.__selftest = { total: results.length, failed: bad.length,
+    failures: bad.map(function (b) { return b.name; }) };
+}
+})();
+</script>
+</body>
+</html>
