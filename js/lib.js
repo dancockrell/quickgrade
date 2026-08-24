@@ -309,8 +309,13 @@ function modal(content, opts) {
   }
   m.hidden = false;
 
+  /* Focus the first control for keyboard flow, but do not let that scroll a
+   * tall dialog: if the first control sits below the fold the card would open
+   * scrolled past its own heading. */
   var first = card.querySelector(FOCUSABLE);
-  (first || card).focus();
+  try { (first || card).focus({ preventScroll: true }); }
+  catch (e) { (first || card).focus(); }
+  card.scrollTop = 0;
 
   function close() {
     m.hidden = true;

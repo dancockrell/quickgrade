@@ -94,7 +94,26 @@ body{
   text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;margin-left:auto;
   padding-left:8px;border-left:1px solid var(--line);
 }
-@media(max-width:900px){.ctx{display:none}}
+@media(max-width:900px){.ctx{display:none}#btnPrivacy{margin-left:auto}}
+#btnPrivacy{
+  flex:0 0 auto;background:none;border:0;padding:4px 6px;border-radius:7px;
+  color:var(--dim);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;
+}
+#btnPrivacy:hover{color:var(--ink);background:var(--surface2)}
+.linky{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+  cursor:pointer;text-decoration:underline}
+
+/* the data statement, on screen */
+.privacy{max-width:56ch}
+.privacy-list{list-style:none;margin:14px 0 0;padding:0;display:flex;
+  flex-direction:column;gap:12px}
+.privacy-list li{display:flex;flex-direction:column;gap:2px}
+.privacy-list strong{font-size:13px}
+.privacy-list span,.privacy-note span{color:var(--dim);font-size:13px;line-height:1.5}
+.privacy-note{margin-top:14px;padding:11px 13px;border-left:3px solid var(--line);
+  background:var(--surface2);border-radius:0 8px 8px 0;display:flex;
+  flex-direction:column;gap:2px}
+.privacy-note strong{font-size:13px}
 @media(max-width:560px){.brand span,.brand{font-size:0;gap:0}.brand::before{font-size:0}}
 
 main{flex:1 1 auto;min-height:0;position:relative}

@@ -3457,6 +3457,8 @@ function wireUI() {
     workingFmt = null; renderFormatUI();
   });
   on($('#exSend'), 'click', sendToEndpoint);
+  on($('#btnPrivacy'), 'click', function () { Q.Privacy.dialog(); });
+  on($('#exPrivacy'), 'click', function () { Q.Privacy.dialog(); });
 
   on($('#exDocx'), 'click', function () { recompute(); exportTopSheetsDocx(); });
   on($('#exPrintSheets'), 'click', function () { recompute(); printTopSheets(); });
