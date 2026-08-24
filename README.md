@@ -12,8 +12,17 @@ and put student records on someone else's servers. Most teachers in the world ha
 never had one.
 
 QuickGrade needs no account, no subscription, no server and no internet connection
-after it loads. It runs on a five-year-old laptop, a phone, US Letter or A4, and
-every word printed on the sheet can be changed to another language.
+after it loads. It runs on a five-year-old laptop, a phone, US Letter or A4.
+
+The interface speaks **English, العربية, हिन्दी, Tagalog and Русский**, and picks
+your language from the browser the first time it opens — someone who cannot read
+English should not have to find a menu labelled "Language". Right-to-left is
+handled properly; the answer sheet itself never mirrors, because the scanner
+reads bubbles by position. Every word printed on the sheet can also be changed
+by hand, for a language we do not ship or for your school's own terms.
+
+Adding a language is one file: copy `js/lang/en.js`, translate the right-hand
+side, and the test suite will tell you if you missed a key.
 
 **No student's name or score ever leaves the device it was scanned on.** That is
 not a policy you have to trust — there is no server for the data to go to. See
