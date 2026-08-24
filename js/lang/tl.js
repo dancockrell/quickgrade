@@ -741,6 +741,11 @@ I.packs.tl = {
   'sheet.pageWord': 'PAHINA',
   'sheet.of': 'sa',
   'sheet.studentId': 'ID NG MAG-AARAL',
-  'sheet.testCode': 'KODIGO (nakalimbag na)'
+  'sheet.testCode': 'KODIGO (nakalimbag na)',
+  'sheet.footer': 'QuickGrade sagutang papel · i-print sa 100% · panatilihing malinis ang apat na parisukat sa sulok',
+  'sheet.docTitle': '{title} — mga sagutang papel',
+  'sheet.printBtn.one': 'I-print ang {n} pahina',
+  'sheet.printBtn.other': 'I-print ang {n} pahina',
+  'sheet.printAdvice': 'Itakda ang scale sa <b>100% / Actual size</b>, margins <b>None</b>, papel <b>{paper}</b>. Huwag buksan ang &ldquo;fit to page&rdquo; kung nagdaragdag ito ng border.'
 };
 })(window.QG.I18N);

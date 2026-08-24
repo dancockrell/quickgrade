@@ -692,6 +692,19 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 [dir="rtl"] .brand{direction:ltr}
 [dir="rtl"] code,[dir="rtl"] kbd{direction:ltr}
 [dir="rtl"] .linky{margin-inline-start:5px}
+/* Thai stacks a vowel above the consonant and a tone mark above that;
+ * Devanagari hangs marks below as well. At Latin leading the marks are the
+ * first thing to be clipped by a fixed-height control, and the text reads as
+ * damaged rather than merely tight. */
+:root[lang="th"],:root[lang="hi"]{--lh:1.75}
+[lang="th"] .btn,[lang="hi"] .btn,
+[lang="th"] .navbtn,[lang="hi"] .navbtn,
+[lang="th"] .pill,[lang="hi"] .pill,
+[lang="th"] input,[lang="hi"] input,
+[lang="th"] select,[lang="hi"] select{line-height:1.7}
+[lang="th"] .opt,[lang="hi"] .opt,
+[lang="th"] .pbtn,[lang="hi"] .pbtn{line-height:1.35}
+
 [dir="rtl"] .sel{background-position:15px 17px, 10px 17px}
 [dir="rtl"] .sel.sm{background-position:13px 13px, 8px 13px}
 [dir="rtl"] #langPick{padding:0 8px 0 24px}

@@ -104,43 +104,74 @@ function keysUsedInSource() {
         p.identical + ' of ' + p.count + ' identical to English');
     }
 
-    const r = await page.evaluate(async (c) => {
-      QG.I18N.set(c);
-      await new Promise(r => setTimeout(r, 250));
-      const d = document.documentElement;
-      /* Anything the walker failed to reach shows as a dotted key. */
-      const raw = [];
-      document.querySelectorAll('#main *, #topbar *').forEach(el => {
-        if (el.offsetParent === null) return;
-        [...el.childNodes].filter(n => n.nodeType === 3).forEach(n => {
-          const t = n.textContent.trim();
-          if (/^[a-z]+(\.[a-zA-Z0-9]+){1,}$/.test(t)) raw.push(t);
-        });
-      });
-      /* Nothing may push the page sideways. */
-      const over = [];
-      document.querySelectorAll('#view-tests *, #view-export *').forEach(el => {
-        if (el.offsetParent === null) return;
-        const b = el.getBoundingClientRect();
-        if (b.width > 0 && (b.right > window.innerWidth + 2 || b.left < -2)) {
-          over.push((el.className || el.tagName).toString().slice(0, 24));
+    /* Every view, on a desktop and on a phone. Translated text is routinely
+     * a third longer than the English it replaces, and the place it breaks
+     * is a narrow screen on a view nobody thought to look at. */
+    const VIEWS = ['tests', 'roster', 'review', 'written', 'export'];
+    const raw = new Set(), over = new Set();
+    let dir, langAttr, h1, scrollX = 0;
+
+    for (const [w, h] of [[1280, 900], [420, 820]]) {
+      await page.setViewportSize({ width: w, height: h });
+      const r = await page.evaluate(async (a) => {
+        const [c, views] = a;
+        function inScroller(el) {
+          for (let n = el.parentElement; n && n !== document.body; n = n.parentElement) {
+            const ox = getComputedStyle(n).overflowX;
+            if ((ox === 'auto' || ox === 'scroll') && n.scrollWidth > n.clientWidth) return true;
+          }
+          return false;
         }
-      });
-      return { dir: d.getAttribute('dir'), lang: d.getAttribute('lang'),
-               raw: [...new Set(raw)], over: [...new Set(over)],
-               h1: document.querySelector('#view-tests h1').textContent,
-               scrollX: document.documentElement.scrollWidth - document.documentElement.clientWidth };
-    }, code);
+        QG.I18N.set(c);
+        await new Promise(r => setTimeout(r, 200));
+        const rawKeys = [], overflowing = [];
+        let maxScroll = 0;
+        for (const v of views) {
+          QG.App.route(v);
+          await new Promise(r => setTimeout(r, 160));
+          /* Anything the walker failed to reach shows as a dotted key. */
+          document.querySelectorAll('#view-' + v + ' *, #topbar *').forEach(el => {
+            if (el.offsetParent === null) return;
+            [...el.childNodes].filter(n => n.nodeType === 3).forEach(n => {
+              const t = n.textContent.trim();
+              if (/^[a-z]+(\.[a-zA-Z0-9]+){1,}$/.test(t)) rawKeys.push(t);
+            });
+            /* Longer words must wrap, not push the page sideways. Content
+             * inside a container that scrolls horizontally on purpose — the
+             * nav strip, a wide table — is doing what it was told to. */
+            const b = el.getBoundingClientRect();
+            if (b.width > 0 && (b.right > window.innerWidth + 2 || b.left < -2) &&
+                !inScroller(el)) {
+              overflowing.push(v + ':' + (el.className || el.tagName).toString().slice(0, 20));
+            }
+          });
+          maxScroll = Math.max(maxScroll,
+            document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        }
+        QG.App.route('tests');
+        await new Promise(r => setTimeout(r, 160));
+        const d = document.documentElement;
+        return { dir: d.getAttribute('dir'), lang: d.getAttribute('lang'),
+                 raw: rawKeys, over: overflowing, scrollX: maxScroll,
+                 h1: document.querySelector('#view-tests h1').textContent };
+      }, [code, VIEWS]);
+      r.raw.forEach(x => raw.add(x));
+      r.over.forEach(x => over.add(x));
+      scrollX = Math.max(scrollX, r.scrollX);
+      dir = r.dir; langAttr = r.lang; h1 = r.h1;
+    }
+    await page.setViewportSize({ width: 1280, height: 900 });
 
     const wantDir = await page.evaluate(c => QG.I18N.meta(c).dir, code);
     ok('[' + code + '] sets lang and dir on the document',
-      r.lang === code && r.dir === wantDir, r.lang + ' / ' + r.dir);
-    ok('[' + code + '] leaves no untranslated key on screen', r.raw.length === 0,
-      r.raw.slice(0, 5).join(', ') || 'none');
-    ok('[' + code + '] does not overflow the viewport', r.over.length === 0 && r.scrollX <= 0,
-      r.over.slice(0, 4).join(', ') || ('scrollX ' + r.scrollX));
+      langAttr === code && dir === wantDir, langAttr + ' / ' + dir);
+    ok('[' + code + '] leaves no untranslated key on screen', raw.size === 0,
+      [...raw].slice(0, 5).join(', ') || 'none');
+    ok('[' + code + '] fits every view on desktop and phone',
+      over.size === 0 && scrollX <= 0,
+      [...over].slice(0, 4).join(', ') || ('scrollX ' + scrollX));
     if (code !== 'en') {
-      ok('[' + code + '] actually changed the visible text', r.h1 !== english, r.h1);
+      ok('[' + code + '] actually changed the visible text', h1 !== english, h1);
     }
   }
 

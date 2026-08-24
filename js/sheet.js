@@ -440,7 +440,7 @@ function renderPage(test, pages, pageIdx, who) {
   /* footer — kept horizontally between the two bottom corner squares */
   h += absDiv('hdr', L.footerX, L.footerY, L.footerW, 0.14,
     '<div style="font-size:6.4pt;color:#777;display:flex;justify-content:space-between;gap:.2in">' +
-    '<span>QuickGrade answer sheet &middot; print at 100% &middot; keep the four corner squares clean</span>' +
+    '<span>' + E(T('sheet.footer')) + '</span>' +
     '<span style="overflow:hidden;white-space:nowrap">' + E(who.name || '') + '</span></div>');
 
   return h + '</div>';
@@ -470,13 +470,15 @@ function renderSheets(test, people, opts) {
   var count = (people && people.length ? people.length : 1) * pages.length;
   var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h)
                      .replace(/%FONT%/g, global.QG.I18N.fonts().print);
-  return '<!doctype html><html><head><meta charset="utf-8"><title>' +
-    E(opts.title || (test.title + ' — answer sheets')) + '</title><style>' + css + '</style></head><body>' +
-    '<div class="toolbar noprint"><button onclick="window.print()">Print ' + count + ' page' +
-    (count === 1 ? '' : 's') + '</button>' +
-    '<span>Set scale to <b>100% / Actual size</b>, margins <b>None</b>, paper <b>' +
-    E((PAPERS[L.paper] || PAPERS.letter).label) + '</b>. ' +
-    'Do not enable &ldquo;fit to page&rdquo; if it adds borders.</span></div>' +
+  var I = global.QG.I18N;
+  return '<!doctype html><html lang="' + E(I.lang) + '" dir="' + E(I.meta(I.lang).dir) +
+    '"><head><meta charset="utf-8"><title>' +
+    E(opts.title || T('sheet.docTitle', { title: test.title })) +
+    '</title><style>' + css + '</style></head><body>' +
+    '<div class="toolbar noprint"><button onclick="window.print()">' +
+    E(T('sheet.printBtn', { n: count })) + '</button>' +
+    '<span>' + T('sheet.printAdvice', { paper: E((PAPERS[L.paper] || PAPERS.letter).label) }) +
+    '</span></div>' +
     body + '</body></html>';
 }
 

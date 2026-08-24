@@ -805,6 +805,13 @@ I.packs.ru = {
   'sheet.pageWord': 'СТР.',
   'sheet.of': 'из',
   'sheet.studentId': 'НОМЕР УЧЕНИКА',
-  'sheet.testCode': 'КОД РАБОТЫ (уже отмечен)'
+  'sheet.testCode': 'КОД РАБОТЫ (уже отмечен)',
+  'sheet.footer': 'Бланк ответов QuickGrade · печать в 100% · не пачкайте четыре угловых квадрата',
+  'sheet.docTitle': '{title} — бланки ответов',
+  'sheet.printBtn.one': 'Печать {n} страницы',
+  'sheet.printBtn.few': 'Печать {n} страниц',
+  'sheet.printBtn.many': 'Печать {n} страниц',
+  'sheet.printBtn.other': 'Печать {n} страниц',
+  'sheet.printAdvice': 'Установите масштаб <b>100% / Реальный размер</b>, поля <b>Нет</b>, бумага <b>{paper}</b>. Не включайте &laquo;вписать в страницу&raquo;, если это добавляет рамку.'
 };
 })(window.QG.I18N);

@@ -748,6 +748,11 @@ I.packs.ar = {
   'sheet.pageWord': 'صفحة',
   'sheet.of': 'من',
   'sheet.studentId': 'رقم الطالب',
-  'sheet.testCode': 'رمز الاختبار (مطبوع مسبقاً)'
+  'sheet.testCode': 'رمز الاختبار (مطبوع مسبقاً)',
+  'sheet.footer': 'ورقة إجابة QuickGrade · اطبع بمقياس 100% · حافظ على نظافة المربعات الأربعة',
+  'sheet.docTitle': '{title} — أوراق الإجابة',
+  'sheet.printBtn.one': 'اطبع {n} صفحة',
+  'sheet.printBtn.other': 'اطبع {n} صفحة',
+  'sheet.printAdvice': 'اضبط المقياس على <b>100% / الحجم الفعلي</b>، والهوامش على <b>بلا</b>، والورق على <b>{paper}</b>. لا تفعّل &laquo;ملاءمة الصفحة&raquo; إن كانت تضيف حدوداً.'
 };
 })(window.QG.I18N);

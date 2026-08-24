@@ -741,6 +741,11 @@ I.packs.hi = {
   'sheet.pageWord': 'पृष्ठ',
   'sheet.of': 'में से',
   'sheet.studentId': 'विद्यार्थी आईडी',
-  'sheet.testCode': 'परीक्षा कोड (पहले से भरा)'
+  'sheet.testCode': 'परीक्षा कोड (पहले से भरा)',
+  'sheet.footer': 'QuickGrade उत्तर-पत्रक · 100% पर छापें · चारों कोनों के वर्ग साफ़ रखें',
+  'sheet.docTitle': '{title} — उत्तर-पत्रक',
+  'sheet.printBtn.one': '{n} पृष्ठ छापें',
+  'sheet.printBtn.other': '{n} पृष्ठ छापें',
+  'sheet.printAdvice': 'स्केल <b>100% / वास्तविक आकार</b>, मार्जिन <b>कोई नहीं</b>, काग़ज़ <b>{paper}</b> रखें। यदि “फ़िट टू पेज” किनारे जोड़ता हो तो उसे चालू न करें।'
 };
 })(window.QG.I18N);
