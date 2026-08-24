@@ -2341,6 +2341,47 @@ I.packs.en = {
   'trash.purgeYes': 'Delete for good',
   'trash.restore': 'Bring them back',
 
+  /* --- ts --- */
+  'ts.aTest': 'Test',
+  'ts.allCorrect': 'Every multiple-choice question was correct.',
+  'ts.col.class': 'Class',
+  'ts.col.comment': 'Comment',
+  'ts.col.correct': 'Correct',
+  'ts.col.level': 'Level',
+  'ts.col.outOf': 'Out of',
+  'ts.col.points': 'Points',
+  'ts.col.pts': 'Pts',
+  'ts.col.question': 'Question',
+  'ts.col.result': 'Result',
+  'ts.col.right': 'Right',
+  'ts.col.topic': 'Topic',
+  'ts.col.yours': 'Your answer',
+  'ts.comments': 'Teacher comments',
+  'ts.correct': '✓ correct',
+  'ts.docTitle': '{title} — graded top sheets',
+  'ts.expected': 'Expected answers',
+  'ts.idPrefix': 'ID {sid}',
+  'ts.incorrect': '✗ incorrect',
+  'ts.masteryHead': 'What you have and haven’t got',
+  'ts.mcHead': 'Multiple choice',
+  'ts.missedList': 'Questions missed: {list}',
+  'ts.missedNone': 'none — perfect on multiple choice',
+  'ts.multiMarked.one': '⚠ {n} question had more than one bubble filled and scored as incorrect',
+  'ts.multiMarked.other': '⚠ {n} questions had more than one bubble filled and scored as incorrect',
+  'ts.notScanned': 'not scanned',
+  'ts.pagesMissing': '⚠ Pages not scanned: {pages}',
+  'ts.sheetCount.one': '{n} student sheet',
+  'ts.sheetCount.other': '{n} student sheets',
+  'ts.sig.date': 'Date',
+  'ts.sig.parent': 'Parent / guardian',
+  'ts.sig.student': 'Student — corrections requested',
+  'ts.sig.teacher': 'Teacher',
+  'ts.twoMarks': 'two marks',
+  'ts.unknownStudent': 'Unknown student',
+  'ts.worthAnotherLook': 'Worth another look: {list}.',
+  'ts.writtenHead': 'Written answers',
+  'ts.writtenQ': 'Written question {n}',
+
   /* --- unres --- */
   'unres.alt.name': 'handwritten name',
   'unres.alt.sheet': 'sheet',
@@ -8984,11 +9025,11 @@ function topSheetBody(x, opts) {
   var P = X.p, TBL = X.table;
   var out = '';
 
-  out += P(x.name || 'Unknown student', { style: 'Heading1' });
-  var sub = [t.title || 'Test'];
+  out += P(x.name || T('ts.unknownStudent'), { style: 'Heading1' });
+  var sub = [t.title || T('ts.aTest')];
   if (t.className) sub.push(t.className);
   if (ts.showDate && t.date) sub.push(Q.prettyDate(t.date));
-  if (ts.showStudentId && x.sid) sub.push('ID ' + x.sid);
+  if (ts.showStudentId && x.sid) sub.push(T('ts.idPrefix', { sid: x.sid }));
   out += P(sub.join('   ·   '), { size: 9, color: '5B6577', spaceAfter: 160 });
 
   if (ts.showScoreBand) {
@@ -9011,8 +9052,8 @@ function topSheetBody(x, opts) {
   var extra = [];
   if (ts.showClassAvg) extra.push('Class average: ' + Math.round(r.avg * 100) + '%');
   if (ts.showRank && x.rank) extra.push('Rank: ' + x.rank + ' of ' + r.scannedRows.length);
-  if (x.missing.length) extra.push('⚠ Page(s) not scanned: ' + x.missing.join(', '));
-  if (x.multi) extra.push('⚠ ' + x.multi + ' question(s) had more than one bubble filled and scored as incorrect');
+  if (x.missing.length) extra.push(T('ts.pagesMissing', { pages: x.missing.join(', ') }));
+  if (x.multi) extra.push(T('ts.multiMarked', { n: x.multi }));
   if (extra.length) out += P(extra.join('    ·    '), { size: 9, color: '8A5A00', spaceAfter: 140 });
 
   if (ts.showMissedList && t.mc.count) {
@@ -9022,17 +9063,18 @@ function topSheetBody(x, opts) {
       if (t.mc.key[i] == null) continue;
       if (x.answers[i] !== t.mc.key[i]) missed.push(i + 1);
     }
-    out += P('Questions missed: ' + (missed.length ? missed.join(', ') : 'none — perfect on multiple choice'),
+    out += P(T('ts.missedList', { list: missed.length ? missed.join(', ') : T('ts.missedNone') }),
       { size: 10, b: true, spaceAfter: 140 });
   }
 
   if (ts.showMc && t.mc.count) {
-    out += P('Multiple choice', { style: 'Heading2' });
-    var head = [{ text: '#' }, { text: 'Your answer' }, { text: 'Correct' }, { text: 'Result' }, { text: 'Pts' }];
+    out += P(T('ts.mcHead'), { style: 'Heading2' });
+    var head = [{ text: '#' }, { text: T('ts.col.yours') }, { text: T('ts.col.correct') },
+                { text: T('ts.col.result') }, { text: T('ts.col.pts') }];
     var widths = [0.07, 0.16, 0.13, 0.14, 0.10];
-    if (ts.showQuestionText) { head.splice(1, 0, { text: 'Question' }); widths = [0.05, 0.40, 0.12, 0.10, 0.11, 0.08]; }
-    if (ts.showTopic) { head.push({ text: 'Topic' }); widths.push(0.16); }
-    if (ts.showClassPct) { head.push({ text: 'Class' }); widths.push(0.10); }
+    if (ts.showQuestionText) { head.splice(1, 0, { text: T('ts.col.question') }); widths = [0.05, 0.40, 0.12, 0.10, 0.11, 0.08]; }
+    if (ts.showTopic) { head.push({ text: T('ts.col.topic') }); widths.push(0.16); }
+    if (ts.showClassPct) { head.push({ text: T('ts.col.class') }); widths.push(0.10); }
     var sum = widths.reduce(function (a, b) { return a + b; }, 0);
     widths = widths.map(function (w) { return w / sum; });
 
@@ -9042,27 +9084,27 @@ function topSheetBody(x, opts) {
       var isRight = key != null && a === key;
       if (ts.onlyWrong && isRight) continue;
       if (a === -3 && ts.onlyWrong) continue;
-      var yours = a === -3 ? '—' : x.states[qi] === 'multi' ? 'two marks' : a < 0 ? 'blank' : S.LETTERS[a];
+      var yours = a === -3 ? '—' : x.states[qi] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.LETTERS[a];
       var row = [{ text: String(qi + 1), align: 'center' }];
       if (ts.showQuestionText) row.push({ text: (t.mc.text || [])[qi] || '', size: 9 });
       row.push({ text: yours, align: 'center', b: !isRight, color: isRight ? '1A7F4B' : 'B3261E' });
       row.push({ text: key == null ? '?' : S.LETTERS[key], align: 'center' });
-      row.push({ text: a === -3 ? 'not scanned' : isRight ? '✓ correct' : '✗ incorrect', align: 'center',
+      row.push({ text: a === -3 ? T('ts.notScanned') : isRight ? T('ts.correct') : T('ts.incorrect'), align: 'center',
                  color: isRight ? '1A7F4B' : 'B3261E' });
       row.push({ text: String(isRight ? t.mc.points : 0), align: 'center' });
       if (ts.showTopic) row.push({ text: (t.mc.topic || [])[qi] || '', size: 9 });
       if (ts.showClassPct) row.push({ text: Math.round((r.itemPct[qi] || {}).pct * 100) + '%', align: 'center', size: 9 });
       body.push(row);
     }
-    if (body.length === 1) body.push([{ text: 'Every multiple-choice question was correct.', colspan: head.length }]);
+    if (body.length === 1) body.push([{ text: T('ts.allCorrect'), colspan: head.length }]);
     out += TBL(body, { header: true, widths: widths });
   }
 
   if (ts.showWritten && t.written.length) {
-    out += P('Written answers', { style: 'Heading2' });
-    var wh = [{ text: '#' }, { text: 'Question' }, { text: 'Points' }];
+    out += P(T('ts.writtenHead'), { style: 'Heading2' });
+    var wh = [{ text: '#' }, { text: T('ts.col.question') }, { text: T('ts.col.points') }];
     var ww = [0.07, 0.58, 0.13];
-    if (ts.showWrittenNotes) { wh.push({ text: 'Comment' }); ww = [0.06, 0.40, 0.12, 0.42]; }
+    if (ts.showWrittenNotes) { wh.push({ text: T('ts.col.comment') }); ww = [0.06, 0.40, 0.12, 0.42]; }
     var wsum = ww.reduce(function (a, b) { return a + b; }, 0);
     ww = ww.map(function (w) { return w / wsum; });
     var wbody = [wh];
@@ -9070,7 +9112,7 @@ function topSheetBody(x, opts) {
       var rec = (x.wRecords || {})[wi] || {};
       var row = [
         { text: String(wi + 1), align: 'center' },
-        { text: wq.label || ('Written question ' + (wi + 1)), size: 10 },
+        { text: wq.label || T('ts.writtenQ', { n: wi + 1 }), size: 10 },
         { text: (typeof rec.p === 'number' ? rec.p : '—') + ' / ' + (wq.max || 0), align: 'center', b: true }
       ];
       if (ts.showWrittenNotes) row.push({ text: rec.c || '', size: 9 });
@@ -9090,7 +9132,7 @@ function topSheetBody(x, opts) {
     });
     out += TBL(wbody, { header: true, widths: ww });
     if (t.written.some(function (w) { return w.expected; })) {
-      out += P('Expected answers', { style: 'Heading2' });
+      out += P(T('ts.expected'), { style: 'Heading2' });
       t.written.forEach(function (wq, wi) {
         if (wq.expected) out += P((wi + 1) + '. ' + wq.expected, { size: 10 });
       });
@@ -9101,8 +9143,9 @@ function topSheetBody(x, opts) {
   if (ts.showMastery && Q.Mastery.isTagged(t)) {
     var mine = Q.Mastery.forStudent(t, x);
     if (mine.length) {
-      out += P('What you have and haven’t got', { style: 'Heading2' });
-      out += TBL([[{ text: 'Topic' }, { text: 'Right' }, { text: 'Out of' }, { text: 'Level' }]]
+      out += P(T('ts.masteryHead'), { style: 'Heading2' });
+      out += TBL([[{ text: T('ts.col.topic') }, { text: T('ts.col.right') },
+                   { text: T('ts.col.outOf') }, { text: T('ts.col.level') }]]
         .concat(mine.map(function (m) {
           return [
             { text: m.name, size: 10 },
@@ -9114,14 +9157,14 @@ function topSheetBody(x, opts) {
         })), { header: true, widths: [0.52, 0.14, 0.14, 0.2] });
       var weak = mine.filter(function (m) { return m.level.id !== 'secure'; });
       if (weak.length) {
-        out += P('Worth another look: ' + weak.map(function (m) { return m.name; }).join(', ') + '.',
+        out += P(T('ts.worthAnotherLook', { list: weak.map(function (m) { return m.name; }).join(', ') }),
           { size: 10, color: '8A5A00', spaceAfter: 140 });
       }
     }
   }
 
   if (ts.commentBox) {
-    out += P('Teacher comments', { style: 'Heading2' });
+    out += P(T('ts.comments'), { style: 'Heading2' });
     if (x.comment) out += P(x.comment, { size: 11, spaceAfter: 60 });
     var lines = ts.commentLines ? 4 : 3;
     var blank = new Array(lines).join('\n') + '\n';
@@ -9129,13 +9172,13 @@ function topSheetBody(x, opts) {
   }
 
   var sigs = [];
-  if (ts.sigTeacher) sigs.push('Teacher');
-  if (ts.sigParent) sigs.push('Parent / guardian');
-  if (ts.sigStudent) sigs.push('Student — corrections requested');
+  if (ts.sigTeacher) sigs.push(T('ts.sig.teacher'));
+  if (ts.sigParent) sigs.push(T('ts.sig.parent'));
+  if (ts.sigStudent) sigs.push(T('ts.sig.student'));
   if (sigs.length) {
     var cells = sigs.map(function (label) {
       return { xml: X.p('', { borderBottom: true, spaceBefore: 260, spaceAfter: 0 }) +
-                    X.p(label + '                              Date', { size: 8, color: '6B7280' }) };
+                    X.p(label + '                              ' + T('ts.sig.date'), { size: 8, color: '6B7280' }) };
     });
     out += X.table([cells], { borders: false, widths: sigs.map(function () { return 1 / sigs.length; }) });
   }
@@ -9178,15 +9221,16 @@ function printTopSheets() {
     'font:inherit;font-weight:700;cursor:pointer}' +
     '@media print{.toolbar{display:none}}';
 
-  var h = '<!doctype html><html><head><meta charset="utf-8"><title>' + X.xml(t.title) +
-    ' — graded top sheets</title><style>' + css + '</style></head><body>' +
-    '<div class="toolbar"><button onclick="window.print()">Print / Save as PDF</button>' +
-    '<span>' + rows.length + ' student sheet(s)</span></div>';
+  var h = '<!doctype html><html lang="' + Q.I18N.lang + '" dir="' + Q.I18N.meta(Q.I18N.lang).dir +
+    '"><head><meta charset="utf-8"><title>' + X.xml(T('ts.docTitle', { title: t.title })) +
+    '</title><style>' + css + '</style></head><body>' +
+    '<div class="toolbar"><button onclick="window.print()">' + X.xml(T('export.print')) + '</button>' +
+    '<span>' + X.xml(T('ts.sheetCount', { n: rows.length })) + '</span></div>';
 
   rows.forEach(function (x) {
     h += '<div class="sh"><h1>' + X.xml(x.name) + '</h1><div class="sub">' +
       [X.xml(t.title), X.xml(t.className), ts.showDate ? Q.prettyDate(t.date) : '',
-       ts.showStudentId ? 'ID ' + x.sid : ''].filter(Boolean).join(' &nbsp;·&nbsp; ') + '</div>';
+       ts.showStudentId ? T('ts.idPrefix', { sid: x.sid }) : ''].filter(Boolean).join(' &nbsp;·&nbsp; ') + '</div>';
     if (ts.showScoreBand) {
       h += '<table class="band"><tr><th>SCORE</th>' + (ts.showPercent ? '<th>PERCENT</th>' : '') +
         (ts.showLetter ? '<th>GRADE</th>' : '') + '<th>MULTIPLE CHOICE</th>' +
@@ -9197,19 +9241,22 @@ function printTopSheets() {
         (t.written.length ? '<td>' + x.wPts + ' / ' + x.wMax + '</td>' : '') + '</tr></table>';
     }
     if (ts.showMc && t.mc.count) {
-      h += '<h2>Multiple choice</h2><table><tr><th class="c">#</th>' +
-        (ts.showQuestionText ? '<th>Question</th>' : '') +
-        '<th class="c">Your answer</th><th class="c">Correct</th><th class="c">Result</th><th class="c">Pts</th>' +
-        (ts.showTopic ? '<th>Topic</th>' : '') + (ts.showClassPct ? '<th class="c">Class</th>' : '') + '</tr>';
+      h += '<h2>' + X.xml(T('ts.mcHead')) + '</h2><table><tr><th class="c">#</th>' +
+        (ts.showQuestionText ? '<th>' + X.xml(T('ts.col.question')) + '</th>' : '') +
+        '<th class="c">' + X.xml(T('ts.col.yours')) + '</th><th class="c">' + X.xml(T('ts.col.correct')) +
+        '</th><th class="c">' + X.xml(T('ts.col.result')) + '</th><th class="c">' + X.xml(T('ts.col.pts')) + '</th>' +
+        (ts.showTopic ? '<th>' + X.xml(T('ts.col.topic')) + '</th>' : '') +
+        (ts.showClassPct ? '<th class="c">' + X.xml(T('ts.col.class')) + '</th>' : '') + '</tr>';
       for (var i = 0; i < t.mc.count; i++) {
         var a = x.answers[i], key = t.mc.key[i], right = key != null && a === key;
         if (ts.onlyWrong && (right || a === -3)) continue;
-        var yours = a === -3 ? '—' : x.states[i] === 'multi' ? 'two marks' : a < 0 ? 'blank' : S.LETTERS[a];
+        var yours = a === -3 ? '—' : x.states[i] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.LETTERS[a];
         h += '<tr><td class="c">' + (i + 1) + '</td>' +
           (ts.showQuestionText ? '<td>' + X.xml((t.mc.text || [])[i] || '') + '</td>' : '') +
           '<td class="c ' + (right ? 'ok' : 'no') + '">' + yours + '</td>' +
           '<td class="c">' + (key == null ? '?' : S.LETTERS[key]) + '</td>' +
-          '<td class="c ' + (right ? 'ok' : 'no') + '">' + (a === -3 ? 'not scanned' : right ? '✓ correct' : '✗ incorrect') + '</td>' +
+          '<td class="c ' + (right ? 'ok' : 'no') + '">' +
+            X.xml(a === -3 ? T('ts.notScanned') : right ? T('ts.correct') : T('ts.incorrect')) + '</td>' +
           '<td class="c">' + (right ? t.mc.points : 0) + '</td>' +
           (ts.showTopic ? '<td>' + X.xml((t.mc.topic || [])[i] || '') + '</td>' : '') +
           (ts.showClassPct ? '<td class="c">' + Math.round((r.itemPct[i] || {}).pct * 100) + '%</td>' : '') +
@@ -9218,8 +9265,9 @@ function printTopSheets() {
       h += '</table>';
     }
     if (ts.showWritten && t.written.length) {
-      h += '<h2>Written answers</h2><table><tr><th class="c">#</th><th>Question</th><th class="c">Points</th>' +
-        (ts.showWrittenNotes ? '<th>Comment</th>' : '') + '</tr>';
+      h += '<h2>' + X.xml(T('ts.writtenHead')) + '</h2><table><tr><th class="c">#</th><th>' +
+        X.xml(T('ts.col.question')) + '</th><th class="c">' + X.xml(T('ts.col.points')) + '</th>' +
+        (ts.showWrittenNotes ? '<th>' + X.xml(T('ts.col.comment')) + '</th>' : '') + '</tr>';
       t.written.forEach(function (wq, wi) {
         var rec = (x.wRecords || {})[wi] || {};
         h += '<tr><td class="c">' + (wi + 1) + '</td><td>' + X.xml(wq.label || '') + '</td>' +
@@ -9231,8 +9279,9 @@ function printTopSheets() {
     if (ts.showMastery && Q.Mastery.isTagged(t)) {
       var mine = Q.Mastery.forStudent(t, x);
       if (mine.length) {
-        h += '<h2>What you have and haven’t got</h2><table><tr><th>Topic</th>' +
-          '<th class="c">Right</th><th class="c">Out of</th><th class="c">Level</th></tr>';
+        h += '<h2>' + X.xml(T('ts.masteryHead')) + '</h2><table><tr><th>' + X.xml(T('ts.col.topic')) +
+          '</th><th class="c">' + X.xml(T('ts.col.right')) + '</th><th class="c">' +
+          X.xml(T('ts.col.outOf')) + '</th><th class="c">' + X.xml(T('ts.col.level')) + '</th></tr>';
         mine.forEach(function (m) {
           h += '<tr><td>' + X.xml(m.name) + '</td><td class="c">' + m.correct +
             '</td><td class="c">' + m.counted + '</td><td class="c ' +
@@ -9241,12 +9290,13 @@ function printTopSheets() {
         h += '</table>';
       }
     }
-    if (ts.commentBox) h += '<h2>Teacher comments</h2>' +
+    if (ts.commentBox) h += '<h2>' + X.xml(T('ts.comments')) + '</h2>' +
       (x.comment ? '<p>' + X.xml(x.comment) + '</p>' : '') + '<div class="cbox"></div>';
     var sig = [];
-    if (ts.sigTeacher) sig.push('Teacher &nbsp;&nbsp;&nbsp; Date');
-    if (ts.sigParent) sig.push('Parent / guardian &nbsp;&nbsp;&nbsp; Date');
-    if (ts.sigStudent) sig.push('Student — corrections requested');
+    var dateWord = ' &nbsp;&nbsp;&nbsp; ' + X.xml(T('ts.sig.date'));
+    if (ts.sigTeacher) sig.push(X.xml(T('ts.sig.teacher')) + dateWord);
+    if (ts.sigParent) sig.push(X.xml(T('ts.sig.parent')) + dateWord);
+    if (ts.sigStudent) sig.push(X.xml(T('ts.sig.student')));
     if (sig.length) h += '<div class="sig">' + sig.map(function (s) { return '<div>' + s + '</div>'; }).join('') + '</div>';
     if (t.options.footer) h += '<p style="font-size:9px;color:#6b7280;margin-top:14px">' + X.xml(t.options.footer) + '</p>';
     h += '</div>';
