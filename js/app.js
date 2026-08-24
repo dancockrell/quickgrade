@@ -132,6 +132,16 @@ function backupNudge() {
 }
 
 function boot() {
+  /* Language before anything renders, so the first paint is already in the
+   * right language rather than flashing English at someone who cannot read it. */
+  Q.I18N.boot();
+  Q.I18N.onChange(function () {
+    Q.I18N.mountPicker($('#langPick'));
+    /* Views built by JS hold no data-i18n attributes, so re-render the
+     * visible one rather than trying to patch it in place. */
+    route(Q.Prefs.get('view', 'tests'));
+    updateCtx();
+  });
   Q.DB.ready().then(storageBanner);
   requestPersistence();
   Promise.all([Q.DB.all('tests'), Q.DB.all('students')]).then(function (r) {
@@ -143,6 +153,7 @@ function boot() {
     return selectTest(t);
   }).then(function () {
     wireUI();
+    Q.I18N.mountPicker($('#langPick'));
     renderTests();
     renderRosterView();
     route(Q.Prefs.get('view', 'tests'));

@@ -28,9 +28,11 @@ html = read("index.html")
 
 # ---- stylesheet -> <style>
 css = read("css", "app.css")
+# A function replacement, not a string: CSS legitimately contains
+# backslashes and re.sub would read those as group references.
 html = re.sub(
     r'<link rel="stylesheet" href="css/app\.css">',
-    "<style>\n" + css + "\n</style>",
+    lambda m: "<style>\n" + css + "\n</style>",
     html,
 )
 

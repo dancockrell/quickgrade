@@ -3,9 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<!-- QuickGrade single-file build. Source lives alongside this file;
-     rebuild with: python build.py -->
-<title>QuickGrade — Scan &amp; Grade Paper Tests</title>
+<title data-i18n="app.title">QuickGrade — Scan &amp; Grade Paper Tests</title>
 <meta name="description" content="Scan paper tests with a camera, grade them, and export to Excel, Sheets, Word or Docs. Student data stays on the device.">
 <meta name="theme-color" content="#3554d1">
 <meta name="mobile-web-app-capable" content="yes">
@@ -108,10 +106,10 @@ body{
 .navbtn.active .badge{box-shadow:0 0 0 2px var(--surface)}
 .ctx{
   color:var(--dim);font-size:12px;max-width:34ch;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;margin-left:auto;
-  padding-left:8px;border-left:1px solid var(--line);
+  text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;margin-inline-start:auto;
+  padding-inline-start:8px;border-inline-start:1px solid var(--line);
 }
-@media(max-width:900px){.ctx{display:none}#btnPrivacy{margin-left:auto}}
+@media(max-width:900px){.ctx{display:none}#btnPrivacy{margin-inline-start:auto}}
 #btnPrivacy{
   flex:0 0 auto;background:none;border:0;padding:4px 6px;border-radius:7px;
   color:var(--dim);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;
@@ -127,8 +125,8 @@ body{
 .privacy-list li{display:flex;flex-direction:column;gap:2px}
 .privacy-list strong{font-size:13px}
 .privacy-list span,.privacy-note span{color:var(--dim);font-size:13px;line-height:1.5}
-.privacy-note{margin-top:14px;padding:11px 13px;border-left:3px solid var(--line);
-  background:var(--surface2);border-radius:0 8px 8px 0;display:flex;
+.privacy-note{margin-top:14px;padding:11px 13px;border-inline-start:3px solid var(--line);
+  background:var(--surface2);border-start-end-radius:8px;border-end-end-radius:8px;display:flex;
   flex-direction:column;gap:2px}
 .privacy-note strong{font-size:13px}
 @media(max-width:560px){.brand span,.brand{font-size:0;gap:0}.brand::before{font-size:0}}
@@ -194,7 +192,7 @@ input:focus,select:focus,textarea:focus{
 }
 input[type=checkbox]{width:auto;height:auto;accent-color:var(--accent);margin:0}
 select{
-  appearance:none;padding-right:30px;cursor:pointer;
+  appearance:none;padding-inline-end:30px;cursor:pointer;
   background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),
                    linear-gradient(135deg,currentColor 50%,transparent 50%);
   background-position:calc(100% - 15px) 17px, calc(100% - 10px) 17px;
@@ -264,10 +262,10 @@ label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var
 .card:hover{border-color:var(--line2);box-shadow:var(--sh2);transform:translateY(-1px)}
 .card.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),var(--sh2)}
 .card.sel::after{
-  content:"SELECTED";position:absolute;top:13px;right:14px;
+  content:var(--lbl-selected,"SELECTED");position:absolute;top:13px;inset-inline-end:14px;
   font-size:9.5px;font-weight:800;letter-spacing:.1em;color:var(--accent);
 }
-.card h4{margin:0 0 5px;font-size:15.5px;font-weight:650;letter-spacing:-.01em;padding-right:70px}
+.card h4{margin:0 0 5px;font-size:15.5px;font-weight:650;letter-spacing:-.01em;padding-inline-end:70px}
 .card .meta{color:var(--dim);font-size:12.5px;line-height:1.55}
 .card .cardbtns{margin-top:13px;display:flex;gap:7px;flex-wrap:wrap}
 
@@ -302,7 +300,7 @@ label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var
 
 /* ─────────────────────────────── tables ─────────────────────────────── */
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th,td{text-align:start;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
 th{
   color:var(--dim);font-size:10.5px;font-weight:700;text-transform:uppercase;
   letter-spacing:.07em;position:sticky;top:0;background:var(--surface2);z-index:1;
@@ -329,7 +327,7 @@ tbody tr:last-child td{border-bottom:0}
 }
 .keyitem{display:flex;align-items:center;gap:7px}
 .keyitem .qn{
-  width:26px;text-align:right;color:var(--faint);font-size:12px;
+  width:26px;text-align:end;color:var(--faint);font-size:12px;
   font-variant-numeric:tabular-nums;flex:0 0 auto;
 }
 .keyitem .opts{display:flex;gap:4px}
@@ -472,7 +470,7 @@ tbody tr:last-child td{border-bottom:0}
   flex:0 1 auto;max-width:330px;
 }
 .cwhy{display:flex;flex-direction:column;font-size:11.5px;line-height:1.35;min-width:170px}
-.copts{display:flex;gap:5px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.copts{display:flex;gap:5px;align-items:center;margin-inline-start:auto;flex-wrap:wrap}
 .clearbox{
   background:var(--go-soft);border:1px solid transparent;border-radius:var(--r);
   padding:11px 15px;margin-bottom:18px;font-size:13.5px;color:var(--go);font-weight:600;
@@ -506,7 +504,7 @@ details#advExport>summary:hover{color:var(--text)}
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fmtcol input{flex:1;height:30px;font-size:13px;min-width:90px}
 .fmtcol .btn{height:26px;padding:0 8px;font-size:12px;box-shadow:none}
-.fmtcol.multi .fname::after{content:" (many columns)";color:var(--faint)}
+.fmtcol.multi .fname::after{content:var(--lbl-manycols," (many columns)");color:var(--faint)}
 
 /* first run */
 .firstrun{
@@ -515,9 +513,9 @@ details#advExport>summary:hover{color:var(--text)}
 }
 .firstrun h2{margin:0 0 4px;font-size:21px}
 .steps{list-style:none;counter-reset:s;margin:20px 0 20px;padding:0}
-.steps li{counter-increment:s;position:relative;padding-left:38px;margin-bottom:20px}
+.steps li{counter-increment:s;position:relative;padding-inline-start:38px;margin-bottom:20px}
 .steps li::before{
-  content:counter(s);position:absolute;left:0;top:1px;
+  content:counter(s);position:absolute;inset-inline-start:0;top:1px;
   width:25px;height:25px;border-radius:50%;display:grid;place-items:center;
   background:var(--accent);color:var(--accent-ink);font-size:12.5px;font-weight:700;
 }
@@ -626,11 +624,11 @@ td.mono{font-variant-numeric:tabular-nums;font-family:var(--fm);font-size:12px}
 
 /* ─────────────────────────── toasts / modal ─────────────────────────── */
 #toasts{
-  position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;
+  position:fixed;inset-inline-end:18px;bottom:18px;display:flex;flex-direction:column;
   gap:9px;z-index:120;pointer-events:none;
 }
 .toast{
-  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);
+  background:var(--surface);border:1px solid var(--line);border-inline-start:3px solid var(--accent);
   border-radius:var(--r-sm);padding:11px 15px;max-width:350px;font-size:13.5px;
   box-shadow:var(--sh3);animation:toastIn .2s ease-out;pointer-events:auto;
 }
@@ -655,8 +653,8 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
   background:var(--surface2);border:1px solid var(--line);border-radius:var(--r);
   padding:10px 14px;margin-bottom:16px;font-size:13.5px;
 }
-.toast.err{border-left-color:var(--bad)}
-.toast.good{border-left-color:var(--go)}
+.toast.err{border-inline-start-color:var(--bad)}
+.toast.good{border-inline-start-color:var(--go)}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
 #modal{
@@ -679,10 +677,36 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 }
 #storageWarn b{color:var(--text)}
 #storageWarn button{
-  margin-left:auto;background:transparent;border:0;color:inherit;cursor:pointer;
+  margin-inline-start:auto;background:transparent;border:0;color:inherit;cursor:pointer;
   font:inherit;font-size:18px;line-height:1;padding:0 4px;opacity:.7;
 }
 #storageWarn button:hover{opacity:1}
+
+/* ───────────────────────────── language ───────────────────────────── */
+#langPick{
+  flex:0 0 auto;height:28px;min-width:0;width:auto;padding:0 24px 0 8px;
+  font-size:12px;background-color:transparent;border-color:transparent;
+  color:var(--dim);
+}
+#langPick:hover{border-color:var(--line);color:var(--text)}
+@media(max-width:560px){#langPick{max-width:96px}}
+
+/* Right-to-left. The interface mirrors; the answer sheet never does, because
+ * the scanner reads bubbles by position and there is one geometry only. */
+/* A brand is a proper noun; it never mirrors. Neither do code samples,
+ * key names or file extensions — Latin runs inside Arabic text reorder
+ * without an isolate and ".xlsx" comes out as "xlsx." */
+.brand,code,kbd{unicode-bidi:isolate}
+[dir="rtl"] .brand{direction:ltr}
+[dir="rtl"] code,[dir="rtl"] kbd{direction:ltr}
+[dir="rtl"] .linky{margin-inline-start:5px}
+[dir="rtl"] .sel{background-position:15px 17px, 10px 17px}
+[dir="rtl"] .sel.sm{background-position:13px 13px, 8px 13px}
+[dir="rtl"] #langPick{padding:0 8px 0 24px}
+[dir="rtl"] details.more>summary::before,
+[dir="rtl"] details#advExport>summary::before{content:"\25C2"}
+[dir="rtl"] details.more[open]>summary::before,
+[dir="rtl"] details#advExport[open]>summary::before{transform:rotate(-90deg)}
 
 </style>
 <script>
@@ -702,15 +726,16 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 <header id="topbar">
   <div class="brand" id="brandBtn">Quick<span>Grade</span></div>
   <nav id="nav">
-    <button data-view="tests"   class="navbtn">Tests</button>
-    <button data-view="roster"  class="navbtn">Roster</button>
-    <button data-view="scan"    class="navbtn primary">Scan</button>
-    <button data-view="review"  class="navbtn">Review <span class="badge" id="badgeUnres" hidden>0</span></button>
-    <button data-view="written" class="navbtn">Grade <span class="badge" id="badgeWritten" hidden>0</span></button>
-    <button data-view="export"  class="navbtn">Export</button>
+    <button data-view="tests"   class="navbtn" data-i18n="nav.tests">Tests</button>
+    <button data-view="roster"  class="navbtn" data-i18n="nav.roster">Roster</button>
+    <button data-view="scan"    class="navbtn primary" data-i18n="nav.scan">Scan</button>
+    <button data-view="review"  class="navbtn"><span data-i18n="nav.review">Review</span> <span class="badge" id="badgeUnres" hidden>0</span></button>
+    <button data-view="written" class="navbtn"><span data-i18n="nav.grade">Grade</span> <span class="badge" id="badgeWritten" hidden>0</span></button>
+    <button data-view="export"  class="navbtn" data-i18n="nav.export">Export</button>
   </nav>
-  <div class="ctx" id="ctxLabel">No test selected</div>
-  <button id="btnPrivacy" title="Where student data goes, and how to show that to your school">Privacy</button>
+  <div class="ctx" id="ctxLabel" data-i18n="hdr.noTest">No test selected</div>
+  <select id="langPick" class="sel sm" data-i18n-aria="hdr.language" aria-label="Language"></select>
+  <button id="btnPrivacy" data-i18n-title="hdr.privacy.title" title="Where student data goes, and how to show that to your school" data-i18n="hdr.privacy">Privacy</button>
 </header>
 
 <main id="main">
@@ -719,13 +744,13 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 <section class="view" id="view-tests">
   <div class="wrap">
     <div class="row between">
-      <h1>Tests</h1>
+      <h1 data-i18n="tests.h1">Tests</h1>
       <div class="row gap">
-        <button class="btn" id="btnDemo">Sample class</button>
-        <button class="btn" id="btnImportBackup">Import backup</button>
+        <button class="btn" id="btnDemo" data-i18n="tests.sample">Sample class</button>
+        <button class="btn" id="btnImportBackup" data-i18n="tests.import">Import backup</button>
         <input type="file" id="backupInput" accept="application/json,.json" hidden>
-        <button class="btn" id="btnExportBackup">Export backup</button>
-        <button class="btn go" id="btnNewTest">+ New test</button>
+        <button class="btn" id="btnExportBackup" data-i18n="tests.exportBk">Export backup</button>
+        <button class="btn go" id="btnNewTest" data-i18n="tests.new">+ New test</button>
       </div>
     </div>
     <p class="hint" id="storageTotal"></p>
@@ -734,117 +759,117 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 
     <div id="testEditor" hidden>
       <hr>
-      <h2 id="editorTitle">New test</h2>
+      <h2 id="editorTitle" data-i18n="tests.editorNew">New test</h2>
       <div class="grid2">
-        <label>Test title <input id="f_title" placeholder="Unit 4 — Cell Biology"></label>
-        <label>Class / Period <span class="hint" style="font-weight:400">&mdash; list several, separated by commas, to give one test to several periods</span><input id="f_class" placeholder="Biology P3, Biology P5"></label>
-        <label>Date <input id="f_date" type="date"></label>
-        <label>Test code (3 digits, printed on the sheet)
-          <input id="f_code" maxlength="3" inputmode="numeric" placeholder="042"></label>
+        <label data-i18n="tests.f.title">Test title <input id="f_title" data-i18n-ph="tests.f.title.ph" placeholder="Unit 4 — Cell Biology"></label>
+        <label data-i18n="tests.f.class">Class / Period <span class="hint" style="font-weight:400" data-i18n="tests.f.class.hint">&mdash; list several, separated by commas, to give one test to several periods</span><input id="f_class" data-i18n-ph="tests.f.class.ph" placeholder="Biology P3, Biology P5"></label>
+        <label data-i18n="tests.f.date">Date <input id="f_date" type="date"></label>
+        <label data-i18n="tests.f.code">Test code (3 digits, printed on the sheet)
+          <input id="f_code" maxlength="3" inputmode="numeric" data-i18n-ph="tests.f.code.ph" placeholder="042"></label>
       </div>
 
-      <h3>Multiple choice</h3>
+      <h3 data-i18n="tests.mc.h">Multiple choice</h3>
       <div class="grid3">
-        <label>Number of questions <input id="f_mcCount" type="number" min="0" max="300" value="20"></label>
-        <label>Choices per question
+        <label data-i18n="tests.mc.count">Number of questions <input id="f_mcCount" type="number" min="0" max="300" value="20"></label>
+        <label data-i18n="tests.mc.choices">Choices per question
           <select id="f_choices">
-            <option value="2">2 (T/F)</option><option value="3">3</option>
-            <option value="4">4 (A&ndash;D)</option><option value="5" selected>5 (A&ndash;E)</option>
+            <option value="2" data-i18n="tests.mc.ch2">2 (T/F)</option><option value="3">3</option>
+            <option value="4" data-i18n="tests.mc.ch4">4 (A&ndash;D)</option><option value="5" selected data-i18n="tests.mc.ch5">5 (A&ndash;E)</option>
           </select></label>
-        <label>Points per MC question <input id="f_mcPoints" type="number" min="0" step="0.5" value="1"></label>
+        <label data-i18n="tests.mc.points">Points per MC question <input id="f_mcPoints" type="number" min="0" step="0.5" value="1"></label>
       </div>
 
       <div class="keybar row gap wrap-row">
-        <strong>Answer key</strong>
-        <button class="btn sm go" id="btnKeyPaste">Paste my answer key</button>
-        <button class="btn sm" id="btnKeyFromScan">Scan a completed sheet</button>
-        <button class="btn sm" id="btnKeyClear">Clear key</button>
-        <span class="hint">Paste it in whatever form you already have it &mdash; or click letters below.</span>
+        <strong data-i18n="tests.key.h">Answer key</strong>
+        <button class="btn sm go" id="btnKeyPaste" data-i18n="tests.key.paste">Paste my answer key</button>
+        <button class="btn sm" id="btnKeyFromScan" data-i18n="tests.key.fromScan">Scan a completed sheet</button>
+        <button class="btn sm" id="btnKeyClear" data-i18n="tests.key.clear">Clear key</button>
+        <span class="hint" data-i18n="tests.key.hint">Paste it in whatever form you already have it &mdash; or click letters below.</span>
       </div>
       <div id="keyGrid" class="keygrid"></div>
 
       <details class="more">
-        <summary>What each question tests &mdash; standards and objectives</summary>
+        <summary data-i18n="tests.obj.summary">What each question tests &mdash; standards and objectives</summary>
         <div class="advbody">
-          <p class="hint">Tag the questions and QuickGrade will tell you what the class has not
+          <p class="hint" data-i18n="tests.obj.hint">Tag the questions and QuickGrade will tell you what the class has not
             got, instead of only who scored what.</p>
           <div id="topicsList" class="topicprev"></div>
-          <button class="btn sm go" id="btnPasteTopics">Paste my objectives</button>
+          <button class="btn sm go" id="btnPasteTopics" data-i18n="tests.obj.paste">Paste my objectives</button>
         </div>
       </details>
 
       <details class="more">
-        <summary>Versions &mdash; different question orders so neighbours can&rsquo;t copy</summary>
+        <summary data-i18n="tests.ver.summary">Versions &mdash; different question orders so neighbours can&rsquo;t copy</summary>
         <div class="advbody">
-          <p class="hint">Scramble the questions in your own test document, then paste the answer
+          <p class="hint" data-i18n="tests.ver.hint">Scramble the questions in your own test document, then paste the answer
             key for each version. Each gets its own printed code, so a mixed pile of sheets sorts
             itself out while you scan &mdash; you never have to say which is which.</p>
           <div id="formsList" class="formslist"></div>
-          <button class="btn sm" id="btnAddForm">+ Add a second version</button>
+          <button class="btn sm" id="btnAddForm" data-i18n="tests.ver.add">+ Add a second version</button>
         </div>
       </details>
 
-      <h3>Written / short answer / fill-in questions</h3>
-      <p class="hint">These get printed answer boxes. After scanning you grade them one question at a time across the whole class.</p>
+      <h3 data-i18n="tests.w.h">Written / short answer / fill-in questions</h3>
+      <p class="hint" data-i18n="tests.w.hint">These get printed answer boxes. After scanning you grade them one question at a time across the whole class.</p>
       <div id="writtenList"></div>
       <div class="row gap wrap-row">
-        <button class="btn sm" id="btnAddWritten">+ Add one</button>
-        <button class="btn sm go" id="btnWrittenPaste">Paste my questions</button>
+        <button class="btn sm" id="btnAddWritten" data-i18n="tests.w.add">+ Add one</button>
+        <button class="btn sm go" id="btnWrittenPaste" data-i18n="tests.w.paste">Paste my questions</button>
       </div>
 
       <details class="more">
-        <summary>What goes on the sheet students get back</summary>
+        <summary data-i18n="tests.top.summary">What goes on the sheet students get back</summary>
         <div class="advbody"><div id="topsheetOpts" class="optgrid"></div></div>
       </details>
 
-      <h3>Answer-sheet options</h3>
+      <h3 data-i18n="tests.sheet.h">Answer-sheet options</h3>
       <div class="grid3">
-        <label>How students identify themselves
+        <label data-i18n="tests.sheet.idDigits">How students identify themselves
           <select id="f_idDigits">
-            <option value="2">2-digit class number (1&ndash;99)</option>
-            <option value="3" selected>3-digit class number (1&ndash;999)</option>
-            <option value="4">4-digit ID</option>
-            <option value="6">6-digit district ID</option>
+            <option value="2" data-i18n="tests.sheet.id2">2-digit class number (1&ndash;99)</option>
+            <option value="3" selected data-i18n="tests.sheet.id3">3-digit class number (1&ndash;999)</option>
+            <option value="4" data-i18n="tests.sheet.id4">4-digit ID</option>
+            <option value="6" data-i18n="tests.sheet.id6">6-digit district ID</option>
           </select></label>
-        <label>Label above the ID bubbles
-          <input id="f_idLabel" placeholder="CLASS NUMBER"></label>
-        <label>Paper size
+        <label data-i18n="tests.sheet.idLabel">Label above the ID bubbles
+          <input id="f_idLabel" data-i18n-ph="tests.sheet.idLabel.ph" placeholder="CLASS NUMBER"></label>
+        <label data-i18n="tests.sheet.paper">Paper size
           <select id="f_paper">
-            <option value="letter" selected>US Letter (8.5 &times; 11 in)</option>
-            <option value="a4">A4 (210 &times; 297 mm)</option>
-            <option value="legal">US Legal (8.5 &times; 14 in)</option>
+            <option value="letter" selected data-i18n="tests.sheet.letter">US Letter (8.5 &times; 11 in)</option>
+            <option value="a4" data-i18n="tests.sheet.a4">A4 (210 &times; 297 mm)</option>
+            <option value="legal" data-i18n="tests.sheet.legal">US Legal (8.5 &times; 14 in)</option>
           </select></label>
       </div>
       <div class="grid3">
-        <label>Written boxes per page <input id="f_wPerPage" type="number" min="1" max="6" value="2"></label>
-        <label>Sheet instructions <input id="f_instr" placeholder="Use pencil. Fill bubbles completely."></label>
-        <label class="chk" style="margin-top:22px"><input type="checkbox" id="f_prefillId">
+        <label data-i18n="tests.sheet.wPerPage">Written boxes per page <input id="f_wPerPage" type="number" min="1" max="6" value="2"></label>
+        <label data-i18n="tests.sheet.instr">Sheet instructions <input id="f_instr" data-i18n-ph="tests.sheet.instr.ph" placeholder="Use pencil. Fill bubbles completely."></label>
+        <label class="chk" style="margin-top:22px" data-i18n="tests.sheet.prefill"><input type="checkbox" id="f_prefillId">
           Pre-print each student&rsquo;s ID (only for small runs &mdash; needs a unique page per student)</label>
       </div>
       <details class="more">
-        <summary>Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
+        <summary data-i18n="tests.words.summary">Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
         <div class="advbody">
       <div class="grid3">
-        <label>Name box <input id="f_lblName" placeholder="NAME"></label>
-        <label>Class box <input id="f_lblClass" placeholder="CLASS / PERIOD"></label>
-        <label>Page row <input id="f_lblPage" placeholder="PAGE"></label>
+        <label data-i18n="tests.words.name">Name box <input id="f_lblName" data-i18n-ph="tests.words.name.ph" placeholder="NAME"></label>
+        <label data-i18n="tests.words.class">Class box <input id="f_lblClass" data-i18n-ph="tests.words.class.ph" placeholder="CLASS / PERIOD"></label>
+        <label data-i18n="tests.words.page">Page row <input id="f_lblPage" data-i18n-ph="tests.words.page.ph" placeholder="PAGE"></label>
       </div>
       <div class="grid2">
-        <label>&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" placeholder="HOW TO FILL THIS IN"></label>
-        <label>Bubble examples, separated by <code>|</code>
-          <input id="f_lblSamples" placeholder="correct|too light|do not cross"></label>
+        <label data-i18n="tests.words.howto">&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" data-i18n-ph="tests.words.howto.ph" placeholder="HOW TO FILL THIS IN"></label>
+        <label data-i18n="tests.words.samples">Bubble examples, separated by <code>|</code>
+          <input id="f_lblSamples" data-i18n-ph="tests.words.samples.ph" placeholder="correct|too light|do not cross"></label>
       </div>
-      <label>Advice line under the examples
-        <input id="f_lblTips" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
+      <label data-i18n="tests.words.tips">Advice line under the examples
+        <input id="f_lblTips" data-i18n-ph="tests.words.tips.ph" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
         </div>
       </details>
-      <p class="hint">Fewer digits means less for a student to bubble and fewer misreads.
+      <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
         Leave pre-printing <strong>off</strong> so you can print one master sheet and photocopy it for the class.</p>
 
       <div class="row gap end sticky-actions">
-        <button class="btn" id="btnCancelTest">Cancel</button>
-        <button class="btn danger" id="btnDeleteTest" hidden>Delete test</button>
-        <button class="btn go" id="btnSaveTest">Save test</button>
+        <button class="btn" id="btnCancelTest" data-i18n="tests.cancel">Cancel</button>
+        <button class="btn danger" id="btnDeleteTest" hidden data-i18n="tests.delete">Delete test</button>
+        <button class="btn go" id="btnSaveTest" data-i18n="tests.save">Save test</button>
       </div>
     </div>
   </div>
@@ -853,72 +878,72 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 <!-- ============================ ROSTER ============================ -->
 <section class="view" id="view-roster">
   <div class="wrap">
-    <h1>Roster</h1>
+    <h1 data-i18n="roster.h1">Roster</h1>
     <div class="grid2">
       <div>
-        <label>Class / Period
-          <input id="rosterClass" list="classChoices" placeholder="Type a class name, e.g. Biology P3"
-            autocomplete="off" aria-label="Class or period">
+        <label data-i18n="roster.class">Class / Period
+          <input id="rosterClass" list="classChoices" data-i18n-ph="roster.class.ph" placeholder="Type a class name, e.g. Biology P3"
+            autocomplete="off" data-i18n-aria="roster.class.aria" aria-label="Class or period">
           <datalist id="classChoices"></datalist>
         </label>
-        <p class="hint">Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.</p>
-        <textarea id="rosterPaste" rows="10" placeholder="Avery Nguyen&#10;Ben Carter, 42&#10;Chloe Diaz, 43, chloe.diaz@school.org"></textarea>
+        <p class="hint" data-i18n-html="roster.pasteHint">Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.</p>
+        <textarea id="rosterPaste" rows="10" data-i18n-ph="roster.paste.ph" placeholder="Avery Nguyen&#10;Ben Carter, 42&#10;Chloe Diaz, 43, chloe.diaz@school.org"></textarea>
         <div class="row gap">
-          <button class="btn go" id="btnRosterSave">Add / update students</button>
-          <button class="btn" id="btnRosterImport">Import CSV file</button>
+          <button class="btn go" id="btnRosterSave" data-i18n="roster.save">Add / update students</button>
+          <button class="btn" id="btnRosterImport" data-i18n="roster.import">Import CSV file</button>
           <input type="file" id="rosterFile" accept=".csv,.tsv,.txt,text/csv" hidden>
-          <button class="btn" id="btnRosterCsv">Export roster CSV</button>
+          <button class="btn" id="btnRosterCsv" data-i18n="roster.csv">Export roster CSV</button>
         </div>
       </div>
       <div>
-        <div class="row between"><h3>Students <span class="hint" id="rosterCount"></span></h3>
-          <button class="btn sm danger" id="btnRosterClear">Remove all in class</button></div>
+        <div class="row between"><h3 data-i18n="roster.students">Students <span class="hint" id="rosterCount"></span></h3>
+          <button class="btn sm danger" id="btnRosterClear" data-i18n="roster.clear">Remove all in class</button></div>
         <div id="rosterTable" class="scrollbox"></div>
       </div>
     </div>
 
     <hr>
-    <h2>Print answer sheets</h2>
+    <h2 data-i18n="roster.print.h2">Print answer sheets</h2>
     <div class="row gap wrap-row">
-      <select id="printForm" class="sel" aria-label="Which version to print" hidden></select>
-      <button class="btn go big" id="btnPrintBlank">Print the answer sheet</button>
-      <button class="btn big" id="btnPrintCheck">Check my printing</button>
+      <select id="printForm" class="sel" data-i18n-aria="roster.print.which" aria-label="Which version to print" hidden></select>
+      <button class="btn go big" id="btnPrintBlank" data-i18n="roster.print.blank">Print the answer sheet</button>
+      <button class="btn big" id="btnPrintCheck" data-i18n="roster.print.check">Check my printing</button>
     </div>
     <details class="more">
-      <summary>Other kinds of sheet</summary>
+      <summary data-i18n="roster.print.other">Other kinds of sheet</summary>
       <div class="advbody row gap wrap-row">
-        <button class="btn" id="btnPrintKey">Answer-key sheet
-          <span class="hint" style="margin:0">for setting the key by scanning</span></button>
-        <button class="btn" id="btnPrintPersonal">Personalized sheets
-          <span class="hint" style="margin:0">one unique page per student</span></button>
+        <button class="btn" id="btnPrintKey" data-i18n="roster.print.key">Answer-key sheet
+          <span class="hint" style="margin:0" data-i18n="roster.print.keyHint">for setting the key by scanning</span></button>
+        <button class="btn" id="btnPrintPersonal" data-i18n="roster.print.personal">Personalized sheets
+          <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
       </div>
     </details>
-    <p class="hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.</p>
+    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.</p>
   </div>
 </section>
 
 <!-- ============================ SCAN ============================ -->
 <section class="view" id="view-scan">
   <div id="scanStage">
-    <video id="cam" playsinline muted autoplay aria-label="Camera view"></video>
+    <video id="cam" playsinline muted autoplay data-i18n-aria="scan.cam.aria" aria-label="Camera view"></video>
     <canvas id="overlay" aria-hidden="true"></canvas>
     <div id="flash" aria-hidden="true"></div>
 
     <div id="scanHud">
       <div class="hudrow">
-        <button class="btn sm go" id="btnCamStart">Start camera</button>
-        <select id="camSelect" class="sel sm" aria-label="Camera"></select>
-        <button class="btn sm" id="btnTorch" hidden>Light</button>
-        <label class="chk sm"><input type="checkbox" id="optSpeak"> Speak</label>
-        <label class="chk sm"><input type="checkbox" id="optSound" checked> Sound</label>
-        <button class="btn sm" id="btnPhotoImport">Import photos</button>
-        <button class="btn sm" id="btnCalibrate">Check my printing</button>
+        <button class="btn sm go" id="btnCamStart" data-i18n="scan.start">Start camera</button>
+        <select id="camSelect" class="sel sm" data-i18n-aria="scan.camSel.aria" aria-label="Camera"></select>
+        <button class="btn sm" id="btnTorch" hidden data-i18n="scan.torch">Light</button>
+        <label class="chk sm" data-i18n="scan.speak"><input type="checkbox" id="optSpeak"> Speak</label>
+        <label class="chk sm" data-i18n="scan.sound"><input type="checkbox" id="optSound" checked> Sound</label>
+        <button class="btn sm" id="btnPhotoImport" data-i18n="scan.photos">Import photos</button>
+        <button class="btn sm" id="btnCalibrate" data-i18n="scan.calib">Check my printing</button>
         <input type="file" id="photoInput" accept="image/*" multiple hidden>
       </div>
       <div class="hudrow">
-        <span class="pill" id="pillTest">No test</span>
-        <span class="pill" id="pillCount">0 sheets</span>
-        <span class="pill" id="pillStatus">Idle</span>
+        <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
+        <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
+        <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
       </div>
     </div>
 
@@ -931,15 +956,15 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 <!-- ============================ REVIEW ============================ -->
 <section class="view" id="view-review">
   <div class="wrap">
-    <h1>Review scans</h1>
+    <h1 data-i18n="review.h1">Review scans</h1>
     <div id="trashBox"></div>
     <div id="unresolvedBox"></div>
     <div id="checksBox"></div>
-    <div class="row between"><h2>Students</h2>
+    <div class="row between"><h2 data-i18n="review.students">Students</h2>
       <div class="row gap">
-        <label class="chk sm"><input type="checkbox" id="showMissingOnly"> Problems only</label>
-        <button class="btn sm" id="btnVerifyNames">Check names against handwriting</button>
-        <button class="btn sm danger" id="btnClearScans">Delete all scans for this test</button>
+        <label class="chk sm" data-i18n="review.problemsOnly"><input type="checkbox" id="showMissingOnly"> Problems only</label>
+        <button class="btn sm" id="btnVerifyNames" data-i18n="review.verifyNames">Check names against handwriting</button>
+        <button class="btn sm danger" id="btnClearScans" data-i18n="review.clearScans">Delete all scans for this test</button>
       </div>
     </div>
     <div id="reviewTable"></div>
@@ -954,22 +979,22 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
   <div id="gradeShell">
     <div id="gradeTop">
       <div class="row gap wrap-row">
-        <select id="gradeQ" class="sel" aria-label="Written question to grade"></select>
+        <select id="gradeQ" class="sel" data-i18n-aria="grade.q.aria" aria-label="Written question to grade"></select>
         <span class="pill" id="gradeProgress"></span>
         <span class="pill" id="gradeStudent"></span>
-        <button class="btn sm" id="btnGradePrev">&#9664; Prev</button>
-        <button class="btn sm" id="btnGradeNext">Next &#9654;</button>
-        <label class="chk sm"><input type="checkbox" id="gradeHideName" checked> Blind</label>
+        <button class="btn sm" id="btnGradePrev" data-i18n="grade.prev">&#9664; Prev</button>
+        <button class="btn sm" id="btnGradeNext" data-i18n="grade.next">Next &#9654;</button>
+        <label class="chk sm" data-i18n="grade.blind"><input type="checkbox" id="gradeHideName" checked> Blind</label>
       </div>
     </div>
-    <div id="gradeImageWrap"><img id="gradeImage" alt="Scanned student response for the selected question"></div>
+    <div id="gradeImageWrap"><img id="gradeImage" data-i18n-alt="grade.image.alt" alt="Scanned student response for the selected question"></div>
     <div id="gradeBar">
       <div id="pointsRow"></div>
       <div class="row gap">
-        <input id="gradeComment" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
+        <input id="gradeComment" data-i18n-ph="grade.comment.ph" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
         <div class="row gap" id="quickComments"></div>
       </div>
-      <div class="hint">Keys: <kbd>0</kbd>&ndash;<kbd>9</kbd> points &middot; <kbd>.</kbd> half point &middot; <kbd>Enter</kbd> next &middot; <kbd>&larr;</kbd> back &middot; <kbd>F</kbd> full &middot; <kbd>Z</kbd> zero &middot; <kbd>S</kbd> skip</div>
+      <div class="hint" data-i18n-html="grade.keys">Keys: <kbd>0</kbd>&ndash;<kbd>9</kbd> points &middot; <kbd>.</kbd> half point &middot; <kbd>Enter</kbd> next &middot; <kbd>&larr;</kbd> back &middot; <kbd>F</kbd> full &middot; <kbd>Z</kbd> zero &middot; <kbd>S</kbd> skip</div>
     </div>
   </div>
 </section>
@@ -977,77 +1002,77 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 <!-- ============================ EXPORT ============================ -->
 <section class="view" id="view-export">
   <div class="wrap">
-    <h1>Export</h1>
+    <h1 data-i18n="export.h1">Export</h1>
 
-    <h2>Gradebook (scores)</h2>
-    <p class="hint">Pick your gradebook once. QuickGrade remembers it and lays the columns out
+    <h2 data-i18n="export.gradebook.h2">Gradebook (scores)</h2>
+    <p class="hint" data-i18n="export.gradebook.hint">Pick your gradebook once. QuickGrade remembers it and lays the columns out
       the way that program expects.</p>
 
     <div class="bigpick">
-      <label>My gradebook is
-        <select id="fmtPick" class="sel" aria-label="Which gradebook do you use"></select>
+      <label data-i18n="export.myGradebook">My gradebook is
+        <select id="fmtPick" class="sel" data-i18n-aria="export.fmtPick.aria" aria-label="Which gradebook do you use"></select>
       </label>
       <p class="hint" id="fmtNote"></p>
     </div>
 
     <div class="row gap wrap-row" style="margin:14px 0 4px">
-      <button class="btn go big" id="exXlsx">Download for my gradebook</button>
-      <button class="btn big" id="exTsv">Copy &mdash; paste into Google Sheets</button>
+      <button class="btn go big" id="exXlsx" data-i18n="export.xlsx">Download for my gradebook</button>
+      <button class="btn big" id="exTsv" data-i18n="export.tsv">Copy &mdash; paste into Google Sheets</button>
     </div>
-    <p class="hint" id="exHint">Downloads an Excel file. Most gradebooks import
+    <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
       <code>.xlsx</code> or <code>.csv</code> directly.</p>
 
     <details id="advExport">
-      <summary>More options</summary>
+      <summary data-i18n="export.more">More options</summary>
       <div class="advbody">
-        <label class="chk"><input type="checkbox" id="fmtOnlyScanned" checked>
+        <label class="chk" data-i18n="export.onlyScanned"><input type="checkbox" id="fmtOnlyScanned" checked>
           Leave out students who have nothing scanned
-          <span class="hint">(recommended &mdash; an empty row can wipe an existing grade)</span></label>
+          <span class="hint" data-i18n="export.onlyScanned.note">(recommended &mdash; an empty row can wipe an existing grade)</span></label>
 
         <div class="row gap wrap-row" style="margin:10px 0">
-          <button class="btn sm" id="exCsv">Download as .csv instead</button>
-          <button class="btn sm" id="exSend">Send to a web address&hellip;</button>
+          <button class="btn sm" id="exCsv" data-i18n="export.csv">Download as .csv instead</button>
+          <button class="btn sm" id="exSend" data-i18n="export.send">Send to a web address&hellip;</button>
         </div>
 
-        <h3>Change the columns</h3>
-        <p class="hint">Only needed if your gradebook rejects the file. Drag nothing, break
+        <h3 data-i18n="export.cols.h3">Change the columns</h3>
+        <p class="hint" data-i18n="export.cols.hint">Only needed if your gradebook rejects the file. Drag nothing, break
           nothing &mdash; use the arrows, and rename a heading by typing over it.</p>
         <div id="fmtCols" class="fmtcols"></div>
         <div class="row gap wrap-row" style="margin:10px 0">
-          <select id="fmtAdd" class="sel" aria-label="Column to add"></select>
-          <button class="btn sm" id="fmtAddBtn">+ Add column</button>
-          <button class="btn sm" id="fmtSave">Save as my own layout&hellip;</button>
-          <button class="btn sm danger" id="fmtDelete" hidden>Delete this layout</button>
-          <button class="btn sm" id="fmtReset">Undo my changes</button>
+          <select id="fmtAdd" class="sel" data-i18n-aria="export.cols.add.aria" aria-label="Column to add"></select>
+          <button class="btn sm" id="fmtAddBtn" data-i18n="export.cols.add">+ Add column</button>
+          <button class="btn sm" id="fmtSave" data-i18n="export.cols.save">Save as my own layout&hellip;</button>
+          <button class="btn sm danger" id="fmtDelete" hidden data-i18n="export.cols.delete">Delete this layout</button>
+          <button class="btn sm" id="fmtReset" data-i18n="export.cols.reset">Undo my changes</button>
         </div>
         <div id="fmtPreview" class="tbl" style="max-height:210px"></div>
       </div>
     </details>
 
-    <h2>Graded top sheets (student hand-back pages)</h2>
-    <p class="hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p>
+    <h2 data-i18n="export.top.h2">Graded top sheets (student hand-back pages)</h2>
+    <p class="hint" data-i18n="export.top.hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p>
     <details class="more">
-      <summary>What goes on the page</summary>
+      <summary data-i18n="export.top.summary">What goes on the page</summary>
       <div class="advbody"><div id="topsheetOpts2" class="optgrid"></div></div>
     </details>
     <div class="row gap wrap-row" style="margin-top:10px">
-      <button class="btn go" id="exDocx">Word document (.docx)</button>
-      <button class="btn" id="exPrintSheets">Print / Save as PDF</button>
+      <button class="btn go" id="exDocx" data-i18n="export.docx">Word document (.docx)</button>
+      <button class="btn" id="exPrintSheets" data-i18n="export.print">Print / Save as PDF</button>
     </div>
 
-    <h2>Raw data</h2>
+    <h2 data-i18n="export.raw.h2">Raw data</h2>
     <div class="row gap wrap-row">
-      <button class="btn" id="exRawXlsx">Item-analysis workbook (.xlsx)</button>
-      <button class="btn" id="exJson">JSON backup of this test</button>
+      <button class="btn" id="exRawXlsx" data-i18n="export.raw.xlsx">Item-analysis workbook (.xlsx)</button>
+      <button class="btn" id="exJson" data-i18n="export.raw.json">JSON backup of this test</button>
     </div>
-    <p class="hint">The backup is the only copy that outlives this device — keep it
-      somewhere safe. <button class="linky" id="exPrivacy">Where does student data go?</button></p>
+    <p class="hint" data-i18n="export.backupHint">The backup is the only copy that outlives this device — keep it
+      somewhere safe. <button class="linky" id="exPrivacy" data-i18n="export.privacyLink">Where does student data go?</button></p>
 
-    <h2>Curve</h2>
-    <p class="hint">Applies to everyone. The original score is always kept.</p>
+    <h2 data-i18n="export.curve.h2">Curve</h2>
+    <p class="hint" data-i18n="export.curve.hint">Applies to everyone. The original score is always kept.</p>
     <div id="curveBox"></div>
 
-    <h2>Grading scale</h2>
+    <h2 data-i18n="export.scale.h2">Grading scale</h2>
     <div id="scaleEditor" class="row gap wrap-row"></div>
   </div>
 </section>
@@ -1493,6 +1518,588 @@ Object.assign(global.QG, {
   loadImageFile: loadImageFile, copyToClipboard: copyToClipboard, openPrintWindow: openPrintWindow
 });
 })(window);
+
+/* ===== js/i18n.js ===== */
+/* QuickGrade — i18n.js : interface language.
+ *
+ * The point of this app is reach, so the interface has to speak the language
+ * of the person holding the papers. Three rules keep that honest:
+ *
+ *   1. Every user-visible string lives in a pack, never in the markup or in a
+ *      function body. English is the reference pack and the fallback.
+ *   2. The language is detected from the browser on first run. A teacher who
+ *      cannot read English cannot find a menu labelled "Language".
+ *   3. The answer sheet geometry never changes. Right-to-left languages get
+ *      right-to-left *interface* and right-to-left label text, but the bubble
+ *      grid stays exactly where it is, because the scanner reads by position
+ *      and forking that for one language would fork the decode path.
+ *
+ * Packs are plain objects. That is deliberate: a native speaker can correct
+ * one and send it back without knowing anything about the rest of the code. */
+(function (global) {
+'use strict';
+var Q = global.QG;
+
+/* Languages offered. `dir` drives the document direction; `name` is written
+ * in the language itself, because that is the only form a speaker of it can
+ * recognise in a list. */
+var LANGS = [
+  { code: 'en', name: 'English',    dir: 'ltr' },
+  { code: 'es', name: 'Espa\u00f1ol',    dir: 'ltr' },
+  { code: 'ar', name: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', dir: 'rtl' },
+  { code: 'hi', name: '\u0939\u093f\u0928\u094d\u0926\u0940', dir: 'ltr' },
+  { code: 'tl', name: 'Tagalog',    dir: 'ltr' },
+  { code: 'ru', name: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439', dir: 'ltr' },
+  { code: 'th', name: '\u0e44\u0e17\u0e22',   dir: 'ltr' },
+  { code: 'ko', name: '\ud55c\uad6d\uc5b4',  dir: 'ltr' },
+  { code: 'vi', name: 'Ti\u1ebfng Vi\u1ec7t', dir: 'ltr' },
+  { code: 'id', name: 'Bahasa Indonesia', dir: 'ltr' },
+  { code: 'pt', name: 'Portugu\u00eas',  dir: 'ltr' },
+  { code: 'fr', name: 'Fran\u00e7ais',   dir: 'ltr' },
+  { code: 'zh', name: '\u4e2d\u6587',    dir: 'ltr' }
+];
+
+var packs = { en: {} };          /* filled by lang/*.js, en by lang/en.js */
+var lang = 'en';
+var listeners = [];
+
+function meta(code) {
+  for (var i = 0; i < LANGS.length; i++) if (LANGS[i].code === code) return LANGS[i];
+  return LANGS[0];
+}
+function has(code) { return !!packs[code]; }
+
+/* ------------------------------------------------------------- lookup */
+
+/* Plural-aware where a language needs it. Russian and Arabic genuinely do:
+ * a pack may supply `key.one` / `key.few` / `key.many` / `key.other` and the
+ * right one is chosen by Intl. A pack that supplies only `key` gets `key`. */
+function pick(p, key, vars) {
+  if (vars && vars.n != null && p[key + '.other'] != null) {
+    var cat = 'other';
+    try { cat = new Intl.PluralRules(lang).select(vars.n); } catch (e) {}
+    if (p[key + '.' + cat] != null) return p[key + '.' + cat];
+    return p[key + '.other'];
+  }
+  return p[key];
+}
+
+function t(key, vars) {
+  var s = pick(packs[lang] || {}, key, vars);
+  if (s == null) s = pick(packs.en || {}, key, vars);
+  if (s == null) s = key;                       /* visible, so it gets noticed */
+  if (vars) s = String(s).replace(/\{(\w+)\}/g, function (m, k) {
+    return vars[k] != null ? vars[k] : m;
+  });
+  return s;
+}
+
+/* ------------------------------------------------- applying to the DOM */
+
+var ATTRS = [
+  ['data-i18n-ph',    'placeholder'],
+  ['data-i18n-title', 'title'],
+  ['data-i18n-aria',  'aria-label'],
+  ['data-i18n-value', 'value'],
+  ['data-i18n-alt',   'alt']
+];
+
+function apply(root) {
+  root = root || document;
+  var i, j, n, nodes;
+
+  nodes = root.querySelectorAll('[data-i18n]');
+  for (i = 0; i < nodes.length; i++) {
+    n = nodes[i];
+    /* Some labels carry a child element (a badge, an icon). Only the text
+     * belongs to the pack, so replace the first text node and leave the rest. */
+    var txt = t(n.getAttribute('data-i18n'));
+    var first = null;
+    for (j = 0; j < n.childNodes.length; j++) {
+      if (n.childNodes[j].nodeType === 3) { first = n.childNodes[j]; break; }
+    }
+    if (first && n.children.length) first.nodeValue = txt;
+    else n.textContent = txt;
+  }
+
+  /* Blocks whose English contains markup — a <code> sample, a <strong> — are
+   * translated whole. The pack owns the tags too, so a translator can move
+   * them where their language needs them. */
+  nodes = root.querySelectorAll('[data-i18n-html]');
+  for (i = 0; i < nodes.length; i++) {
+    nodes[i].innerHTML = t(nodes[i].getAttribute('data-i18n-html'));
+  }
+
+  for (var a = 0; a < ATTRS.length; a++) {
+    nodes = root.querySelectorAll('[' + ATTRS[a][0] + ']');
+    for (i = 0; i < nodes.length; i++) {
+      nodes[i].setAttribute(ATTRS[a][1], t(nodes[i].getAttribute(ATTRS[a][0])));
+    }
+  }
+}
+
+/* ------------------------------------------------------------ switching */
+
+function set(code, opts) {
+  if (!has(code)) code = 'en';
+  lang = code;
+  var m = meta(code);
+  var d = document.documentElement;
+  d.setAttribute('lang', code);
+  d.setAttribute('dir', m.dir);
+  if (!(opts && opts.silent)) { try { Q.Prefs.set('lang', code); } catch (e) {} }
+  /* Two labels live in CSS `content:` where the DOM walker cannot reach them.
+   * Hand them over as custom properties instead of leaving them in English. */
+  d.style.setProperty('--lbl-selected', JSON.stringify(t('css.selected')));
+  d.style.setProperty('--lbl-manycols', JSON.stringify(t('css.manyColumns')));
+  apply(document);
+  listeners.forEach(function (f) { try { f(code); } catch (e) {} });
+}
+
+function onChange(fn) { listeners.push(fn); }
+
+/* The picker lists only languages we actually have a pack for, and lists
+ * each in its own script — a speaker of Thai recognises ไทย, not "Thai". */
+function mountPicker(node) {
+  if (!node) return;
+  node.innerHTML = '';
+  var avail = LANGS.filter(function (l) { return has(l.code); });
+  /* One language is not a choice; do not spend header space on it. */
+  if (avail.length < 2) { node.hidden = true; return; }
+  node.hidden = false;
+  avail.forEach(function (l) {
+    var o = document.createElement('option');
+    o.value = l.code; o.textContent = l.name;
+    if (l.code === lang) o.selected = true;
+    node.appendChild(o);
+  });
+  node.addEventListener('change', function () { set(node.value); });
+}
+
+/* What the browser says, narrowed to a pack we actually have. `pt-BR` and
+ * `zh-Hans` land on `pt` and `zh`. */
+function detect() {
+  var want = (global.navigator.languages || [global.navigator.language || 'en']);
+  for (var i = 0; i < want.length; i++) {
+    var c = String(want[i] || '').toLowerCase();
+    if (has(c)) return c;
+    var base = c.split('-')[0];
+    if (has(base)) return base;
+  }
+  return 'en';
+}
+
+function boot() {
+  var saved = null;
+  try { saved = Q.Prefs.get('lang', null); } catch (e) {}
+  set(saved || detect(), { silent: !saved });
+}
+
+global.QG.I18N = {
+  LANGS: LANGS, packs: packs,
+  t: t, apply: apply, set: set, boot: boot, detect: detect, mountPicker: mountPicker,
+  onChange: onChange, has: has, meta: meta,
+  get lang() { return lang; },
+  /* Which keys the current pack is missing — used by the test suite so an
+   * untranslated string is a build failure rather than a surprise in class. */
+  missing: function (code) {
+    var p = packs[code] || {}, out = [];
+    for (var k in packs.en) if (p[k] == null && p[k.replace(/\.(one|few|many|other)$/, '.other')] == null) out.push(k);
+    return out;
+  }
+};
+global.QG.T = t;
+})(window);
+
+/* ===== js/lang/en.js ===== */
+/* QuickGrade — English reference pack.
+ *
+ * This is the source of truth every other language is measured against:
+ * tools/test-i18n.js fails the build if a pack is missing a key that
+ * exists here. Keys are grouped by where they appear.
+ *
+ * Translating: copy this file, change the code on the last line and the
+ * right-hand side of every pair. Leave the keys and anything in {braces}
+ * exactly as they are — {n} is replaced with a number at runtime. */
+(function (I) {
+'use strict';
+I.packs.en = {
+  /* --- app --- */
+  'app.title': 'QuickGrade — Scan & Grade Paper Tests',
+
+  /* --- css --- */
+  'css.manyColumns': ' (many columns)',
+  'css.selected': 'SELECTED',
+
+  /* --- export --- */
+  'export.backupHint': 'The backup is the only copy that outlives this device — keep it somewhere safe.',
+  'export.cols.add': '+ Add column',
+  'export.cols.add.aria': 'Column to add',
+  'export.cols.delete': 'Delete this layout',
+  'export.cols.h3': 'Change the columns',
+  'export.cols.hint': 'Only needed if your gradebook rejects the file. Drag nothing, break nothing — use the arrows, and rename a heading by typing over it.',
+  'export.cols.reset': 'Undo my changes',
+  'export.cols.save': 'Save as my own layout…',
+  'export.csv': 'Download as .csv instead',
+  'export.curve.h2': 'Curve',
+  'export.curve.hint': 'Applies to everyone. The original score is always kept.',
+  'export.docx': 'Word document (.docx)',
+  'export.fmtPick.aria': 'Which gradebook do you use',
+  'export.gradebook.h2': 'Gradebook (scores)',
+  'export.gradebook.hint': 'Pick your gradebook once. QuickGrade remembers it and lays the columns out the way that program expects.',
+  'export.h1': 'Export',
+  'export.hint': 'Downloads an Excel file. Most gradebooks import <code>.xlsx</code> or <code>.csv</code> directly.',
+  'export.more': 'More options',
+  'export.myGradebook': 'My gradebook is',
+  'export.onlyScanned': 'Leave out students who have nothing scanned',
+  'export.onlyScanned.note': '(recommended — an empty row can wipe an existing grade)',
+  'export.print': 'Print / Save as PDF',
+  'export.privacyLink': 'Where does student data go?',
+  'export.raw.h2': 'Raw data',
+  'export.raw.json': 'JSON backup of this test',
+  'export.raw.xlsx': 'Item-analysis workbook (.xlsx)',
+  'export.scale.h2': 'Grading scale',
+  'export.send': 'Send to a web address…',
+  'export.top.h2': 'Graded top sheets (student hand-back pages)',
+  'export.top.hint': 'One page per student: every question, what they answered, what was correct, points, plus the extras you enable.',
+  'export.top.summary': 'What goes on the page',
+  'export.tsv': 'Copy — paste into Google Sheets',
+  'export.xlsx': 'Download for my gradebook',
+
+  /* --- grade --- */
+  'grade.blind': 'Blind',
+  'grade.comment.ph': 'Comment for this answer (optional) — Enter saves & advances',
+  'grade.image.alt': 'Scanned student response for the selected question',
+  'grade.keys': 'Keys: <kbd>0</kbd>&ndash;<kbd>9</kbd> points &middot; <kbd>.</kbd> half point &middot; <kbd>Enter</kbd> next &middot; <kbd>&larr;</kbd> back &middot; <kbd>F</kbd> full &middot; <kbd>Z</kbd> zero &middot; <kbd>S</kbd> skip',
+  'grade.next': 'Next ▶',
+  'grade.prev': '◀ Prev',
+  'grade.q.aria': 'Written question to grade',
+
+  /* --- hdr --- */
+  'hdr.language': 'Language',
+  'hdr.noTest': 'No test selected',
+  'hdr.privacy': 'Privacy',
+  'hdr.privacy.title': 'Where student data goes, and how to show that to your school',
+
+  /* --- nav --- */
+  'nav.export': 'Export',
+  'nav.grade': 'Grade',
+  'nav.review': 'Review',
+  'nav.roster': 'Roster',
+  'nav.scan': 'Scan',
+  'nav.tests': 'Tests',
+
+  /* --- review --- */
+  'review.clearScans': 'Delete all scans for this test',
+  'review.h1': 'Review scans',
+  'review.problemsOnly': 'Problems only',
+  'review.students': 'Students',
+  'review.verifyNames': 'Check names against handwriting',
+
+  /* --- roster --- */
+  'roster.class': 'Class / Period',
+  'roster.class.aria': 'Class or period',
+  'roster.class.ph': 'Type a class name, e.g. Biology P3',
+  'roster.clear': 'Remove all in class',
+  'roster.csv': 'Export roster CSV',
+  'roster.h1': 'Roster',
+  'roster.import': 'Import CSV file',
+  'roster.paste.ph': 'Avery Nguyen\nBen Carter, 42\nChloe Diaz, 43, chloe.diaz@school.org',
+  'roster.pasteHint': 'Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.',
+  'roster.print.blank': 'Print the answer sheet',
+  'roster.print.check': 'Check my printing',
+  'roster.print.h2': 'Print answer sheets',
+  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.',
+  'roster.print.key': 'Answer-key sheet',
+  'roster.print.keyHint': 'for setting the key by scanning',
+  'roster.print.other': 'Other kinds of sheet',
+  'roster.print.personal': 'Personalized sheets',
+  'roster.print.personalHint': 'one unique page per student',
+  'roster.print.which': 'Which version to print',
+  'roster.save': 'Add / update students',
+  'roster.students': 'Students',
+
+  /* --- scan --- */
+  'scan.calib': 'Check my printing',
+  'scan.cam.aria': 'Camera view',
+  'scan.camSel.aria': 'Camera',
+  'scan.photos': 'Import photos',
+  'scan.pill.idle': 'Idle',
+  'scan.pill.noTest': 'No test',
+  'scan.pill.sheets': '0 sheets',
+  'scan.sound': 'Sound',
+  'scan.speak': 'Speak',
+  'scan.start': 'Start camera',
+  'scan.torch': 'Light',
+
+  /* --- tests --- */
+  'tests.cancel': 'Cancel',
+  'tests.delete': 'Delete test',
+  'tests.editorNew': 'New test',
+  'tests.exportBk': 'Export backup',
+  'tests.f.class': 'Class / Period',
+  'tests.f.class.hint': '— list several, separated by commas, to give one test to several periods',
+  'tests.f.class.ph': 'Biology P3, Biology P5',
+  'tests.f.code': 'Test code (3 digits, printed on the sheet)',
+  'tests.f.code.ph': '042',
+  'tests.f.date': 'Date',
+  'tests.f.title': 'Test title',
+  'tests.f.title.ph': 'Unit 4 — Cell Biology',
+  'tests.h1': 'Tests',
+  'tests.import': 'Import backup',
+  'tests.key.clear': 'Clear key',
+  'tests.key.fromScan': 'Scan a completed sheet',
+  'tests.key.h': 'Answer key',
+  'tests.key.hint': 'Paste it in whatever form you already have it — or click letters below.',
+  'tests.key.paste': 'Paste my answer key',
+  'tests.mc.ch2': '2 (T/F)',
+  'tests.mc.ch4': '4 (A–D)',
+  'tests.mc.ch5': '5 (A–E)',
+  'tests.mc.choices': 'Choices per question',
+  'tests.mc.count': 'Number of questions',
+  'tests.mc.h': 'Multiple choice',
+  'tests.mc.points': 'Points per MC question',
+  'tests.new': '+ New test',
+  'tests.obj.hint': 'Tag the questions and QuickGrade will tell you what the class has not got, instead of only who scored what.',
+  'tests.obj.paste': 'Paste my objectives',
+  'tests.obj.summary': 'What each question tests — standards and objectives',
+  'tests.sample': 'Sample class',
+  'tests.save': 'Save test',
+  'tests.sheet.a4': 'A4 (210 × 297 mm)',
+  'tests.sheet.digitsHint': 'Fewer digits means less for a student to bubble and fewer misreads. Leave pre-printing <strong>off</strong> so you can print one master sheet and photocopy it for the class.',
+  'tests.sheet.h': 'Answer-sheet options',
+  'tests.sheet.id2': '2-digit class number (1–99)',
+  'tests.sheet.id3': '3-digit class number (1–999)',
+  'tests.sheet.id4': '4-digit ID',
+  'tests.sheet.id6': '6-digit district ID',
+  'tests.sheet.idDigits': 'How students identify themselves',
+  'tests.sheet.idLabel': 'Label above the ID bubbles',
+  'tests.sheet.idLabel.ph': 'CLASS NUMBER',
+  'tests.sheet.instr': 'Sheet instructions',
+  'tests.sheet.instr.ph': 'Use pencil. Fill bubbles completely.',
+  'tests.sheet.legal': 'US Legal (8.5 × 14 in)',
+  'tests.sheet.letter': 'US Letter (8.5 × 11 in)',
+  'tests.sheet.paper': 'Paper size',
+  'tests.sheet.prefill': 'Pre-print each student’s ID (only for small runs — needs a unique page per student)',
+  'tests.sheet.wPerPage': 'Written boxes per page',
+  'tests.top.summary': 'What goes on the sheet students get back',
+  'tests.ver.add': '+ Add a second version',
+  'tests.ver.hint': 'Scramble the questions in your own test document, then paste the answer key for each version. Each gets its own printed code, so a mixed pile of sheets sorts itself out while you scan — you never have to say which is which.',
+  'tests.ver.summary': 'Versions — different question orders so neighbours can’t copy',
+  'tests.w.add': '+ Add one',
+  'tests.w.h': 'Written / short answer / fill-in questions',
+  'tests.w.hint': 'These get printed answer boxes. After scanning you grade them one question at a time across the whole class.',
+  'tests.w.paste': 'Paste my questions',
+  'tests.words.class': 'Class box',
+  'tests.words.class.ph': 'CLASS / PERIOD',
+  'tests.words.howto': '“How to fill this in” heading',
+  'tests.words.howto.ph': 'HOW TO FILL THIS IN',
+  'tests.words.name': 'Name box',
+  'tests.words.name.ph': 'NAME',
+  'tests.words.page': 'Page row',
+  'tests.words.page.ph': 'PAGE',
+  'tests.words.samples': 'Bubble examples, separated by',
+  'tests.words.samples.ph': 'correct|too light|do not cross',
+  'tests.words.summary': 'Wording on the printed sheet — for another language, or your school’s terms',
+  'tests.words.tips': 'Advice line under the examples',
+  'tests.words.tips.ph': 'Pencil or dark pen · erase changes fully · keep the four corner squares clean'
+};
+})(window.QG.I18N);
+
+/* ===== js/lang/ar.js ===== */
+/* QuickGrade — العربية (Arabic).
+ *
+ * Right-to-left. The interface mirrors; the answer sheet does not, because the
+ * scanner reads bubbles by position and there is one geometry only.
+ *
+ * Corrections welcome: this pack was written to get the tool into teachers'
+ * hands, not by a professional translator. Edit the right-hand side and send
+ * the file back — nothing else needs to change. */
+(function (I) {
+'use strict';
+I.packs.ar = {
+
+  /* --- app --- */
+  'app.title': 'QuickGrade — تصحيح الاختبارات الورقية بالمسح الضوئي',
+
+  /* --- css --- */
+  'css.manyColumns': ' (أعمدة متعددة)',
+  'css.selected': 'محدَّد',
+
+  /* --- export --- */
+  'export.backupHint': 'النسخة الاحتياطية هي النسخة الوحيدة التي تبقى بعد هذا الجهاز — احتفظ بها في مكان آمن.',
+  'export.cols.add': '+ إضافة عمود',
+  'export.cols.add.aria': 'العمود المراد إضافته',
+  'export.cols.delete': 'حذف هذا التنسيق',
+  'export.cols.h3': 'تغيير الأعمدة',
+  'export.cols.hint': 'لا حاجة لهذا إلا إذا رفض دفتر الدرجات الملف. لا سحب ولا إفساد — استخدم الأسهم، وأعد تسمية أي عنوان بالكتابة فوقه.',
+  'export.cols.reset': 'التراجع عن تغييراتي',
+  'export.cols.save': 'حفظ كتنسيق خاص بي…',
+  'export.csv': 'تنزيل بصيغة csv بدلاً من ذلك',
+  'export.curve.h2': 'تعديل الدرجات',
+  'export.curve.hint': 'ينطبق على الجميع. تُحفظ الدرجة الأصلية دائماً.',
+  'export.docx': 'مستند Word بصيغة docx',
+  'export.fmtPick.aria': 'ما دفتر الدرجات الذي تستخدمه',
+  'export.gradebook.h2': 'دفتر الدرجات',
+  'export.gradebook.hint': 'اختر دفتر درجاتك مرة واحدة. سيتذكره QuickGrade ويرتب الأعمدة بالشكل الذي يتوقعه ذلك البرنامج.',
+  'export.h1': 'تصدير',
+  'export.hint': 'يُنزَّل ملف Excel. معظم دفاتر الدرجات تستورد <code>.xlsx</code> أو <code>.csv</code> مباشرة.',
+  'export.more': 'خيارات أخرى',
+  'export.myGradebook': 'دفتر درجاتي هو',
+  'export.onlyScanned': 'استبعاد الطلاب الذين لم يُمسح لهم شيء',
+  'export.onlyScanned.note': '(مستحسن — الصف الفارغ قد يمحو درجة موجودة)',
+  'export.print': 'طباعة / حفظ بصيغة PDF',
+  'export.privacyLink': 'أين تذهب بيانات الطلاب؟',
+  'export.raw.h2': 'البيانات الخام',
+  'export.raw.json': 'نسخة احتياطية JSON لهذا الاختبار',
+  'export.raw.xlsx': 'جدول تحليل الأسئلة بصيغة xlsx',
+  'export.scale.h2': 'سُلَّم التقدير',
+  'export.send': 'إرسال إلى عنوان ويب…',
+  'export.top.h2': 'أوراق النتائج (صفحات تُسلَّم للطلاب)',
+  'export.top.hint': 'صفحة لكل طالب: كل سؤال، وما أجاب به، وما هي الإجابة الصحيحة، والدرجات، مع الإضافات التي تفعّلها.',
+  'export.top.summary': 'ماذا يظهر في الصفحة',
+  'export.tsv': 'نسخ — للصق في Google Sheets',
+  'export.xlsx': 'تنزيل لدفتر درجاتي',
+
+  /* --- grade --- */
+  'grade.blind': 'إخفاء الاسم',
+  'grade.comment.ph': 'تعليق على هذه الإجابة (اختياري) — Enter يحفظ وينتقل',
+  'grade.image.alt': 'إجابة الطالب الممسوحة للسؤال المحدد',
+  'grade.keys': 'المفاتيح: <kbd>0</kbd>–<kbd>9</kbd> درجات · <kbd>.</kbd> نصف درجة · <kbd>Enter</kbd> التالي · <kbd>←</kbd> رجوع · <kbd>F</kbd> كاملة · <kbd>Z</kbd> صفر · <kbd>S</kbd> تخطٍ',
+  'grade.next': 'التالي ◀',
+  'grade.prev': '▶ السابق',
+  'grade.q.aria': 'السؤال الكتابي المراد تصحيحه',
+
+  /* --- hdr --- */
+  'hdr.language': 'اللغة',
+  'hdr.noTest': 'لم يُحدَّد اختبار',
+  'hdr.privacy': 'الخصوصية',
+  'hdr.privacy.title': 'أين تذهب بيانات الطلاب، وكيف تُثبت ذلك لمدرستك',
+
+  /* --- nav --- */
+  'nav.export': 'تصدير',
+  'nav.grade': 'تصحيح',
+  'nav.review': 'مراجعة',
+  'nav.roster': 'قائمة الطلاب',
+  'nav.scan': 'مسح',
+  'nav.tests': 'الاختبارات',
+
+  /* --- review --- */
+  'review.clearScans': 'حذف كل عمليات المسح لهذا الاختبار',
+  'review.h1': 'مراجعة المسح',
+  'review.problemsOnly': 'المشكلات فقط',
+  'review.students': 'الطلاب',
+  'review.verifyNames': 'مطابقة الأسماء مع خط اليد',
+
+  /* --- roster --- */
+  'roster.class': 'الصف / الحصة',
+  'roster.class.aria': 'الصف أو الحصة',
+  'roster.class.ph': 'اكتب اسم الصف، مثل: أحياء ٣',
+  'roster.clear': 'إزالة الجميع من هذا الصف',
+  'roster.csv': 'تصدير قائمة الطلاب CSV',
+  'roster.h1': 'قائمة الطلاب',
+  'roster.import': 'استيراد ملف CSV',
+  'roster.paste.ph': 'سارة الحسن\nعمر خالد، ٤٢\nليلى منصور، ٤٣، laila@school.org',
+  'roster.pasteHint': 'الصق طالباً واحداً في كل سطر: <code>الاسم</code> أو <code>الاسم، الرقم</code> أو <code>الاسم، الرقم، البريد</code>. تُسنَد الأرقام تلقائياً إذا لم تُذكر. يمكنك أيضاً استيراد ملف CSV مُصدَّر من دفتر درجاتك — صف العناوين والأعمدة الزائدة لا تضر.',
+  'roster.print.blank': 'طباعة ورقة الإجابة',
+  'roster.print.check': 'فحص الطباعة',
+  'roster.print.h2': 'طباعة أوراق الإجابة',
+  'roster.print.hint': 'اطبع بمقياس <strong>100% / الحجم الفعلي</strong>. أي مقياس منتظم مقبول — يعاير الماسح نفسه من المربعات الأربعة في الزوايا.',
+  'roster.print.key': 'ورقة مفتاح الإجابة',
+  'roster.print.keyHint': 'لضبط المفتاح عن طريق المسح',
+  'roster.print.other': 'أنواع أخرى من الأوراق',
+  'roster.print.personal': 'أوراق باسم كل طالب',
+  'roster.print.personalHint': 'صفحة خاصة لكل طالب',
+  'roster.print.which': 'أي نسخة تُطبع',
+  'roster.save': 'إضافة / تحديث الطلاب',
+  'roster.students': 'الطلاب',
+
+  /* --- scan --- */
+  'scan.calib': 'فحص الطباعة',
+  'scan.cam.aria': 'عرض الكاميرا',
+  'scan.camSel.aria': 'الكاميرا',
+  'scan.photos': 'استيراد صور',
+  'scan.pill.idle': 'في الانتظار',
+  'scan.pill.noTest': 'لا اختبار',
+  'scan.pill.sheets': '٠ أوراق',
+  'scan.sound': 'صوت',
+  'scan.speak': 'نطق',
+  'scan.start': 'تشغيل الكاميرا',
+  'scan.torch': 'إضاءة',
+
+  /* --- tests --- */
+  'tests.cancel': 'إلغاء',
+  'tests.delete': 'حذف الاختبار',
+  'tests.editorNew': 'اختبار جديد',
+  'tests.exportBk': 'تصدير نسخة احتياطية',
+  'tests.f.class': 'الصف / الحصة',
+  'tests.f.class.hint': '— اذكر عدة صفوف مفصولة بفواصل لإعطاء الاختبار نفسه لأكثر من حصة',
+  'tests.f.class.ph': 'أحياء ٣، أحياء ٥',
+  'tests.f.code': 'رمز الاختبار (٣ أرقام، يُطبع على الورقة)',
+  'tests.f.code.ph': '٠٤٢',
+  'tests.f.date': 'التاريخ',
+  'tests.f.title': 'عنوان الاختبار',
+  'tests.f.title.ph': 'الوحدة ٤ — علم الخلية',
+  'tests.h1': 'الاختبارات',
+  'tests.import': 'استيراد نسخة احتياطية',
+  'tests.key.clear': 'مسح المفتاح',
+  'tests.key.fromScan': 'امسح ورقة مُجابة',
+  'tests.key.h': 'مفتاح الإجابة',
+  'tests.key.hint': 'الصقه بأي صيغة لديك — أو انقر الحروف بالأسفل.',
+  'tests.key.paste': 'لصق مفتاح الإجابة',
+  'tests.mc.ch2': '٢ (صح/خطأ)',
+  'tests.mc.ch4': '٤ (A–D)',
+  'tests.mc.ch5': '٥ (A–E)',
+  'tests.mc.choices': 'عدد الخيارات لكل سؤال',
+  'tests.mc.count': 'عدد الأسئلة',
+  'tests.mc.h': 'الاختيار من متعدد',
+  'tests.mc.points': 'درجات كل سؤال اختيار من متعدد',
+  'tests.new': '+ اختبار جديد',
+  'tests.obj.hint': 'صنّف الأسئلة وسيخبرك QuickGrade بما لم يتقنه الصف، بدل أن يخبرك فقط بدرجات الطلاب.',
+  'tests.obj.paste': 'لصق الأهداف',
+  'tests.obj.summary': 'ما الذي يقيسه كل سؤال — المعايير والأهداف',
+  'tests.sample': 'صف تجريبي',
+  'tests.save': 'حفظ الاختبار',
+  'tests.sheet.a4': 'A4 ‏(210 × 297 مم)',
+  'tests.sheet.digitsHint': 'كلما قلّت الأرقام قلّ ما يُظلّله الطالب وقلّت أخطاء القراءة. اترك الطباعة المسبقة <strong>معطّلة</strong> لتتمكن من طباعة ورقة واحدة وتصويرها للصف كله.',
+  'tests.sheet.h': 'خيارات ورقة الإجابة',
+  'tests.sheet.id2': 'رقم صف من خانتين ‏(1–99)',
+  'tests.sheet.id3': 'رقم صف من ٣ خانات ‏(1–999)',
+  'tests.sheet.id4': 'رقم تعريف من ٤ خانات',
+  'tests.sheet.id6': 'رقم تعريف من ٦ خانات',
+  'tests.sheet.idDigits': 'كيف يعرّف الطلاب عن أنفسهم',
+  'tests.sheet.idLabel': 'العنوان فوق خانات الرقم',
+  'tests.sheet.idLabel.ph': 'رقم الطالب في الصف',
+  'tests.sheet.instr': 'تعليمات الورقة',
+  'tests.sheet.instr.ph': 'استخدم قلم رصاص. ظلّل الدوائر بالكامل.',
+  'tests.sheet.legal': 'US Legal ‏(8.5 × 14 بوصة)',
+  'tests.sheet.letter': 'US Letter ‏(8.5 × 11 بوصة)',
+  'tests.sheet.paper': 'مقاس الورق',
+  'tests.sheet.prefill': 'طباعة رقم كل طالب مسبقاً (للأعداد الصغيرة فقط — يتطلب صفحة مختلفة لكل طالب)',
+  'tests.sheet.wPerPage': 'عدد صناديق الإجابة الكتابية في الصفحة',
+  'tests.top.summary': 'ما يظهر في الورقة التي تُعاد للطلاب',
+  'tests.ver.add': '+ إضافة نسخة ثانية',
+  'tests.ver.hint': 'رتّب الأسئلة بترتيب مختلف في ملف اختبارك، ثم الصق مفتاح الإجابة لكل نسخة. تحصل كل نسخة على رمز مطبوع خاص بها، فتُفرز الأوراق المختلطة من تلقاء نفسها أثناء المسح — لا حاجة لأن تحدد أيها أي.',
+  'tests.ver.summary': 'النسخ — ترتيبات مختلفة للأسئلة حتى لا ينقل الجالس بجوارك',
+  'tests.w.add': '+ إضافة سؤال',
+  'tests.w.h': 'الأسئلة الكتابية / القصيرة / ملء الفراغ',
+  'tests.w.hint': 'تُطبع لها صناديق إجابة. بعد المسح تصححها سؤالاً سؤالاً لكل الصف.',
+  'tests.w.paste': 'لصق أسئلتي',
+  'tests.words.class': 'خانة الصف',
+  'tests.words.class.ph': 'الصف / الحصة',
+  'tests.words.howto': 'عنوان «كيفية التظليل»',
+  'tests.words.howto.ph': 'كيفية تظليل الورقة',
+  'tests.words.name': 'خانة الاسم',
+  'tests.words.name.ph': 'الاسم',
+  'tests.words.page': 'سطر الصفحة',
+  'tests.words.page.ph': 'صفحة',
+  'tests.words.samples': 'أمثلة التظليل، مفصولة بـ',
+  'tests.words.samples.ph': 'صحيح|خفيف جداً|لا تضع علامة X',
+  'tests.words.summary': 'الكلمات المطبوعة على الورقة — للغة أخرى أو لمصطلحات مدرستك',
+  'tests.words.tips': 'سطر الإرشاد تحت الأمثلة',
+  'tests.words.tips.ph': 'قلم رصاص أو حبر داكن · امسح التعديلات تماماً · حافظ على نظافة المربعات الأربعة'
+};
+})(window.QG.I18N);
 
 /* ===== js/ooxml.js ===== */
 /* QuickGrade — ooxml.js
@@ -3241,7 +3848,9 @@ function renderSheets(test, people, opts) {
   });
   var count = (people && people.length ? people.length : 1) * pages.length;
   var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h);
-  return '<!doctype html><html><head><meta charset="utf-8"><title>' +
+  return '<!doctype html><html><head><meta charset="utf-8"><!-- QuickGrade single-file build. Source lives alongside this file;
+     rebuild with: python build.py -->
+<title>' +
     E(opts.title || (test.title + ' — answer sheets')) + '</title><style>' + css + '</style></head><body>' +
     '<div class="toolbar noprint"><button onclick="window.print()">Print ' + count + ' page' +
     (count === 1 ? '' : 's') + '</button>' +
@@ -4726,6 +5335,16 @@ function backupNudge() {
 }
 
 function boot() {
+  /* Language before anything renders, so the first paint is already in the
+   * right language rather than flashing English at someone who cannot read it. */
+  Q.I18N.boot();
+  Q.I18N.onChange(function () {
+    Q.I18N.mountPicker($('#langPick'));
+    /* Views built by JS hold no data-i18n attributes, so re-render the
+     * visible one rather than trying to patch it in place. */
+    route(Q.Prefs.get('view', 'tests'));
+    updateCtx();
+  });
   Q.DB.ready().then(storageBanner);
   requestPersistence();
   Promise.all([Q.DB.all('tests'), Q.DB.all('students')]).then(function (r) {
@@ -4737,6 +5356,7 @@ function boot() {
     return selectTest(t);
   }).then(function () {
     wireUI();
+    Q.I18N.mountPicker($('#langPick'));
     renderTests();
     renderRosterView();
     route(Q.Prefs.get('view', 'tests'));
