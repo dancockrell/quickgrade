@@ -211,7 +211,7 @@ function simulateCamera(sheet, o) {
   return dst;
 }
 
-function decode(photo, pages) {
+function decode(photo, pages, nId) {
   var W = photo.width, H2 = photo.height;
   var detW = Math.min(480, W), detH = Math.round(H2 * detW / W);
   var dc = document.createElement('canvas'); dc.width = detW; dc.height = detH;
@@ -224,7 +224,7 @@ function decode(photo, pages) {
   var capImg = photo.getContext('2d').getImageData(0, 0, W, H2);
   var gCap = V.toGray(capImg);
   var white = V.whiteLevel(gCap.g, W, H2, Hc);
-  var ident = V.decodeIdentity(gCap.g, W, H2, Hc, white);
+  var ident = V.decodeIdentity(gCap.g, W, H2, Hc, white, nId);
   if (ident.page == null || ident.page > pages.length) {
     return { ok: false, reason: 'page unreadable', ident: ident };
   }

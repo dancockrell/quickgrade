@@ -2,14 +2,15 @@
 (function (global) {
 'use strict';
 
-var Q = global.QG, S = Q.Sheet, X = Q.OOXML, Scanner = Q.Scanner;
+var Q = global.QG, S = Q.Sheet, X = Q.OOXML, X2 = Q.ExportMap,
+    SC = Q.Scoring, Scanner = Q.Scanner;
 var $ = Q.$, $$ = Q.$$, el = Q.el, on = Q.on;
 
 /* ================================================================ state */
 var State = {
   tests: [], test: null, pages: [],
   students: [], byId: {},
-  scans: [], grades: {},
+  scans: [], trash: [], grades: {},
   results: null
 };
 
@@ -24,6 +25,7 @@ var TOPSHEET_OPTS = [
   { k: 'showQuestionText',d: false, t: 'Include question text (if entered)' },
   { k: 'showTopic',       d: false, t: 'Include topic / standard column' },
   { k: 'showClassPct',    d: false, t: 'Show % of class that got it right' },
+  { k: 'showMastery',     d: false, t: 'What this student has and hasn’t got' },
   { k: 'showWritten',     d: true,  t: 'Written-answer scores' },
   { k: 'showWrittenNotes',d: true,  t: 'Written-answer teacher notes' },
   { k: 'showMissedList',  d: false, t: 'Compact "missed" list at top' },
@@ -40,19 +42,29 @@ var TOPSHEET_OPTS = [
 ];
 
 function defaultOptions() {
-  var o = { prefillId: true, wPerPage: 2, instructions: '', scale: DEFAULT_SCALE.slice(), footer: '', topsheet: {} };
+  var o = { prefillId: false, idDigits: 3, idLabel: '', paper: 'letter', labels: {},
+           wPerPage: 2, instructions: '',
+           scale: DEFAULT_SCALE.slice(), footer: '', topsheet: {} };
   TOPSHEET_OPTS.forEach(function (t) { o.topsheet[t.k] = t.d; });
   return o;
 }
 function newTest() {
   return {
-    id: Q.uid('t'), title: '', className: '', date: Q.todayISO(),
+    id: Q.uid('t'), title: '', className: '', classes: [], date: Q.todayISO(),
     code: String(Math.floor(Math.random() * 900) + 100),
-    mc: { count: 20, choices: 5, key: [], points: 1, text: [], topic: [] },
+    mc: { count: 20, choices: 5, key: [], points: 1, text: [], topic: [], rules: {} },
+    curve: { kind: 'none', value: 0 },
     written: [], options: defaultOptions(), createdAt: Date.now()
   };
 }
 function normalizeTest(t) {
+  /* A test is usually given to several periods. `classes` is the truth;
+   * `className` is kept as the joined display string so older saved tests,
+   * printed sheets and exports keep working. */
+  t.classes = Array.isArray(t.classes)
+    ? t.classes.map(function (c) { return String(c).trim(); }).filter(Boolean)
+    : String(t.className || '').split(/\s*[,;]\s*/).map(function (c) { return c.trim(); }).filter(Boolean);
+  t.className = t.classes.join(', ');
   t.mc = t.mc || {};
   t.mc.count = t.mc.count || 0;
   t.mc.choices = t.mc.choices || 5;
@@ -60,6 +72,10 @@ function normalizeTest(t) {
   t.mc.points = t.mc.points == null ? 1 : t.mc.points;
   t.mc.text = t.mc.text || [];
   t.mc.topic = t.mc.topic || [];
+  t.mc.rules = t.mc.rules || {};
+  t.forms = Array.isArray(t.forms) ? t.forms : [];
+  t.formLabel = t.formLabel || 'A';
+  t.curve = t.curve || { kind: 'none', value: 0 };
   t.written = t.written || [];
   /* Merge nested `topsheet` explicitly: a plain Object.assign would let a
    * stored `topsheet:{}` replace the whole defaults object and silently turn
@@ -69,6 +85,7 @@ function normalizeTest(t) {
   var userTop = (t.options && t.options.topsheet) || {};
   t.options = Object.assign(base, t.options || {});
   t.options.topsheet = Object.assign({}, defTop, userTop);
+  t.options.labels = Object.assign({}, (t.options && t.options.labels) || {});
   if (!t.options.scale || !t.options.scale.length) t.options.scale = DEFAULT_SCALE.slice();
   return t;
 }
@@ -89,8 +106,34 @@ function storageBanner() {
   box.hidden = false;
 }
 
+/* Browsers may evict IndexedDB under storage pressure. Asking for persistence
+ * makes a class set of grades far less likely to vanish on its own. */
+function requestPersistence() {
+  try {
+    if (navigator.storage && navigator.storage.persist && navigator.storage.persisted) {
+      navigator.storage.persisted().then(function (already) {
+        if (!already) navigator.storage.persist();
+      });
+    }
+  } catch (e) {}
+}
+
+/* Everything lives in this browser. Nag gently rather than lose a class set. */
+function backupNudge() {
+  if (!State.scans.length) return;
+  if (Q.Prefs.get('sampleLoadedAt', 0) > Date.now() - 120000) return;
+  var last = Q.Prefs.get('lastBackup', 0);
+  var days = (Date.now() - last) / 86400000;
+  if (last && days < 7) return;
+  Q.toast(last
+    ? 'Last backup was ' + Math.floor(days) + ' days ago. Tests ▸ Export backup keeps a copy off this browser.'
+    : 'Reminder: this data lives only in this browser. Tests ▸ Export backup makes a portable copy.',
+    'err', 9000);
+}
+
 function boot() {
   Q.DB.ready().then(storageBanner);
+  requestPersistence();
   Promise.all([Q.DB.all('tests'), Q.DB.all('students')]).then(function (r) {
     State.tests = (r[0] || []).map(normalizeTest).sort(function (a, b) { return b.createdAt - a.createdAt; });
     State.students = r[1] || [];
@@ -103,6 +146,7 @@ function boot() {
     renderTests();
     renderRosterView();
     route(Q.Prefs.get('view', 'tests'));
+    setTimeout(backupNudge, 2500);
   }).catch(function (e) {
     console.error(e);
     Q.toast('Startup problem: ' + e.message, 'err', 8000);
@@ -111,7 +155,7 @@ function boot() {
 
 function indexStudents() {
   State.byId = {};
-  State.students.forEach(function (s) { State.byId[s.sid] = s; });
+  State.students.forEach(function (s) { State.byId[S.normId(s.sid)] = s; });
 }
 
 function selectTest(t) {
@@ -121,7 +165,11 @@ function selectTest(t) {
   updateCtx();
   if (!t) { State.scans = []; State.grades = {}; State.results = null; return Promise.resolve(); }
   return Promise.all([Q.DB.all('scans'), Q.DB.get('kv', 'grades:' + t.id)]).then(function (r) {
-    State.scans = (r[0] || []).filter(function (s) { return s.testId === t.id; });
+    var mine = (r[0] || []).filter(function (s) { return s.testId === t.id; });
+    /* Deletions are reversible: a scan is marked, not destroyed, until the
+     * teacher empties the trash or the whole test is deleted. */
+    State.scans = mine.filter(function (s) { return !s.deleted; });
+    State.trash = mine.filter(function (s) { return !!s.deleted; });
     State.grades = (r[1] && r[1].v) || {};
     recompute();
   });
@@ -152,7 +200,7 @@ function route(name) {
   if (name !== 'scan') Scanner.stop();
   if (name === 'tests') renderTests();
   if (name === 'roster') renderRosterView();
-  if (name === 'review') renderReview();
+  if (name === 'review') { renderReview(); renderStorage(); }
   if (name === 'written') renderWrittenGrading();
   if (name === 'export') renderExport();
   if (name === 'scan') { Q.Audio2.unlock(); updateCtx(); }
@@ -160,26 +208,43 @@ function route(name) {
 
 /* ============================================================ results */
 function studentName(sid) {
-  var s = State.byId[sid];
+  var s = State.byId[S.normId(sid)];
   return s ? s.name : (sid ? 'ID ' + sid : 'Unknown');
 }
 function classStudents() {
   var t = State.test;
   if (!t) return [];
-  var list = State.students.filter(function (s) { return (s.cls || '') === (t.className || ''); });
+  var want = t.classes || [];
+  var list = want.length
+    ? State.students.filter(function (s) { return want.indexOf(s.cls || '') >= 0; })
+    : [];
   if (!list.length) list = State.students.slice();
-  return list.sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); });
+  /* group by class first when a test spans several periods, so printed
+   * sheets and the gradebook come out in the order a teacher hands them back */
+  return list.sort(function (a, b) {
+    if (want.length > 1) {
+      var d = want.indexOf(a.cls || '') - want.indexOf(b.cls || '');
+      if (d) return d;
+    }
+    return Q.sortName(a.name).localeCompare(Q.sortName(b.name));
+  });
 }
+/** True when this test is shared across more than one class. */
+function multiClass() { return !!(State.test && (State.test.classes || []).length > 1); }
 
 function recompute() {
   var t = State.test;
   if (!t) { State.results = null; return; }
+  /* Cheap, and removes a whole class of bug: any path that replaces the
+   * student list no longer has to remember to reindex. */
+  indexStudents();
   var nPages = State.pages.length;
   var byStudent = {};
 
   State.scans.forEach(function (sc) {
-    if (!sc.sid) return;
-    var e = byStudent[sc.sid] || (byStudent[sc.sid] = { sid: sc.sid, scans: [], pages: {} });
+    var key = S.normId(sc.sid);
+    if (!key) return;
+    var e = byStudent[key] || (byStudent[key] = { sid: key, scans: [], pages: {} });
     /* newest scan wins for a given page */
     var prev = e.pages[sc.page];
     if (!prev || prev.ts < sc.ts) e.pages[sc.page] = sc;
@@ -205,42 +270,35 @@ function recompute() {
           answers[+k] = sc.answers[k];
           states[+k] = (sc.states || {})[k] || 'ok';
         });
+        /* a mark the teacher corrected by eye always wins over the reader */
+        Object.keys(sc.overrides || {}).forEach(function (k) {
+          answers[+k] = sc.overrides[k];
+          states[+k] = 'fixed';
+        });
       });
     }
     pagesSeen.sort(function (a, b) { return a - b; });
     var missing = [];
     for (var p = 1; p <= nPages; p++) if (pagesSeen.indexOf(p) < 0) missing.push(p);
 
-    var correct = 0, blank = 0, multi = 0, unscanned = 0;
-    for (var i = 0; i < t.mc.count; i++) {
-      if (answers[i] === -3) { unscanned++; continue; }
-      if (states[i] === 'multi') { multi++; continue; }
-      if (answers[i] < 0) { blank++; continue; }
-      if (t.mc.key[i] != null && answers[i] === t.mc.key[i]) correct++;
-    }
-    var mcPts = correct * (t.mc.points || 0);
-    var mcMax = t.mc.count * (t.mc.points || 0);
-
     var g = State.grades[sid] || {};
-    var wPts = 0, wMax = 0, wGraded = 0;
-    (t.written || []).forEach(function (wq, wi) {
-      wMax += (wq.max || 0);
-      var rec = (g.w || {})[wi];
-      if (rec && typeof rec.p === 'number') { wPts += rec.p; wGraded++; }
-    });
-
-    var max = mcMax + wMax;
-    var total = mcPts + wPts;
-    var pct = max > 0 ? total / max : 0;
+    /* every page a student hands in belongs to the same printed version */
+    var formId = null;
+    if (e) e.scans.forEach(function (s) { if (s.form) formId = s.form; });
+    var variant = SC.variantOf(t, formId);
+    var sc = SC.scoreStudent(t, answers, states, g.w || {}, variant);
     return {
       sid: sid, name: name || studentName(sid),
-      answers: answers, states: states,
+      form: variant.id, formPrimary: !!variant.primary,
+      answers: answers, states: states, qStatus: sc.qStatus,
       pagesSeen: pagesSeen, missing: missing, scanned: pagesSeen.length > 0,
-      correct: correct, blank: blank, multi: multi, unscanned: unscanned,
-      mcPts: Q.round2(mcPts), mcMax: Q.round2(mcMax),
-      wPts: Q.round2(wPts), wMax: Q.round2(wMax), wGraded: wGraded,
-      total: Q.round2(total), max: Q.round2(max), pct: pct,
-      letter: letterFor(pct * 100),
+      correct: sc.correct, blank: sc.blank, multi: sc.multi, unscanned: sc.unscanned,
+      credited: sc.credited, dropped: sc.dropped,
+      mcPts: Q.round2(sc.mcEarned), mcMax: Q.round2(sc.mcPossible),
+      wPts: Q.round2(sc.wEarned), wMax: Q.round2(sc.wPossible), wGraded: sc.wGraded,
+      total: Q.round2(sc.total), max: Q.round2(sc.max),
+      rawPct: sc.pct, pct: sc.pct,            /* pct is replaced by the curve pass below */
+      letter: '',
       comment: g.comment || '', wRecords: g.w || {}
     };
   }
@@ -250,8 +308,17 @@ function recompute() {
     if (!seen[sid]) rows.push(build(sid, studentName(sid)));
   });
 
-  /* class stats over students who actually have scans */
+  /* A curve needs the whole class before any single score is final, so it is
+   * applied here rather than inside the per-student pass. */
   var scannedRows = rows.filter(function (r) { return r.scanned; });
+  var topPct = scannedRows.reduce(function (m, r) { return Math.max(m, r.rawPct); }, 0);
+  rows.forEach(function (r) {
+    r.pct = SC.curvedPct(t, r.rawPct, { topPct: topPct, max: r.max });
+    r.curved = Math.abs(r.pct - r.rawPct) > 1e-9;
+    r.total = Q.round2(r.curved ? r.pct * r.max : r.total);
+    r.letter = letterFor(r.pct * 100);
+  });
+
   var itemPct = [];
   for (var qi = 0; qi < t.mc.count; qi++) {
     var n = 0, c = 0, dist = [];
@@ -264,7 +331,7 @@ function recompute() {
       if (r.states[qi] === 'multi') { nMulti++; return; }
       if (a < 0) { nBlank++; return; }
       dist[a]++;
-      if (t.mc.key[qi] != null && a === t.mc.key[qi]) c++;
+      if (r.qStatus[qi] === SC.STATUS.CORRECT || r.qStatus[qi] === SC.STATUS.CREDIT) c++;
     });
     itemPct.push({ n: n, correct: c, pct: n ? c / n : 0, dist: dist, blank: nBlank, multi: nMulti });
   }
@@ -275,9 +342,21 @@ function recompute() {
   ranked.forEach(function (r, i) { r.rank = i + 1; });
   rows.forEach(function (r) { r.rankOf = ranked.length; });
 
-  var unresolved = State.scans.filter(function (sc) { return !sc.sid || !State.byId[sc.sid]; });
+  var unresolved = State.scans.filter(function (sc) { return !sc.sid || !State.byId[S.normId(sc.sid)]; });
 
-  State.results = { rows: rows, scannedRows: scannedRows, itemPct: itemPct, avg: avg, unresolved: unresolved };
+  /* Marks the reader flagged and the teacher has not yet ruled on. */
+  var checks = [];
+  State.scans.forEach(function (sc) {
+    Object.keys(sc.checks || {}).forEach(function (k) {
+      if ((sc.overrides || {})[k] != null) return;
+      if ((sc.confirmed || {})[k]) return;
+      checks.push({ scan: sc, q: +k, info: sc.checks[k], name: studentName(sc.sid) });
+    });
+  });
+  checks.sort(function (a, b) { return a.q - b.q; });
+
+  State.results = { rows: rows, scannedRows: scannedRows, itemPct: itemPct, avg: avg,
+                    unresolved: unresolved, checks: checks };
   updateBadges();
   return State.results;
 }
@@ -303,23 +382,20 @@ function renderTests() {
   box.innerHTML = '';
   if (!State.tests.length) {
     box.style.display = 'block';
-    box.appendChild(el('div', { class: 'empty' }, [
-      el('strong', { text: 'No tests yet' }),
-      el('div', { text: 'A test holds your answer key and the written questions. ' +
-        'Once it exists you can print answer sheets and start scanning.' }),
-      el('button', { class: 'btn go', text: 'Create your first test',
-        onclick: function () { openEditor(null); } })
-    ]));
+    box.appendChild(firstRunPanel());
+    $('#workflow').innerHTML = '';
     return;
   }
   box.style.display = '';
+  renderStorageTotal();
   State.tests.forEach(function (t) {
     var isSel = State.test && State.test.id === t.id;
     var card = el('div', { class: 'card' + (isSel ? ' sel' : '') }, [
       el('h4', { text: t.title || 'Untitled test' }),
       el('div', { class: 'meta', text: (t.className || 'No class') + ' · ' + (t.date || '') }),
       el('div', { class: 'meta', text: t.mc.count + ' MC · ' + (t.written || []).length +
-        ' written · code ' + t.code + ' · ' + S.layoutTest(t).length + ' page(s)' }),
+        ' written · code ' + t.code + ' · ' + S.layoutTest(t).length + ' page(s)' +
+        (S.paperOf(t) !== 'letter' ? ' · ' + S.paperOf(t).toUpperCase() : '') }),
       el('div', { class: 'cardbtns' }, [
         el('button', { class: 'btn sm' + (isSel ? '' : ' go'), text: isSel ? 'Selected' : 'Select',
           onclick: function (e) { e.stopPropagation(); selectTest(t).then(function () { renderTests(); renderRosterView(); }); } }),
@@ -332,6 +408,281 @@ function renderTests() {
     on(card, 'click', function () { selectTest(t).then(function () { renderTests(); renderRosterView(); }); });
     box.appendChild(card);
   });
+  renderWorkflow();
+}
+
+/* ======================================================== sample class ====
+ * Anyone evaluating this — a teacher, an administrator, someone looking at a
+ * portfolio — cannot print a sheet and hold it to a camera. So the app can
+ * demonstrate itself: real sheets are rendered, photographed in software, and
+ * pushed through exactly the same detection and scoring a camera feeds. No
+ * result here is fabricated.
+ */
+var DEMO_NAMES = [
+  'Avery Nguyen', 'Ben Carter', 'Chloe Diaz', 'Diego Ruiz',
+  'Emma Sullivan', 'Farid Haddad', 'Grace Okonkwo', 'Hana Ito'
+];
+var DEMO_KEY = [1, 2, 0, 3, 4, 1, 2, 0, 3, 4, 1, 2];
+var DEMO_TOPICS = ['Cells', 'Cells', 'Cells', 'Cells',
+                   'Transport', 'Transport', 'Transport', 'Transport',
+                   'Energy', 'Energy', 'Energy', 'Energy'];
+
+function demoTest() {
+  var t = newTest();
+  t.id = 'demo-' + Date.now().toString(36);
+  t.title = 'Unit 4 — Cell Biology';
+  t.classes = ['Biology P3'];
+  t.className = 'Biology P3';
+  t.date = Q.todayISO();
+  t.mc = { count: 12, choices: 5, key: DEMO_KEY.slice(), points: 1,
+           text: [], topic: DEMO_TOPICS.slice(), rules: {} };
+  t.written = [{
+    label: 'Explain osmosis in your own words.', max: 6, kind: 'essay', expected: '',
+    rubric: {
+      levels: [{ label: 'Not yet', pts: 0 }, { label: 'Partly', pts: 1 }, { label: 'Fully', pts: 2 }],
+      criteria: ['Uses the correct terms', 'Explains the mechanism', 'Gives an example']
+    }
+  }];
+  t.options.topsheet.showMastery = true;
+  t.options.footer = 'Corrections due Friday for half credit back.';
+  return t;
+}
+
+function loadSampleClass(btn) {
+  if (!global.QG.Synth) { Q.toast('The sample generator did not load.', 'err'); return; }
+  /* Stamped up front: the backup reminder fires on a timer and must not
+   * land on top of a sample the teacher is still watching build. */
+  Q.Prefs.set('sampleLoadedAt', Date.now());
+  if (btn) { btn.disabled = true; btn.textContent = 'Building the sample…'; }
+  var Sy = global.QG.Synth;
+  var t = demoTest();
+  var students = DEMO_NAMES.map(function (n, i) {
+    return { sid: String(i + 1), name: n, cls: 'Biology P3',
+             email: n.toLowerCase().replace(/[^a-z]+/g, '.') + '@school.org' };
+  });
+
+  Q.DB.put('tests', t)
+    .then(function () { return Q.DB.putMany('students', students); })
+    .then(function () {
+      State.tests.unshift(normalizeTest(t));
+      State.students = State.students.filter(function (s) {
+        return !students.some(function (d) { return S.normId(d.sid) === S.normId(s.sid); });
+      }).concat(students);
+      indexStudents();
+      return selectTest(t);
+    })
+    .then(function () {
+      /* Photograph every sheet, then feed them in the way Import photos does. */
+      var files = [];
+      var chain = Promise.resolve();
+      students.forEach(function (st, i) {
+        State.pages.forEach(function (pg, pi) {
+          if (i === 7 && pi === 1) return;            // one student short a page
+          chain = chain.then(function () {
+            var answers = {};
+            for (var q = 0; q < t.mc.count; q++) {
+              answers[q] = (q % (i + 2) === 0) ? (DEMO_KEY[q] + 1) % 5 : DEMO_KEY[q];
+            }
+            if (i === 2) answers[4] = -1;                       // left one blank
+            if (i === 4) answers[7] = [DEMO_KEY[7], (DEMO_KEY[7] + 1) % 5];  // two bubbles
+            var sid = i === 6 ? '' : st.sid;                    // forgot to bubble
+            var sheet = Sy.renderSynthetic(t, pi, { sid: sid, name: st.name, answers: answers });
+            var photo = Sy.simulateCamera(sheet, {
+              w: 980, h: 1110, noise: 9, vignette: 0.3,
+              corners: [[150 + i * 3, 96], [880, 88 + i * 2], [905, 1010], [128, 1022]]
+            });
+            if (btn) btn.textContent = 'Scanning sheet ' + (files.length + 1) + '…';
+            return Sy.canvasToFile(photo, st.sid + '_' + pi + '.jpg')
+              .then(function (f) { files.push(f); });
+          });
+        });
+      });
+      return chain.then(function () { return Scanner.importFiles(files, { quiet: true }); });
+    })
+    .then(function () {
+      /* Mark a couple of the written answers so grading is part-done. */
+      recompute();
+      State.results.rows.slice(0, 3).forEach(function (x, i) {
+        if (!x.scanned) return;
+        var g = State.grades[x.sid] || (State.grades[x.sid] = {});
+        g.w = g.w || {};
+        g.w[0] = { p: 6 - i * 2, r: [2, i === 0 ? 2 : 1, i === 0 ? 2 : 0],
+                   c: i === 0 ? 'Clear and complete.' : '' };
+      });
+      return saveGrades();
+    })
+    .then(function () {
+      Q.Prefs.set('sampleLoadedAt', Date.now());
+      recompute();
+      renderTests(); renderRosterView();
+      route('review');
+      Q.toast('Sample class ready — 8 students, sheets scanned. Everything here went ' +
+        'through the real reader.', 'good', 8000);
+    })
+    .catch(function (e) {
+      console.error(e);
+      Q.toast('Could not build the sample: ' + e.message, 'err', 7000);
+    })
+    .then(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'See it working with a sample class'; }
+    });
+}
+
+/* ========================================================== first run ====
+ * A teacher opening this for the first time gets one thing to do, not six
+ * tabs. Three questions, then a printed sheet in their hand — the point at
+ * which the app has actually earned another five minutes.
+ */
+function firstRunPanel() {
+  var wrap = el('div', { class: 'firstrun' });
+  wrap.appendChild(el('h2', { text: 'Let’s grade your first test' }));
+  wrap.appendChild(el('p', { class: 'hint',
+    text: 'Three questions and you’ll have a sheet to photocopy. About a minute.' }));
+
+  var title = el('input', { placeholder: 'e.g. Unit 4 — Cell Biology', 'aria-label': 'Test name' });
+  var cls = el('input', { placeholder: 'e.g. Biology P3', 'aria-label': 'Class name' });
+  var key = el('textarea', { rows: 5, 'aria-label': 'Answer key',
+    placeholder: '1. B\n2. C\n3. A\n\n…or just  B C A D E' });
+  var readout = el('p', { class: 'hint' });
+  var go = el('button', { class: 'btn go big', text: 'Make my answer sheet', disabled: true });
+
+  function parsed() { return Q.Parse.parseAnswerKey(key.value); }
+  function refresh() {
+    var p = parsed();
+    var haveKey = p.answers.length > 0;
+    if (!key.value.trim()) readout.textContent = '';
+    else if (!haveKey) readout.innerHTML = '<b class="bad">Can’t read that yet.</b> ' +
+      'Try one answer per line, like “1. B”.';
+    else readout.innerHTML = '<b class="ok">' + p.filled + ' answers</b>, ' +
+      p.maxChoice + ' choices each.';
+    go.disabled = !(title.value.trim() && cls.value.trim() && haveKey);
+  }
+  [title, cls, key].forEach(function (n) { on(n, 'input', refresh); });
+
+  on(go, 'click', function () {
+    var p = parsed();
+    var t = newTest();
+    t.title = title.value.trim();
+    t.classes = [cls.value.trim()];
+    t.className = t.classes[0];
+    t.mc.count = Q.clamp(p.answers.length, 0, 300);
+    t.mc.choices = Q.clamp(p.maxChoice, 2, 5);
+    t.mc.key = p.answers.slice();
+    var qt = Q.Parse.parseQuestionText(key.value);
+    if (Object.keys(qt).length >= 2) {
+      Object.keys(qt).forEach(function (n) {
+        var i = parseInt(n, 10) - 1;
+        if (i >= 0 && i < t.mc.count) t.mc.text[i] = qt[n];
+      });
+      t.options.topsheet.showQuestionText = true;
+    }
+    Q.DB.put('tests', t).then(function () {
+      State.tests.unshift(normalizeTest(t));
+      return selectTest(t);
+    }).then(function () {
+      renderTests(); renderRosterView();
+      printSheets('blank');
+      Q.toast('Test created. Print one sheet, photocopy it for the class, then come ' +
+        'back and press Scan.', 'good', 9000);
+    });
+  });
+
+  var steps = [
+    ['What is the test called?', title, null],
+    ['Which class is it for?', cls, 'You can add more classes later.'],
+    ['Paste your answer key', key,
+     'However you already have it written — numbered list, a run of letters, ' +
+     'a column from a spreadsheet, T/F.']
+  ];
+  var list = el('ol', { class: 'steps' });
+  steps.forEach(function (s) {
+    var li = el('li', {}, [el('label', { text: s[0] }), s[1]]);
+    if (s[2]) li.appendChild(el('p', { class: 'hint', text: s[2] }));
+    list.appendChild(li);
+  });
+  list.lastChild.appendChild(readout);
+  wrap.appendChild(list);
+  wrap.appendChild(el('div', { class: 'row gap wrap-row' }, [
+    go,
+    el('button', { class: 'btn', text: 'Set it up myself',
+      onclick: function () { openEditor(null); } }),
+    el('button', { class: 'btn', text: 'Restore a backup',
+      onclick: function () { $('#backupInput').click(); } })
+  ]));
+  wrap.appendChild(el('div', { class: 'demoline' }, [
+    el('span', { class: 'hint', style: 'margin:0',
+      text: 'Want to look around first? This builds a class of eight, prints their sheets, ' +
+            'photographs them and reads them back — the real reader, no printer needed.' }),
+    el('button', { class: 'btn', text: 'See it working with a sample class',
+      onclick: function (e) { loadSampleClass(e.target); } })
+  ]));
+  wrap.appendChild(el('p', { class: 'hint', style: 'margin-top:14px',
+    text: 'Everything stays on this computer. There is no account and nothing is uploaded.' }));
+  setTimeout(function () { title.focus(); }, 60);
+  return wrap;
+}
+
+/* A standing answer to "what do I do next?" for the selected test. */
+function renderWorkflow() {
+  var host = $('#workflow');
+  host.innerHTML = '';
+  var t = State.test;
+  if (!t) return;
+  recompute();
+  var r = State.results;
+
+  var keySet = 0;
+  for (var i = 0; i < t.mc.count; i++) if (t.mc.key[i] != null) keySet++;
+  var roster = classStudents().length;
+  var scanned = r.scannedRows.length;
+  var wTotal = t.written.length * scanned;
+  var wDone = 0;
+  r.rows.forEach(function (x) {
+    if (!x.scanned) return;
+    t.written.forEach(function (wq, wi) {
+      var rec = (x.wRecords || {})[wi];
+      if (rec && typeof rec.p === 'number') wDone++;
+    });
+  });
+
+  var steps = [
+    { t: 'Answer key', v: t.mc.count ? keySet + ' of ' + t.mc.count + ' set' : 'no MC questions',
+      ok: !t.mc.count || keySet === t.mc.count, go: 'tests', act: 'Edit test',
+      run: function () { openEditor(t); } },
+    { t: 'Roster', v: roster ? roster + ' student' + (roster === 1 ? '' : 's') +
+        (multiClass() ? ' across ' + t.classes.length + ' classes' : '') : 'none yet',
+      ok: roster > 0, go: 'roster', act: 'Add students' },
+    { t: 'Print sheets', v: State.pages.length + ' page' + (State.pages.length === 1 ? '' : 's') + ' each',
+      ok: roster > 0, go: 'roster', act: 'Print' },
+    { t: 'Scan', v: scanned + ' of ' + (roster || '?') + ' scanned' +
+        (r.unresolved.length ? ' · ' + r.unresolved.length + ' unmatched' : ''),
+      ok: roster > 0 && scanned >= roster && !r.unresolved.length,
+      warn: r.unresolved.length > 0, go: 'scan', act: 'Scan' },
+    { t: 'Grade written', v: t.written.length ? wDone + ' of ' + wTotal + ' graded' : 'none on this test',
+      ok: !t.written.length || (wTotal > 0 && wDone === wTotal), go: 'written', act: 'Grade' },
+    { t: 'Export', v: scanned ? 'ready' : 'nothing to export yet',
+      ok: false, go: 'export', act: 'Export' }
+  ];
+
+  var firstTodo = steps.findIndex(function (s) { return !s.ok; });
+  var flow = el('div', { class: 'flow' });
+  steps.forEach(function (s, i) {
+    var cls = 'step' + (s.ok ? ' done' : '') + (s.warn ? ' warn' : '') +
+              (i === firstTodo ? ' now' : '');
+    flow.appendChild(el('div', { class: cls }, [
+      el('span', { class: 'sn', text: s.ok ? '✓' : String(i + 1) }),
+      el('div', { class: 'sb' }, [
+        el('b', { text: s.t }),
+        el('span', { text: s.v })
+      ]),
+      el('button', {
+        class: 'btn sm' + (i === firstTodo ? ' go' : ''), text: s.act,
+        onclick: function () { if (s.run) s.run(); else route(s.go); }
+      })
+    ]));
+  });
+  host.appendChild(el('h3', { text: 'Where this test stands' }));
+  host.appendChild(flow);
 }
 
 function duplicateTest(t) {
@@ -361,9 +712,21 @@ function openEditor(t) {
   $('#f_choices').value = editing.mc.choices;
   $('#f_mcPoints').value = editing.mc.points;
   $('#f_prefillId').checked = !!editing.options.prefillId;
+  $('#f_idDigits').value = String(S.idDigitsOf(editing));
+  $('#f_idLabel').value = editing.options.idLabel || '';
+  $('#f_paper').value = S.paperOf(editing);
+  var lb = editing.options.labels || (editing.options.labels = {});
+  $('#f_lblName').value = lb.name || '';
+  $('#f_lblClass').value = lb.cls || '';
+  $('#f_lblPage').value = lb.page || '';
+  $('#f_lblHowto').value = lb.howto || '';
+  $('#f_lblSamples').value = lb.samples || '';
+  $('#f_lblTips').value = lb.tips || '';
   $('#f_wPerPage').value = editing.options.wPerPage;
   $('#f_instr').value = editing.options.instructions || '';
   renderKeyGrid();
+  renderTopics();
+  renderForms();
   renderWrittenList();
   renderTopsheetOpts($('#topsheetOpts'), editing);
   $('#testEditor').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -412,6 +775,470 @@ function renderKeyGrid() {
   });
 }
 
+/* ---- paste an answer key in whatever shape the teacher already has it ---- */
+/**
+ * pasteKeyDialog(onApply)
+ * Without a callback it sets up the whole test (question count, choices, key).
+ * With one, it is filling in a second version's key, so the question count is
+ * already fixed and must match.
+ */
+function pasteKeyDialog(onApply) {
+  var ta = el('textarea', { rows: 9, 'aria-label': 'Answer key',
+    placeholder: '1. B\n2. C\n3. A\n\n…or  B C A D E\n…or paste a column straight out of a spreadsheet' });
+  var summary = el('p', { class: 'hint' });
+  var warnBox = el('div');
+  var preview = el('div', { class: 'keygrid', style: 'max-height:180px;overflow:auto' });
+  var parsed = null, qtext = {};
+  /* If they pasted the questions along with the key, keep the wording too —
+   * it costs them nothing and makes the graded top sheet far more useful. */
+  var qtWrap = el('div', { hidden: true });
+  var qtBox = el('input', { type: 'checkbox', checked: true });
+  var qtLabel = el('label', { class: 'chk', style: 'margin:8px 0' }, [qtBox, el('span', {})]);
+  qtWrap.appendChild(qtLabel);
+
+  function refresh() {
+    parsed = Q.Parse.parseAnswerKey(ta.value);
+    qtext = Q.Parse.parseQuestionText(ta.value);
+    var nQt = Object.keys(qtext).length;
+    qtWrap.hidden = nQt < 2;
+    qtLabel.lastChild.textContent = 'Also keep the wording of ' + nQt +
+      ' question(s), to print on the graded sheet students get back';
+    preview.innerHTML = '';
+    warnBox.innerHTML = '';
+    if (!ta.value.trim()) { summary.textContent = ''; applyBtn.disabled = true; return; }
+    if (!parsed.answers.length) {
+      summary.innerHTML = '<b class="bad">Could not read that.</b>';
+      (parsed.warnings || []).forEach(function (w) {
+        warnBox.appendChild(el('p', { class: 'hint', text: w }));
+      });
+      applyBtn.disabled = true;
+      return;
+    }
+    summary.innerHTML = '<b class="ok">Found ' + parsed.filled + ' answer' +
+      (parsed.filled === 1 ? '' : 's') + '</b> — read as a ' + parsed.mode +
+      ', with ' + parsed.maxChoice + ' choices per question.';
+    (parsed.warnings || []).forEach(function (w) {
+      warnBox.appendChild(el('p', { class: 'hint warnc', text: '⚠ ' + w }));
+    });
+    parsed.answers.forEach(function (a, i) {
+      preview.appendChild(el('div', { class: 'keyitem' }, [
+        el('span', { class: 'qn', text: (i + 1) + '.' }),
+        el('span', { class: a == null ? 'bad' : 'ok',
+          style: 'font-weight:700', text: a == null ? '—' : S.LETTERS[a] })
+      ]));
+    });
+    applyBtn.disabled = false;
+  }
+
+  var applyBtn = el('button', {
+    class: 'btn go', text: 'Use this key', disabled: true,
+    onclick: function () {
+      if (!parsed || !parsed.answers.length) return;
+      if (onApply) {
+        /* A second version must line up question-for-question with version A,
+         * otherwise the two are not the same test. */
+        if (parsed.answers.length !== editing.mc.count) {
+          Q.toast('That key has ' + parsed.answers.length + ' answers but the test has ' +
+            editing.mc.count + ' questions. Every version needs the same number.', 'err', 8000);
+          return;
+        }
+        onApply(parsed);
+        h.close();
+        Q.toast('Key set for that version.', 'good');
+        return;
+      }
+      editing.mc.count = Q.clamp(parsed.answers.length, 0, 300);
+      editing.mc.choices = Q.clamp(parsed.maxChoice, 2, 5);
+      editing.mc.key = parsed.answers.slice();
+      if (!qtWrap.hidden && qtBox.checked) {
+        editing.mc.text = editing.mc.text || [];
+        Object.keys(qtext).forEach(function (n) {
+          var i = parseInt(n, 10) - 1;
+          if (i >= 0 && i < editing.mc.count) editing.mc.text[i] = qtext[n];
+        });
+        editing.options.topsheet.showQuestionText = true;
+      }
+      $('#f_mcCount').value = editing.mc.count;
+      $('#f_choices').value = editing.mc.choices;
+      renderKeyGrid();
+      h.close();
+      Q.toast('Key set: ' + parsed.filled + ' answers, ' + editing.mc.choices +
+        ' choices. Check it below before saving.', 'good', 6000);
+    }
+  });
+
+  var body = el('div', {}, [
+    el('h3', { text: 'Paste your answer key' }),
+    el('p', { class: 'hint', text: 'However you already have it written — a numbered list, ' +
+      'a run of letters, a column copied out of a spreadsheet, T/F, upper or lower case. ' +
+      'Nothing is changed until you press the button.' }),
+    ta, summary, warnBox, qtWrap,
+    el('div', { style: 'margin-top:6px' }, [preview]),
+    el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
+      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      applyBtn
+    ])
+  ]);
+  var h = Q.modal(body);
+  on(ta, 'input', refresh);
+  setTimeout(function () { ta.focus(); }, 40);
+}
+
+/* ---- paste written questions, with their point values ---- */
+function pasteWrittenDialog() {
+  var ta = el('textarea', { rows: 8, 'aria-label': 'Written questions',
+    placeholder: 'Explain osmosis in your own words. (5 points)\nName three organelles - 6 pts\nCompare mitosis and meiosis' });
+  var summary = el('p', { class: 'hint' });
+  var list = el('div');
+  var parsed = [];
+
+  function refresh() {
+    parsed = Q.Parse.parseWritten(ta.value, 5);
+    list.innerHTML = '';
+    summary.textContent = parsed.length
+      ? 'Found ' + parsed.length + ' question' + (parsed.length === 1 ? '' : 's') +
+        ', worth ' + parsed.reduce(function (a, w) { return a + w.max; }, 0) + ' points in total.'
+      : '';
+    parsed.forEach(function (w, i) {
+      list.appendChild(el('div', { class: 'fmtcol' }, [
+        el('span', { class: 'fname', text: (i + 1) + '. ' + w.label }),
+        el('span', { class: 'dim', text: w.max + ' pts' })
+      ]));
+    });
+    applyBtn.disabled = !parsed.length;
+  }
+  var applyBtn = el('button', {
+    class: 'btn go', text: 'Add these questions', disabled: true,
+    onclick: function () {
+      editing.written = (editing.written || []).concat(parsed);
+      renderWrittenList();
+      h.close();
+      Q.toast('Added ' + parsed.length + ' written question(s).', 'good');
+    }
+  });
+  var body = el('div', {}, [
+    el('h3', { text: 'Paste your written questions' }),
+    el('p', { class: 'hint', text: 'One per line. Put the points in brackets or after a dash — ' +
+      '"(5 points)", "- 6 pts", or a tab. Anything without points is worth 5.' }),
+    ta, summary, list,
+    el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
+      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      applyBtn
+    ])
+  ]);
+  var h = Q.modal(body);
+  on(ta, 'input', refresh);
+  setTimeout(function () { ta.focus(); }, 40);
+}
+
+/* ==================================================== standards tagging ==
+ * Which objective each question tests. Pasted in whatever shape the teacher
+ * already keeps it, then shown back before it is applied.
+ */
+function pasteTopicsDialog() {
+  var ta = el('textarea', { rows: 8, 'aria-label': 'Objectives',
+    placeholder: 'Cells: 1-8\nTransport: 9-16\nEnergy: 17-24\n\n' +
+      '…or  1. Cells   …or one objective per line, in question order' });
+  var summary = el('p', { class: 'hint' });
+  var warnBox = el('div');
+  var preview = el('div', { class: 'topicprev' });
+  var parsed = null;
+
+  function refresh() {
+    parsed = Q.Parse.parseTopics(ta.value, editing.mc.count);
+    preview.innerHTML = ''; warnBox.innerHTML = '';
+    if (!ta.value.trim()) { summary.textContent = ''; applyBtn.disabled = true; return; }
+    summary.innerHTML = '<b class="ok">' + parsed.assigned + ' of ' + editing.mc.count +
+      ' questions tagged</b> — read as a ' + parsed.mode + '.';
+    (parsed.warnings || []).forEach(function (w) {
+      warnBox.appendChild(el('p', { class: 'hint warnc', text: '⚠ ' + w }));
+    });
+    var groups = {}, order = [];
+    parsed.topics.forEach(function (t, i) {
+      if (!t) return;
+      if (!groups[t]) { groups[t] = []; order.push(t); }
+      groups[t].push(i + 1);
+    });
+    order.forEach(function (name) {
+      preview.appendChild(el('div', { class: 'topicrow' }, [
+        el('b', { text: name }),
+        el('span', { class: 'dim', text: groups[name].length + ' question' +
+          (groups[name].length === 1 ? '' : 's') + ': ' + groups[name].join(', ') })
+      ]));
+    });
+    applyBtn.disabled = !parsed.assigned;
+  }
+  var applyBtn = el('button', {
+    class: 'btn go', text: 'Use these objectives', disabled: true,
+    onclick: function () {
+      editing.mc.topic = parsed.topics.slice();
+      editing.options.topsheet.showMastery = true;
+      renderTopics();
+      h.close();
+      Q.toast('Tagged ' + parsed.assigned + ' questions. Mastery will now show in Review ' +
+        'and on the sheets students get back.', 'good', 7000);
+    }
+  });
+  var body = el('div', {}, [
+    el('h3', { text: 'What does each question test?' }),
+    el('p', { class: 'hint', text: 'Standards, objectives, topics — whatever you call them. ' +
+      'List a name with the questions it covers, or one name per line in question order.' }),
+    ta, summary, warnBox, preview,
+    el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
+      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      applyBtn
+    ])
+  ]);
+  var h = Q.modal(body);
+  on(ta, 'input', refresh);
+  setTimeout(function () { ta.focus(); }, 40);
+}
+
+function renderTopics() {
+  var box = $('#topicsList');
+  if (!box) return;
+  box.innerHTML = '';
+  var stds = Q.Mastery.standardsOf(editing);
+  if (!stds.length) {
+    box.appendChild(el('p', { class: 'hint',
+      text: 'Not tagged yet. Optional — but it turns a percentage into a list of what to reteach.' }));
+    return;
+  }
+  stds.forEach(function (s) {
+    box.appendChild(el('div', { class: 'topicrow' }, [
+      el('b', { text: s.name }),
+      el('span', { class: 'dim', text: s.questions.length + ' question' +
+        (s.questions.length === 1 ? '' : 's') }),
+      el('button', { class: 'btn sm danger', text: '×', title: 'Remove this objective',
+        onclick: function () {
+          s.questions.forEach(function (q) { editing.mc.topic[q] = ''; });
+          renderTopics();
+        } })
+    ]));
+  });
+  var untagged = editing.mc.count - stds.reduce(function (a, s) { return a + s.questions.length; }, 0);
+  if (untagged > 0) {
+    box.appendChild(el('p', { class: 'hint warnc',
+      text: untagged + ' question(s) are not tagged and will not appear in any mastery report.' }));
+  }
+}
+
+/* ---- class mastery, on the Review screen ---- */
+function renderMastery() {
+  var host = $('#masteryBox');
+  if (!host) return;
+  host.innerHTML = '';
+  var t = State.test, r = State.results;
+  if (!t || !r || !Q.Mastery.isTagged(t) || !r.scannedRows.length) return;
+
+  var list = Q.Mastery.forClass(t, r);
+  host.appendChild(el('div', { class: 'row between wrap-row' }, [
+    el('h2', { text: 'What the class has and hasn’t got' }),
+    el('span', { class: 'hint', text: Q.Mastery.classHeadline(t, r) })
+  ]));
+
+  var tb = el('tbody');
+  list.forEach(function (s) {
+    var pct = Math.round(s.pct * 100);
+    var lvl = Q.Mastery.levelFor(t, s.pct);
+    tb.appendChild(el('tr', {}, [
+      el('td', { text: s.name }),
+      el('td', { class: 'mono dim', text: s.questions.map(function (q) { return q + 1; }).join(', ') }),
+      el('td', {}, [el('div', { class: 'qbar' + (lvl.id === 'notyet' ? ' hard' : '') },
+        [el('i', { style: 'width:' + Math.max(2, pct) + '%' })])]),
+      el('td', { class: 'mono', text: pct + '%' }),
+      el('td', {}, [el('span', { class: 'lvl ' + lvl.id, text: lvl.label })]),
+      el('td', { class: 'dim', text: s.secure + ' secure · ' + s.developing +
+        ' developing · ' + s.notyet + ' not yet' })
+    ]));
+  });
+  host.appendChild(el('div', { class: 'tbl' }, [
+    el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['Objective', 'Questions', 'Class', '', 'Level', 'Students']
+        .map(function (h) { return el('th', { text: h }); }))]),
+      tb
+    ])
+  ]));
+}
+
+/* ======================================================== test versions ==
+ * Two students sitting next to each other get different question orders. The
+ * teacher scrambles their own test document; QuickGrade only needs the answer
+ * key for each version, and gives each one its own printed code so a mixed
+ * pile of sheets sorts itself out during scanning.
+ */
+function nextFormLetter() {
+  var used = SC.formsOf(editing).map(function (f) { return f.id; });
+  for (var i = 0; i < 26; i++) {
+    var c = String.fromCharCode(65 + i);
+    if (used.indexOf(c) < 0) return c;
+  }
+  return 'X';
+}
+function unusedCode() {
+  var used = {};
+  State.tests.forEach(function (t) {
+    SC.formsOf(t).forEach(function (f) { used[String(f.code)] = 1; });
+  });
+  SC.formsOf(editing).forEach(function (f) { used[String(f.code)] = 1; });
+  for (var i = 0; i < 900; i++) {
+    var c = S.digits(String(101 + i), 3).join('');
+    if (!used[c]) return c;
+  }
+  return String(Math.floor(Math.random() * 900) + 100);
+}
+
+function renderForms() {
+  var box = $('#formsList');
+  box.innerHTML = '';
+  var forms = SC.formsOf(editing);
+
+  forms.forEach(function (f, i) {
+    var filled = (f.key || []).filter(function (k) { return k != null; }).length;
+    var row = el('div', { class: 'formrow' });
+    row.appendChild(el('span', { class: 'vtag', text: f.id }));
+
+    var code = el('input', { value: f.code, maxlength: 3, inputmode: 'numeric',
+      style: 'width:78px', 'aria-label': 'Printed code for version ' + f.id });
+    on(code, 'change', function () {
+      var v = S.digits(code.value, 3).join('');
+      code.value = v;
+      if (f.primary) editing.code = v; else editing.forms[i - 1].code = v;
+      renderForms();
+    });
+    row.appendChild(el('span', { class: 'hint', style: 'margin:0', text: 'code' }));
+    row.appendChild(code);
+
+    row.appendChild(el('span', {
+      class: filled === editing.mc.count && editing.mc.count ? 'ok' : 'warnc',
+      style: 'font-size:12.5px',
+      text: filled + ' of ' + editing.mc.count + ' answers'
+    }));
+
+    row.appendChild(el('button', {
+      class: 'btn sm' + (filled ? '' : ' go'), text: filled ? 'Change key' : 'Paste key',
+      onclick: function () {
+        if (f.primary) { pasteKeyDialog(); return; }
+        pasteKeyDialog(function (parsed) {
+          editing.forms[i - 1].key = parsed.answers.slice();
+          renderForms();
+        });
+      }
+    }));
+
+    if (!f.primary) {
+      row.appendChild(el('button', {
+        class: 'btn sm danger', text: 'Remove',
+        onclick: function () { editing.forms.splice(i - 1, 1); renderForms(); }
+      }));
+    }
+    box.appendChild(row);
+  });
+
+  var dupes = {};
+  var clash = forms.filter(function (f) {
+    if (dupes[f.code]) return true;
+    dupes[f.code] = 1;
+    return false;
+  });
+  if (clash.length) {
+    box.appendChild(el('p', { class: 'hint bad',
+      text: 'Two versions share the code ' + clash[0].code +
+        '. Give each one a different code or the scanner cannot tell them apart.' }));
+  }
+  $('#btnAddForm').textContent = forms.length > 1
+    ? '+ Add version ' + nextFormLetter() : '+ Add a second version';
+}
+
+/* ========================================================= rubric setup ==
+ * One shared set of levels across all criteria — that is how classroom
+ * rubrics are usually written, and it keeps marking to one keystroke per
+ * criterion.
+ */
+function rubricDialog(wi) {
+  var wq = editing.written[wi];
+  var draft = wq.rubric
+    ? JSON.parse(JSON.stringify(wq.rubric))
+    : { levels: JSON.parse(JSON.stringify(SC.DEFAULT_LEVELS)), criteria: [] };
+
+  var levelBox = el('div', { class: 'topicprev' });
+  var critArea = el('textarea', { rows: 5, 'aria-label': 'Criteria, one per line',
+    placeholder: 'Uses the correct terms\nExplains the mechanism\nGives an example' });
+  critArea.value = draft.criteria.join('\n');
+  var summary = el('p', { class: 'hint' });
+
+  function refresh() {
+    levelBox.innerHTML = '';
+    draft.levels.forEach(function (lv, i) {
+      var row = el('div', { class: 'topicrow' });
+      var lab = el('input', { value: lv.label, 'aria-label': 'Level name',
+        oninput: function (e) { lv.label = e.target.value; } });
+      var pts = el('input', { type: 'number', step: '0.5', value: lv.pts, style: 'width:82px',
+        'aria-label': 'Points for ' + lv.label,
+        oninput: function (e) { lv.pts = parseFloat(e.target.value) || 0; refreshSummary(); } });
+      row.appendChild(lab);
+      row.appendChild(pts);
+      row.appendChild(el('button', { class: 'btn sm danger', text: '×', title: 'Remove level',
+        disabled: draft.levels.length <= 2,
+        onclick: function () { draft.levels.splice(i, 1); refresh(); } }));
+      levelBox.appendChild(row);
+    });
+    refreshSummary();
+  }
+  function criteria() {
+    return critArea.value.split(/\r?\n/).map(function (c) { return c.trim(); }).filter(Boolean);
+  }
+  function refreshSummary() {
+    draft.criteria = criteria();
+    var max = SC.rubricMax(draft);
+    summary.innerHTML = draft.criteria.length
+      ? '<b class="ok">' + draft.criteria.length + ' criteria</b> × top level of ' +
+        Math.max.apply(null, draft.levels.map(function (l) { return l.pts || 0; })) +
+        ' = <b>' + max + ' points</b> for this question.'
+      : 'Add at least one criterion.';
+    applyBtn.disabled = !draft.criteria.length;
+  }
+  on(critArea, 'input', refreshSummary);
+
+  var applyBtn = el('button', {
+    class: 'btn go', text: 'Use this rubric',
+    onclick: function () {
+      draft.criteria = criteria();
+      wq.rubric = draft;
+      wq.max = SC.rubricMax(draft);
+      renderWrittenList();
+      h.close();
+      Q.toast('Rubric set — this question is now worth ' + wq.max + '.', 'good');
+    }
+  });
+
+  var body = el('div', {}, [
+    el('h3', { text: 'Rubric for “' + (wq.label || 'this question') + '”' }),
+    el('p', { class: 'hint', text: 'The same levels apply to every criterion, so marking is ' +
+      'one key per criterion. The question total follows automatically.' }),
+    el('label', { text: 'Levels' }), levelBox,
+    el('button', { class: 'btn sm', text: '+ Add level',
+      onclick: function () {
+        var top = Math.max.apply(null, draft.levels.map(function (l) { return l.pts || 0; }));
+        draft.levels.push({ label: 'Level ' + (draft.levels.length + 1), pts: top + 1 });
+        refresh();
+      } }),
+    el('label', { text: 'Criteria, one per line', style: 'margin-top:16px' }), critArea,
+    summary,
+    el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
+      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      wq.rubric ? el('button', { class: 'btn danger', text: 'Remove rubric',
+        onclick: function () {
+          delete wq.rubric; renderWrittenList(); h.close();
+          Q.toast('Rubric removed — back to a single mark out of ' + wq.max + '.', 'good');
+        } }) : null,
+      applyBtn
+    ])
+  ]);
+  var h = Q.modal(body);
+  refresh();
+}
+
 function renderWrittenList() {
   var box = $('#writtenList');
   box.innerHTML = '';
@@ -428,6 +1255,10 @@ function renderWrittenList() {
         })),
       el('input', { value: w.expected || '', placeholder: 'Expected answer (optional)',
         oninput: function (e) { w.expected = e.target.value; } }),
+      el('button', { class: 'btn sm' + (w.rubric ? ' go' : ''),
+        text: w.rubric ? 'Rubric · ' + w.rubric.criteria.length : 'Rubric',
+        title: w.rubric ? 'Edit the rubric' : 'Mark against criteria instead of one number',
+        onclick: function () { rubricDialog(i); } }),
       el('button', { class: 'btn sm danger', text: '×',
         onclick: function () { editing.written.splice(i, 1); renderWrittenList(); } })
     ]);
@@ -457,7 +1288,9 @@ function renderTopsheetOpts(box, t) {
 
 function collectEditor() {
   editing.title = $('#f_title').value.trim();
-  editing.className = $('#f_class').value.trim();
+  editing.classes = $('#f_class').value.split(/\s*[,;]\s*/)
+    .map(function (c) { return c.trim(); }).filter(Boolean);
+  editing.className = editing.classes.join(', ');
   editing.date = $('#f_date').value;
   editing.code = S.digits($('#f_code').value || editing.code, 3).join('');
   editing.mc.count = Q.clamp(parseInt($('#f_mcCount').value, 10) || 0, 0, 300);
@@ -465,6 +1298,14 @@ function collectEditor() {
   editing.mc.points = parseFloat($('#f_mcPoints').value);
   if (isNaN(editing.mc.points)) editing.mc.points = 1;
   editing.options.prefillId = $('#f_prefillId').checked;
+  editing.options.idDigits = parseInt($('#f_idDigits').value, 10) || 3;
+  editing.options.idLabel = $('#f_idLabel').value.trim();
+  editing.options.paper = $('#f_paper').value;
+  editing.options.labels = {
+    name: $('#f_lblName').value.trim(), cls: $('#f_lblClass').value.trim(),
+    page: $('#f_lblPage').value.trim(), howto: $('#f_lblHowto').value.trim(),
+    samples: $('#f_lblSamples').value.trim(), tips: $('#f_lblTips').value.trim()
+  };
   editing.options.wPerPage = Q.clamp(parseInt($('#f_wPerPage').value, 10) || 2, 1, 6);
   editing.options.instructions = $('#f_instr').value.trim();
   editing.mc.key = editing.mc.key.slice(0, editing.mc.count);
@@ -479,17 +1320,37 @@ function allClasses() {
   return Object.keys(set).sort();
 }
 function currentClass() {
-  var sel = $('#rosterClass');
-  return sel && sel.value ? sel.value : (State.test ? State.test.className : '');
+  var inp = $('#rosterClass');
+  var v = inp && inp.value ? inp.value.trim() : '';
+  return v || (State.test ? (State.test.classes || [])[0] || '' : '');
 }
-function renderRosterView() {
-  var sel = $('#rosterClass');
-  var classes = allClasses();
-  var want = sel.value || (State.test && State.test.className) || classes[0] || '';
+/** Only shown when a test actually has more than one version. */
+function renderPrintForms() {
+  var sel = $('#printForm');
+  if (!sel) return;
+  var t = State.test;
+  var forms = t ? SC.formsOf(t) : [];
+  sel.hidden = forms.length < 2;
+  if (sel.hidden) return;
+  var keep = sel.value;
   sel.innerHTML = '';
-  classes.forEach(function (c) { sel.appendChild(el('option', { value: c, selected: c === want }, c)); });
-  if (!classes.length) sel.appendChild(el('option', { value: '' }, '(no classes yet)'));
+  forms.forEach(function (f) {
+    sel.appendChild(el('option', { value: f.id }, 'Version ' + f.id + '  (code ' + f.code + ')'));
+  });
+  if (keep) sel.value = keep;
+}
+
+function renderRosterView() {
+  var inp = $('#rosterClass');
+  var classes = allClasses();
+  if (!inp.value) {
+    inp.value = (State.test && (State.test.classes || [])[0]) || classes[0] || '';
+  }
+  var dl = $('#classChoices');
+  dl.innerHTML = '';
+  classes.forEach(function (c) { dl.appendChild(el('option', { value: c })); });
   renderRosterTable();
+  renderPrintForms();
 }
 function renderRosterTable() {
   var cls = currentClass();
@@ -503,6 +1364,7 @@ function renderRosterTable() {
     tb.appendChild(el('tr', {}, [
       el('td', { text: s.name }),
       el('td', { class: 'dim', text: s.sid }),
+      el('td', { class: 'dim', text: s.email || '' }),
       el('td', {}, [el('button', {
         class: 'btn sm danger', text: '×', title: 'Remove student',
         onclick: function () {
@@ -518,64 +1380,184 @@ function renderRosterTable() {
     ]));
   });
   box.appendChild(el('table', {}, [
-    el('thead', {}, [el('tr', {}, [el('th', { text: 'Name' }), el('th', { text: 'ID' }), el('th', {})])]), tb
+    el('thead', {}, [el('tr', {}, [el('th', { text: 'Name' }), el('th', { text: 'No.' }),
+      el('th', { text: 'Email' }), el('th', {})])]), tb
   ]));
 }
+/* Short sequential ids: a student can bubble "042" in seconds, and one master
+ * sheet photocopies for the whole class. Long legacy ids are left alone but
+ * ignored when picking the next number. */
 function nextSid() {
-  var max = 100000;
+  var max = 0;
   State.students.forEach(function (s) {
-    var n = parseInt(s.sid, 10);
-    if (!isNaN(n) && n > max && String(s.sid) !== S.L.KEY_SID) max = n;
+    var n = parseInt(S.normId(s.sid), 10);
+    if (!isNaN(n) && n < 10000 && n > max && !/^9+$/.test(S.normId(s.sid))) max = n;
   });
   return String(max + 1);
 }
+
+/** Warn when the roster cannot be represented by the sheet's ID width. */
+function idWidthProblem(t) {
+  var n = S.idDigitsOf(t);
+  var tooLong = classStudents().filter(function (s) { return S.normId(s.sid).length > n; });
+  if (!tooLong.length) return null;
+  return tooLong.length + ' student id(s) need more than ' + n + ' digits (e.g. ' +
+    S.normId(tooLong[0].sid) + ' — ' + tooLong[0].name + '). Raise the ID length on the test, ' +
+    'or renumber the roster.';
+}
 function saveRosterPaste() {
   var cls = currentClass();
-  if (!cls) { Q.toast('Create a class first.', 'err'); return; }
+  if (!cls) { Q.toast('Type a class name first.', 'err'); $('#rosterClass').focus(); return; }
   var lines = $('#rosterPaste').value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
   if (!lines.length) { Q.toast('Nothing to add.', 'err'); return; }
   var add = [], taken = {};
   State.students.forEach(function (s) { taken[s.sid] = 1; });
   var counter = parseInt(nextSid(), 10);
   lines.forEach(function (line) {
+    /* A line is "Name", "Name, id", "Name, email", or "Name, id, email" —
+     * the email is whichever field has an @ in it, so order does not matter. */
     var m = line.split(/\s*[,\t]\s*/);
     var name = m[0].trim();
-    var sid = (m[1] || '').replace(/\D/g, '');
     if (!name) return;
-    if (sid) { sid = S.digits(sid, 6).join(''); }
-    else {
+    var email = '';
+    var rest = [];
+    for (var mi = 1; mi < m.length; mi++) {
+      var f = (m[mi] || '').trim();
+      if (!f) continue;
+      if (f.indexOf('@') >= 0) email = f; else rest.push(f);
+    }
+    var sid = S.normId(rest[0] || '');
+
+    if (!sid) {
       var existing = State.students.filter(function (s) {
         return s.cls === cls && s.name.toLowerCase() === name.toLowerCase();
       })[0];
-      if (existing) sid = existing.sid;
+      if (existing) sid = S.normId(existing.sid);
       else { while (taken[String(counter)]) counter++; sid = String(counter); counter++; }
     }
-    if (sid === S.L.KEY_SID) { Q.toast('999999 is reserved for the answer key — skipped ' + name, 'err'); return; }
+    if (/^9+$/.test(sid)) {
+      Q.toast('An all-nines number is reserved for the answer key — skipped ' + name, 'err');
+      return;
+    }
     taken[sid] = 1;
-    add.push({ sid: sid, name: name, cls: cls });
+    add.push({ sid: sid, name: name, cls: cls, email: email });
+  });
+  add.forEach(function (a) {
+    if (a.email) return;
+    var prev = State.students.filter(function (x) { return S.normId(x.sid) === S.normId(a.sid); })[0];
+    if (prev && prev.email) a.email = prev.email;
   });
   Q.DB.putMany('students', add).then(function () {
     add.forEach(function (s) {
       var i = State.students.findIndex(function (x) { return x.sid === s.sid; });
       if (i >= 0) State.students[i] = s; else State.students.push(s);
     });
-    indexStudents(); renderRosterTable(); recompute();
+    indexStudents();
+    /* renderRosterView, not just the table: a class created just now must
+     * appear in the suggestion list without a reload. */
+    renderRosterView(); recompute();
     $('#rosterPaste').value = '';
     Q.toast('Saved ' + add.length + ' student' + (add.length === 1 ? '' : 's') + '.', 'good');
   });
 }
 
-function printSheets(mode) {
+/* ---- CSV roster import ----
+ * Gradebook exports are messy: quoted fields, a header row, "Last, First"
+ * split across two columns, and a dozen columns nobody needs. Work out which
+ * columns hold the name and the id rather than demanding a fixed format. */
+function parseCsv(text) {
+  var rows = [], row = [], cur = '', q = false;
+  text = text.replace(/^﻿/, '');
+  var delim = (text.split('\t').length > text.split(',').length) ? '\t' : ',';
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; }
+      else cur += c;
+    } else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur !== '' || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
+}
+
+function importRosterCsv(file) {
+  var cls = currentClass();
+  if (!cls) { Q.toast('Type a class name first.', 'err'); $('#rosterClass').focus(); return; }
+  Q.readFileText(file).then(function (txt) {
+    var rows = parseCsv(txt);
+    if (!rows.length) { Q.toast('That file looked empty.', 'err'); return; }
+
+    var head = rows[0].map(function (h) { return String(h).trim().toLowerCase(); });
+    var looksLikeHeader = head.some(function (h) {
+      return /name|student|id|number|first|last|surname/.test(h);
+    });
+    var body = looksLikeHeader ? rows.slice(1) : rows;
+
+    function findCol(re) { for (var i = 0; i < head.length; i++) if (re.test(head[i])) return i; return -1; }
+    var iFull = looksLikeHeader ? findCol(/^(student|full ?name|name|student name)$/) : -1;
+    var iLast = looksLikeHeader ? findCol(/last|surname|family/) : -1;
+    var iFirst = looksLikeHeader ? findCol(/first|given/) : -1;
+    var iId = looksLikeHeader ? findCol(/id|number|no\.?$/) : -1;
+    var iMail = looksLikeHeader ? findCol(/e-?mail/) : -1;
+
+    if (iFull < 0 && iLast < 0) {
+      /* No usable header: assume the widest text column is the name. */
+      var best = 0, bestLen = -1;
+      for (var c = 0; c < (body[0] || []).length; c++) {
+        var len = 0, n = 0;
+        body.forEach(function (r) {
+          var v = String(r[c] || '').trim();
+          if (v && !/^\d+$/.test(v)) { len += v.length; n++; }
+        });
+        var avg = n ? len / n : 0;
+        if (avg > bestLen) { bestLen = avg; best = c; }
+      }
+      iFull = best;
+    }
+
+    var lines = [];
+    body.forEach(function (r) {
+      var name = '';
+      if (iLast >= 0) {
+        name = ((r[iFirst] || '') + ' ' + (r[iLast] || '')).trim();
+      } else {
+        name = String(r[iFull] || '').trim();
+        var m = name.match(/^([^,]+),\s*(.+)$/);        // "Nguyen, Avery"
+        if (m) name = (m[2] + ' ' + m[1]).trim();
+      }
+      if (!name) return;
+      var id = iId >= 0 ? String(r[iId] || '').replace(/\D/g, '') : '';
+      var mail = '';
+      if (iMail >= 0) mail = String(r[iMail] || '').trim();
+      else { r.forEach(function (v) { if (!mail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v).trim())) mail = String(v).trim(); }); }
+      lines.push([name, id, mail].filter(function (x, i) { return i === 0 || x; }).join(', '));
+    });
+
+    if (!lines.length) { Q.toast('Could not find any names in that file.', 'err', 6000); return; }
+    $('#rosterPaste').value = lines.join('\n');
+    Q.toast('Found ' + lines.length + ' student(s). Check the list, then press ' +
+      '"Add / update students".', 'good', 7000);
+  }).catch(function (e) { Q.toast('Could not read that file: ' + e.message, 'err', 6000); });
+}
+
+function printSheets(mode, formId) {
   var t = State.test;
   if (!t) { Q.toast('Select a test first.', 'err'); return; }
-  var people, opts = { prefill: false, keyMode: false };
+  var form = SC.variantOf(t, formId);
+  var problem = idWidthProblem(t);
+  if (problem) { Q.toast(problem, 'err', 9000); return; }
+  var people, opts = { prefill: false, keyMode: false, form: form };
   if (mode === 'personal') {
-    people = State.students.filter(function (s) { return (s.cls || '') === (t.className || ''); })
-      .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); });
-    if (!people.length) { Q.toast('No students in class "' + (t.className || '') + '". Add a roster first.', 'err', 5000); return; }
+    people = classStudents();
+    if (!people.length) { Q.toast('No students in "' + (t.className || '') + '". Add a roster first.', 'err', 5000); return; }
     opts.prefill = !!t.options.prefillId;
   } else if (mode === 'key') {
-    people = [{ sid: S.L.KEY_SID, name: 'ANSWER KEY', cls: t.className }];
+    people = [{ sid: S.keySid(S.idDigitsOf(t)),
+                 name: 'ANSWER KEY' + (form.primary ? '' : ' — VERSION ' + form.id),
+                 cls: t.className }];
     opts.prefill = true; opts.keyMode = true;
   } else {
     people = [{}];
@@ -592,20 +1574,24 @@ Scanner.hooks = {
     var t = State.test;
 
     /* the printed answer-key sheet teaches the app its own key */
-    if (record.sid === S.L.KEY_SID) {
+    if (S.isKeySid(record.sid, S.idDigitsOf(t))) {
       var page = State.pages[record.page - 1];
+      /* a key sheet updates the version whose code it carries */
+      var kf = SC.formByCode(t, record.code) || SC.variantOf(t, null);
+      var target = kf.primary ? t.mc.key
+        : (t.forms.filter(function (f) { return f.id === kf.id; })[0] || {}).key;
       page.mc.forEach(function (item) {
         var a = record.answers[item.q];
-        if (a >= 0) t.mc.key[item.q] = a;
+        if (a >= 0 && target) target[item.q] = a;
       });
       return saveTest().then(function () { recompute(); return { status: 'key' }; });
     }
 
-    var known = record.sid && State.byId[record.sid];
+    var known = record.sid && State.byId[S.normId(record.sid)];
     var replaced = null;
     if (record.sid) {
       replaced = State.scans.filter(function (s) {
-        return s.sid === record.sid && s.page === record.page;
+        return S.normId(s.sid) === S.normId(record.sid) && s.page === record.page;
       })[0];
     }
 
@@ -625,7 +1611,7 @@ Scanner.hooks = {
         recompute();
         if (!record.sid) return { status: 'no-id' };
         if (!known) return { status: 'unknown-id' };
-        var mine = State.scans.filter(function (s) { return s.sid === record.sid; });
+        var mine = State.scans.filter(function (s) { return S.normId(s.sid) === S.normId(record.sid); });
         var have = {}; mine.forEach(function (s) { have[s.page] = 1; });
         var missing = [];
         for (var p = 1; p <= State.pages.length; p++) if (!have[p]) missing.push(p);
@@ -644,16 +1630,66 @@ function collectBlobIds(sc) {
   if (sc.classCrop) ids.push(sc.classCrop);
   if (sc.pageImg) ids.push(sc.pageImg);
   Object.keys(sc.written || {}).forEach(function (k) { ids.push(sc.written[k]); });
+  Object.keys(sc.checks || {}).forEach(function (k) {
+    if (sc.checks[k] && sc.checks[k].blob) ids.push(sc.checks[k].blob);
+  });
   return ids;
 }
+/** Reversible delete. Images are kept so a restore is complete. */
 function deleteScan(sc) {
-  var ids = collectBlobIds(sc);
-  return Q.DB.del('scans', sc.id)
-    .then(function () { return ids.length ? Q.DB.delMany('blobs', ids) : null; })
+  sc.deleted = Date.now();
+  return Q.DB.put('scans', sc).then(function () {
+    State.scans = State.scans.filter(function (s) { return s.id !== sc.id; });
+    if (State.trash.indexOf(sc) < 0) State.trash.push(sc);
+    recompute();
+  });
+}
+function restoreScans(list) {
+  list.forEach(function (sc) { delete sc.deleted; });
+  return Q.DB.putMany('scans', list).then(function () {
+    list.forEach(function (sc) {
+      State.trash = State.trash.filter(function (s) { return s.id !== sc.id; });
+      if (State.scans.indexOf(sc) < 0) State.scans.push(sc);
+    });
+    recompute();
+  });
+}
+/** Irreversible. Used by "delete permanently" and when a test is removed. */
+function purgeScans(list) {
+  var ids = [], blobs = [];
+  list.forEach(function (sc) { ids.push(sc.id); blobs = blobs.concat(collectBlobIds(sc)); });
+  return Q.DB.delMany('scans', ids)
+    .then(function () { return blobs.length ? Q.DB.delMany('blobs', blobs) : null; })
     .then(function () {
-      State.scans = State.scans.filter(function (s) { return s.id !== sc.id; });
+      State.trash = State.trash.filter(function (s) { return ids.indexOf(s.id) < 0; });
+      State.scans = State.scans.filter(function (s) { return ids.indexOf(s.id) < 0; });
       recompute();
     });
+}
+
+function renderTrash() {
+  var host = $('#trashBox');
+  host.innerHTML = '';
+  if (!State.trash.length) return;
+  var n = State.trash.length;
+  host.appendChild(el('div', { class: 'trashbar' }, [
+    el('span', { text: n + ' deleted sheet' + (n === 1 ? '' : 's') + ' can still be brought back.' }),
+    el('button', { class: 'btn sm go', text: 'Bring them back',
+      onclick: function () {
+        restoreScans(State.trash.slice()).then(function () {
+          renderReview();
+          Q.toast('Restored ' + n + ' sheet(s).', 'good');
+        });
+      } }),
+    el('button', { class: 'btn sm danger', text: 'Delete permanently',
+      onclick: function () {
+        Q.confirmBox('Permanently delete ' + n + ' sheet(s)? This cannot be undone.',
+          'Delete for good').then(function (yes) {
+          if (!yes) return;
+          purgeScans(State.trash.slice()).then(function () { renderReview(); });
+        });
+      } })
+  ]));
 }
 
 /* ============================================================= REVIEW */
@@ -705,6 +1741,8 @@ function renderReview() {
     box.appendChild(wrap);
   }
 
+  renderTrash();
+  renderChecks();
   var onlyProblems = $('#showMissingOnly').checked;
   var rows = r.rows.filter(function (x) {
     return !onlyProblems || !x.scanned || x.missing.length || x.multi || x.blank;
@@ -720,15 +1758,25 @@ function renderReview() {
       }));
     }
     var flags = [];
-    if (!x.scanned) flags.push('not scanned');
+    if (!x.scanned) {
+      flags.push(r.unresolved.length
+        ? 'not scanned — check the unmatched sheets above'
+        : 'not scanned');
+    }
     else {
       if (x.missing.length) flags.push('missing p' + x.missing.join(',p'));
       if (x.multi) flags.push(x.multi + ' double-marked');
       if (x.blank) flags.push(x.blank + ' blank');
     }
-    tb.appendChild(el('tr', {}, [
+    var cells = [
       el('td', { text: x.name }),
-      el('td', { class: 'dim', text: x.sid }),
+      el('td', { class: 'dim', text: x.sid })
+    ];
+    if (multiClass()) cells.push(el('td', { class: 'dim', text: (State.byId[x.sid] || {}).cls || '' }));
+    if (SC.hasForms(State.test)) {
+      cells.push(el('td', {}, [el('span', { class: 'vtag sm', text: x.scanned ? x.form : '—' })]));
+    }
+    tb.appendChild(el('tr', {}, cells.concat([
       el('td', {}, pageCells),
       el('td', { text: x.scanned ? x.correct + '/' + State.test.mc.count : '—' }),
       el('td', { text: State.test.written.length ? x.wGraded + '/' + State.test.written.length : '—' }),
@@ -738,27 +1786,413 @@ function renderReview() {
         class: 'btn sm', text: 'Sheets',
         onclick: function () { viewStudentSheets(x); }
       })])
-    ]));
+    ])));
   });
+  var heads = ['Student', 'ID'].concat(multiClass() ? ['Class'] : [])
+    .concat(SC.hasForms(State.test) ? ['Ver'] : [])
+    .concat(['Pages', 'MC', 'Written', 'Score', 'Notes', '']);
   var t = el('table', {}, [
-    el('thead', {}, [el('tr', {}, ['Student', 'ID', 'Pages', 'MC', 'Written', 'Score', 'Notes', ''].map(function (h) {
-      return el('th', { text: h });
-    }))]), tb
+    el('thead', {}, [el('tr', {}, heads.map(function (h) { return el('th', { text: h }); }))]), tb
   ]);
   var host = $('#reviewTable');
   host.innerHTML = '';
   host.appendChild(el('div', { class: 'tbl' }, [t]));
+  renderMastery();
+  renderQuestionTable();
 }
 
-function assignScan(sc, sid) {
-  var dup = State.scans.filter(function (s) { return s.sid === sid && s.page === sc.page && s.id !== sc.id; })[0];
+/* ---- "Marks I wasn't sure about" — the reader shows its working ---- */
+function renderChecks() {
+  var host = $('#checksBox');
+  host.innerHTML = '';
+  var r = State.results, t = State.test;
+  if (!r) return;
+  var list = r.checks;
+  if (!list.length) {
+    if (State.scans.length) {
+      host.appendChild(el('div', { class: 'clearbox' }, [
+        el('span', { text: '✓ Every mark on ' + State.scans.length + ' scanned page' +
+          (State.scans.length === 1 ? '' : 's') + ' read cleanly. Nothing needs a second look.' })
+      ]));
+    }
+    return;
+  }
+
+  var wrap = el('div', { class: 'checks' }, [
+    el('h3', { text: list.length + ' mark' + (list.length === 1 ? '' : 's') + ' worth a second look' }),
+    el('p', { class: 'hint', text: 'These were read, but not cleanly. The strip is the actual paper. ' +
+      'Confirm it or correct it — either way it stops asking.' })
+  ]);
+
+  list.slice(0, 40).forEach(function (c) {
+    var row = el('div', { class: 'checkrow' });
+    row.appendChild(el('div', { class: 'cq' }, [
+      el('b', { text: 'Q' + (c.q + 1) }),
+      el('span', { text: c.name })
+    ]));
+    var img = el('img', { class: 'cstrip', alt: 'question ' + (c.q + 1) });
+    Q.DB.get('blobs', c.info.blob).then(function (b) { if (b) img.src = b.data; });
+    row.appendChild(img);
+    row.appendChild(el('div', { class: 'cwhy' }, [
+      el('span', { class: 'warnc', text: c.info.why }),
+      el('span', { class: 'dim', text: 'read as ' +
+        (c.info.read >= 0 ? S.LETTERS[c.info.read] : 'blank') +
+        ' · key is ' + (t.mc.key[c.q] != null ? S.LETTERS[t.mc.key[c.q]] : '?') })
+    ]));
+
+    var opts = el('div', { class: 'copts' });
+    for (var k = 0; k < t.mc.choices; k++) (function (k) {
+      opts.appendChild(el('button', {
+        class: 'opt' + (c.info.read === k ? ' on' : ''), text: S.LETTERS[k],
+        title: 'Record ' + S.LETTERS[k],
+        onclick: function () { setOverride(c, k); }
+      }));
+    })(0 + k);
+    opts.appendChild(el('button', { class: 'btn sm', text: 'blank',
+      onclick: function () { setOverride(c, -1); } }));
+    opts.appendChild(el('button', { class: 'btn sm go', text: 'Looks right',
+      onclick: function () { confirmCheck(c); } }));
+    row.appendChild(opts);
+    wrap.appendChild(row);
+  });
+  if (list.length > 40) {
+    wrap.appendChild(el('p', { class: 'hint', text: 'Showing the first 40 of ' + list.length + '.' }));
+  }
+  wrap.appendChild(el('button', {
+    class: 'btn sm', text: 'Accept all remaining as read',
+    onclick: function () {
+      Q.confirmBox('Accept all ' + list.length + ' flagged marks exactly as the reader saw them?',
+        'Accept all').then(function (ok) {
+        if (!ok) return;
+        var touched = {};
+        list.forEach(function (c) {
+          c.scan.confirmed = c.scan.confirmed || {};
+          c.scan.confirmed[c.q] = 1;
+          touched[c.scan.id] = c.scan;
+        });
+        Promise.all(Object.keys(touched).map(function (id) { return Q.DB.put('scans', touched[id]); }))
+          .then(function () { recompute(); renderReview(); });
+      });
+    }
+  }));
+  host.appendChild(wrap);
+}
+
+function setOverride(c, choice) {
+  c.scan.overrides = c.scan.overrides || {};
+  c.scan.overrides[c.q] = choice;
+  Q.DB.put('scans', c.scan).then(function () {
+    recompute(); renderReview();
+    Q.toast('Q' + (c.q + 1) + ' for ' + c.name + ' recorded as ' +
+      (choice >= 0 ? S.LETTERS[choice] : 'blank') + '.', 'good');
+  });
+}
+function confirmCheck(c) {
+  c.scan.confirmed = c.scan.confirmed || {};
+  c.scan.confirmed[c.q] = 1;
+  Q.DB.put('scans', c.scan).then(function () { recompute(); renderReview(); });
+}
+
+/* ================================================ question performance ==
+ * A bad question is discovered by looking at how the class did on it, so the
+ * place to fix it is the same place you see it. Every change here is a rule
+ * on the test — no answers are altered and nothing is rescanned.
+ */
+function renderQuestionTable() {
+  var host = $('#questionBox');
+  host.innerHTML = '';
+  var t = State.test, r = State.results;
+  if (!t || !r || !t.mc.count) return;
+  if (!r.scannedRows.length) return;
+
+  var head = el('div', { class: 'row between wrap-row' }, [
+    el('h2', { text: 'How the class did, question by question' }),
+    el('span', { class: 'hint', text: 'Click any question to drop it, accept another ' +
+      'answer, or give everyone credit.' })
+  ]);
+  host.appendChild(head);
+
+  var tb = el('tbody');
+  for (var q = 0; q < t.mc.count; q++) (function (q) {
+    var it = r.itemPct[q] || { pct: 0, n: 0, dist: [] };
+    var modified = SC.isModified(t, q);
+    var pct = Math.round(it.pct * 100);
+    var flag = SC.ruleFor(t, q).drop ? 'dropped'
+             : it.n === 0 ? ''
+             : pct < 35 ? 'hard' : pct > 97 ? 'easy' : '';
+
+    var bar = el('div', { class: 'qbar' + (flag === 'hard' ? ' hard' : '') }, [
+      el('i', { style: 'width:' + Math.max(2, pct) + '%' })
+    ]);
+    tb.appendChild(el('tr', { class: modified ? 'qmod' : '' }, [
+      el('td', { class: 'mono', text: String(q + 1) }),
+      el('td', { text: t.mc.key[q] == null ? '?' : S.LETTERS[t.mc.key[q]] }),
+      el('td', {}, [bar]),
+      el('td', { class: 'mono', text: it.n ? pct + '%' : '—' }),
+      el('td', { class: 'dim', text: (it.dist || []).map(function (d, i) {
+        return S.LETTERS[i] + ':' + d;
+      }).join('  ') }),
+      el('td', { class: modified ? 'warnc' : 'dim',
+        text: modified ? SC.ruleSummary(t, q) : (flag === 'hard' ? 'most of the class missed this'
+          : flag === 'easy' ? 'everyone got it' : '') }),
+      el('td', {}, [el('button', {
+        class: 'btn sm' + (modified ? ' go' : ''), text: modified ? 'Change' : 'Fix…',
+        onclick: function () { fixQuestionDialog(q); }
+      })])
+    ]));
+  })(q);
+
+  host.appendChild(el('div', { class: 'tbl' }, [
+    el('table', {}, [
+      el('thead', {}, [el('tr', {}, ['Q', 'Key', 'Class correct', '', 'Answers chosen', '', '']
+        .map(function (h) { return el('th', { text: h }); }))]),
+      tb
+    ])
+  ]));
+}
+
+function fixQuestionDialog(q) {
+  var t = State.test;
+  var rule = JSON.parse(JSON.stringify(SC.ruleFor(t, q)));
+  var body = el('div', {}, [
+    el('h3', { text: 'Question ' + (q + 1) }),
+    el('p', { class: 'hint', text: 'Nothing is rescanned and no student answer is changed — ' +
+      'this only changes how the question is scored, for everyone.' })
+  ]);
+
+  var accept = el('div', { class: 'row gap wrap-row', style: 'margin:8px 0 14px' });
+  function drawAccept() {
+    accept.innerHTML = '';
+    for (var k = 0; k < t.mc.choices; k++) (function (k) {
+      var isKey = t.mc.key[q] === k;
+      var on = isKey || (rule.accept || []).indexOf(k) >= 0;
+      accept.appendChild(el('button', {
+        class: 'opt' + (on ? ' on' : ''), text: S.LETTERS[k],
+        title: isKey ? 'The answer key' : 'Also accept ' + S.LETTERS[k],
+        disabled: isKey,
+        onclick: function () {
+          rule.accept = rule.accept || [];
+          var i = rule.accept.indexOf(k);
+          if (i >= 0) rule.accept.splice(i, 1); else rule.accept.push(k);
+          drawAccept();
+        }
+      }));
+    })(k);
+    accept.appendChild(el('span', { class: 'hint', style: 'margin:0',
+      text: t.mc.key[q] == null ? 'No key set for this question.'
+        : S.LETTERS[t.mc.key[q]] + ' is the key. Click another letter to accept it too.' }));
+  }
+  drawAccept();
+  body.appendChild(el('label', { text: 'Answers that count as correct' }));
+  body.appendChild(accept);
+
+  var dropBox = el('input', { type: 'checkbox', checked: !!rule.drop });
+  var creditBox = el('input', { type: 'checkbox', checked: !!rule.credit });
+  var ptsInput = el('input', { type: 'number', step: '0.5', min: '0', style: 'width:110px',
+    value: rule.points != null ? rule.points : (t.mc.points == null ? 1 : t.mc.points) });
+
+  body.appendChild(el('label', { class: 'chk', style: 'margin:6px 0' },
+    [dropBox, 'Drop this question — it stops counting for anyone, and the test is out of less']));
+  body.appendChild(el('label', { class: 'chk', style: 'margin:6px 0' },
+    [creditBox, 'Give everyone the points, whatever they answered']));
+  body.appendChild(el('label', { style: 'margin-top:12px' }, ['Points for this question', ptsInput]));
+
+  var preview = el('p', { class: 'hint' });
+  function refresh() {
+    var scratch = JSON.parse(JSON.stringify(t));
+    scratch.mc.rules = Object.assign({}, SC.rulesOf(t));
+    scratch.mc.rules[q] = collect();
+    var n = 0;
+    State.results.scannedRows.forEach(function (row) {
+      var s = SC.scoreQuestion(scratch, q, row.answers[q], row.states[q]);
+      if (s.earned > 0) n++;
+    });
+    preview.textContent = 'With this change, ' + n + ' of ' +
+      State.results.scannedRows.length + ' students earn points on question ' + (q + 1) +
+      '. The test would be out of ' + Q.round2(SC.mcPossible(scratch) + SC.writtenPossible(scratch)) + '.';
+  }
+  function collect() {
+    var out = {};
+    if (dropBox.checked) out.drop = true;
+    if (creditBox.checked) out.credit = true;
+    if (rule.accept && rule.accept.length) out.accept = rule.accept.slice();
+    var p = parseFloat(ptsInput.value);
+    var dflt = t.mc.points == null ? 1 : t.mc.points;
+    if (isFinite(p) && p !== dflt) out.points = p;
+    return out;
+  }
+  [dropBox, creditBox, ptsInput].forEach(function (n) { on(n, 'change', refresh); });
+  on(accept, 'click', function () { setTimeout(refresh, 0); });
+  refresh();
+  body.appendChild(preview);
+
+  body.appendChild(el('div', { class: 'row gap end', style: 'margin-top:16px' }, [
+    el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+    el('button', { class: 'btn danger', text: 'Reset to normal',
+      onclick: function () { saveRule(q, null); h.close(); } }),
+    el('button', { class: 'btn go', text: 'Apply',
+      onclick: function () { saveRule(q, collect()); h.close(); } })
+  ]));
+  var h = Q.modal(body);
+}
+
+function saveRule(q, rule) {
+  var t = State.test;
+  t.mc.rules = t.mc.rules || {};
+  if (!rule || !Object.keys(rule).length) delete t.mc.rules[q];
+  else t.mc.rules[q] = rule;
+  saveTest().then(function () {
+    recompute();
+    renderReview();
+    Q.toast(rule && Object.keys(rule).length
+      ? 'Question ' + (q + 1) + ': ' + SC.ruleSummary(t, q) + '. Every score updated.'
+      : 'Question ' + (q + 1) + ' back to normal scoring.', 'good', 5000);
+  });
+}
+
+/* ======================================================= storage upkeep ==
+ * The scanned images are much larger than the scores, and they stop being
+ * useful once a test is handed back. Dropping them reclaims almost everything
+ * while every answer, score and comment stays exactly as it is.
+ */
+function imageIdsForTest() {
+  var ids = [];
+  State.scans.concat(State.trash).forEach(function (sc) {
+    ids = ids.concat(collectBlobIds(sc));
+  });
+  return ids;
+}
+
+/** Size of this test's images, estimated from a sample rather than a full read. */
+function estimateImageBytes(ids) {
+  if (!ids.length) return Promise.resolve(0);
+  var sample = ids.slice(0, Math.min(6, ids.length));
+  return Promise.all(sample.map(function (id) { return Q.DB.get('blobs', id); }))
+    .then(function (rows) {
+      var got = rows.filter(Boolean);
+      if (!got.length) return 0;
+      var avg = got.reduce(function (a, b) { return a + (b.data ? b.data.length : 0); }, 0) / got.length;
+      return avg * ids.length;
+    });
+}
+function mb(bytes) { return Math.round(bytes / 1048576 * 10) / 10; }
+/** Sizes below a megabyte read as nonsense in MB, so switch units. */
+function humanBytes(bytes) {
+  if (bytes < 1024) return Math.round(bytes) + ' bytes';
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+  return mb(bytes) + ' MB';
+}
+
+function renderStorage() {
+  var host = $('#storageBox');
+  if (!host) return;
+  host.innerHTML = '';
+  var ids = imageIdsForTest();
+  if (!ids.length) return;
+
+  var line = el('span', { text: 'Working out how much space this test uses…' });
+  host.appendChild(el('div', { class: 'trashbar' }, [line]));
+
+  estimateImageBytes(ids).then(function (bytes) {
+    var bar = host.firstChild;
+    bar.innerHTML = '';
+    /* Say nothing at all until this is worth a teacher's attention. */
+    if (bytes < 25 * 1048576) {
+      bar.className = 'hint';
+      bar.textContent = ids.length + ' scanned image' + (ids.length === 1 ? '' : 's') +
+        ' kept for this test, about ' + humanBytes(bytes) + '.';
+      bar.appendChild(el('button', { class: 'btn sm', style: 'margin-left:10px',
+        text: 'Free up the space', onclick: freeUp }));
+      return;
+    }
+    bar.appendChild(el('span', { html: 'This test is holding <b>' + ids.length +
+      '</b> scanned image' + (ids.length === 1 ? '' : 's') + ', about <b>' + humanBytes(bytes) +
+      '</b>. They are only needed while you are reviewing and grading.' }));
+    bar.appendChild(el('button', { class: 'btn sm', text: 'Free up the space', onclick: freeUp }));
+
+    function freeUp() {
+        Q.confirmBox('Remove ' + ids.length + ' scanned image(s), about ' + humanBytes(bytes) + '?\n\nEvery score, answer, written mark and comment is kept. You will no ' +
+          'longer be able to look at the scanned paper for this test.',
+          'Remove the images').then(function (ok) {
+          if (!ok) return;
+          Q.DB.delMany('blobs', ids).then(function () {
+            State.scans.concat(State.trash).forEach(function (sc) {
+              sc.nameCrop = null; sc.classCrop = null; sc.pageImg = null;
+              sc.written = {}; sc.checks = {};
+            });
+            return Q.DB.putMany('scans', State.scans.concat(State.trash));
+          }).then(function () {
+            recompute(); renderReview();
+            Q.toast('Freed about ' + humanBytes(bytes) + '. All scores kept.', 'good', 6000);
+          });
+        });
+    }
+  });
+}
+
+/** Whole-browser usage, for the Tests screen. */
+function renderStorageTotal() {
+  var host = $('#storageTotal');
+  if (!host) return;
+  host.textContent = '';
+  if (!navigator.storage || !navigator.storage.estimate) return;
+  navigator.storage.estimate().then(function (e) {
+    if (!e || !e.quota) return;
+    var pct = Math.round(e.usage / e.quota * 100);
+    host.textContent = 'Using ' + humanBytes(e.usage) + ' of the ' +
+      Math.round(e.quota / 1073741824 * 10) / 10 + ' GB this browser allows' +
+      (pct >= 1 ? ' (' + pct + '%)' : '') + '.';
+    if (pct > 70) host.className = 'hint warnc';
+  });
+}
+
+/* ---- name contact sheet: catches a student using someone else's sheet ---- */
+function verifyNames() {
+  var body = el('div', {}, [
+    el('h3', { text: 'Check the handwriting against the name we filed it under' }),
+    el('p', { class: 'hint', text: 'A student who picks up the wrong pre-printed sheet is filed under ' +
+      'the printed ID, not the name they wrote. This is the only way to catch that. ' +
+      'Anything that does not match, click to reassign.' })
+  ]);
+  var grid = el('div', { class: 'namegrid' });
+  var seen = {}, n = 0;
+  State.scans.slice()
+    .sort(function (a, b) { return Q.sortName(studentName(a.sid)).localeCompare(Q.sortName(studentName(b.sid))); })
+    .forEach(function (sc) {
+      if (!sc.nameCrop || seen[sc.sid || sc.id]) return;
+      seen[sc.sid || sc.id] = 1; n++;
+      var cell = el('div', { class: 'namecell' });
+      var img = el('img', { alt: 'handwritten name' });
+      Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) img.src = b.data; });
+      cell.appendChild(img);
+      cell.appendChild(el('b', { text: sc.sid ? studentName(sc.sid) : 'unassigned' }));
+      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, 'reassign…')].concat(
+        classStudents().map(function (s) { return el('option', { value: s.sid }, s.name); })));
+      on(sel, 'change', function () {
+        if (!sel.value) return;
+        var mine = State.scans.filter(function (x) { return S.normId(x.sid) === S.normId(sc.sid); });
+        Promise.all(mine.map(function (x) { return assignScan(x, sel.value, true); }))
+          .then(function () { h.close(); renderReview(); Q.toast('Reassigned.', 'good'); });
+      });
+      cell.appendChild(sel);
+      grid.appendChild(cell);
+    });
+  if (!n) body.appendChild(el('p', { class: 'hint', text: 'No scanned name images yet.' }));
+  body.appendChild(grid);
+  var h = Q.modal(body);
+}
+
+function assignScan(sc, sid, quiet) {
+  var dup = State.scans.filter(function (s) { return S.normId(s.sid) === S.normId(sid) && s.page === sc.page && s.id !== sc.id; })[0];
   var chain = dup ? deleteScan(dup) : Promise.resolve();
-  chain.then(function () {
-    sc.sid = sid;
+  return chain.then(function () {
+    sc.sid = S.normId(sid);
     sc.flags = (sc.flags || []).filter(function (f) { return f !== 'no-id' && f !== 'partial-id'; });
     return Q.DB.put('scans', sc);
   }).then(function () {
-    recompute(); renderReview();
+    recompute();
+    if (quiet) return;
+    renderReview();
     Q.toast('Assigned to ' + studentName(sid) + '.', 'good');
   });
 }
@@ -777,7 +2211,7 @@ function viewSheet(sc) {
   Q.modal(body);
 }
 function viewStudentSheets(x) {
-  var mine = State.scans.filter(function (s) { return s.sid === x.sid; })
+  var mine = State.scans.filter(function (s) { return S.normId(s.sid) === S.normId(x.sid); })
     .sort(function (a, b) { return a.page - b.page; });
   var body = el('div', {}, [el('h3', { text: x.name + ' — ' + mine.length + ' page(s)' })]);
   if (!mine.length) body.appendChild(el('p', { class: 'hint', text: 'Nothing scanned yet.' }));
@@ -887,6 +2321,38 @@ function showGradeItem() {
   var max = wq.max || 0;
   var row = $('#pointsRow');
   row.innerHTML = '';
+
+  /* A rubric replaces the points strip with one row per criterion. Digits
+   * fill the next unmarked criterion, so "2 1 3" marks the whole thing. */
+  var rubric = SC.rubricOf(t, GState.qIdx);
+  if (rubric) {
+    var chosen = (rec.r || []).slice();
+    var grid = el('div', { class: 'rubgrid' });
+    rubric.criteria.forEach(function (cName, ci) {
+      var line = el('div', { class: 'rubrow' }, [el('span', { class: 'rubname', text: cName })]);
+      rubric.levels.forEach(function (lv, li) {
+        line.appendChild(el('button', {
+          class: 'pbtn rub' + (chosen[ci] === li ? ' on' : '') + (lv.pts === 0 ? ' zero' : ''),
+          html: '<b>' + Q.esc(lv.label) + '</b><span>' + lv.pts + '</span>',
+          onclick: function () { setRubricLevel(ci, li); }
+        }));
+      });
+      grid.appendChild(line);
+    });
+    var earned = SC.rubricScore(rubric, chosen);
+    var done = SC.rubricComplete(rubric, chosen);
+    grid.appendChild(el('div', { class: 'rubtotal' + (done ? ' done' : '') }, [
+      el('b', { text: earned + ' / ' + SC.rubricMax(rubric) }),
+      el('span', { class: 'hint', style: 'margin:0',
+        text: done ? 'complete — press Enter for the next student'
+                   : 'press 1–' + rubric.levels.length + ' to mark the next criterion' })
+    ]));
+    row.appendChild(grid);
+    row.appendChild(el('button', { class: 'btn sm', text: 'skip',
+      onclick: function () { move(1); } }));
+    renderQuickComments();
+    return;
+  }
   var steps = [];
   if (max <= 10) { for (var v = 0; v <= max; v += (max <= 5 ? 0.5 : 1)) steps.push(v); }
   else { for (var v2 = 0; v2 <= max; v2 += Math.ceil(max / 10)) steps.push(v2); if (steps[steps.length - 1] !== max) steps.push(max); }
@@ -905,6 +2371,11 @@ function showGradeItem() {
     onchange: function (e) { setPoints(Math.min(max, +e.target.value || 0), false); }
   }));
 
+  renderQuickComments();
+}
+
+/** Shared by the plain points strip and the rubric grid. */
+function renderQuickComments() {
   var qc = $('#quickComments');
   qc.innerHTML = '';
   (Q.Prefs.get('quickComments', ['Good work', 'Show your work', 'Incomplete', 'Off topic', 'Nearly — see key'])
@@ -926,6 +2397,27 @@ function showGradeItem() {
         }
       }));
     });
+}
+
+/** Mark one criterion; when the last one is filled the score is saved. */
+function setRubricLevel(ci, li) {
+  var t = State.test, item = GState.list[GState.pos];
+  if (!item) return;
+  var rubric = SC.rubricOf(t, GState.qIdx);
+  if (!rubric) return;
+  var g = State.grades[item.sid] || (State.grades[item.sid] = {});
+  g.w = g.w || {};
+  var recNow = g.w[GState.qIdx] || (g.w[GState.qIdx] = {});
+  recNow.r = (recNow.r || []).slice();
+  recNow.r[ci] = li;
+  recNow.p = SC.rubricScore(rubric, recNow.r);
+  recNow.c = $('#gradeComment').value.trim();
+  var complete = SC.rubricComplete(rubric, recNow.r);
+  saveGrades().then(function () {
+    recompute();
+    if (complete && Q.Prefs.get('rubricAuto', true)) move(1);
+    else showGradeItem();
+  });
 }
 
 function setPoints(p, advance) {
@@ -989,6 +2481,36 @@ function gradeKeys(e) {
   if (e.key === 'f' || e.key === 'F') { e.preventDefault(); setPoints(max, true); return; }
   if (e.key === 'z' || e.key === 'Z') { e.preventDefault(); setPoints(0, true); return; }
   if (e.key === 's' || e.key === 'S') { e.preventDefault(); move(1); return; }
+  var rubricNow = SC.rubricOf(t, GState.qIdx);
+  if (rubricNow && /^[1-9]$/.test(e.key)) {
+    e.preventDefault();
+    var li = parseInt(e.key, 10) - 1;
+    if (li >= rubricNow.levels.length) return;
+    var itemNow = GState.list[GState.pos];
+    var recR = ((State.grades[(itemNow || {}).sid] || {}).w || {})[GState.qIdx] || {};
+    var have = (recR.r || []);
+    var next = 0;
+    while (next < rubricNow.criteria.length && have[next] != null) next++;
+    if (next >= rubricNow.criteria.length) next = rubricNow.criteria.length - 1;
+    setRubricLevel(next, li);
+    return;
+  }
+  if (rubricNow && (e.key === 'Backspace' || e.key === 'Delete')) {
+    e.preventDefault();
+    var it2 = GState.list[GState.pos];
+    var g2 = State.grades[(it2 || {}).sid];
+    var r2 = g2 && g2.w && g2.w[GState.qIdx];
+    if (r2 && r2.r && r2.r.length) {
+      var last = r2.r.length - 1;
+      while (last >= 0 && r2.r[last] == null) last--;
+      if (last >= 0) {
+        r2.r[last] = null;
+        r2.p = SC.rubricScore(rubricNow, r2.r);
+        saveGrades().then(function () { recompute(); showGradeItem(); });
+      }
+    }
+    return;
+  }
   if (/^[0-9]$/.test(e.key)) {
     e.preventDefault();
     var now = Date.now();
@@ -1135,11 +2657,42 @@ function exportItemAnalysisXlsx() {
     });
   });
 
+  var mastery = null;
+  if (Q.Mastery.isTagged(t)) {
+    var stds = Q.Mastery.standardsOf(t);
+    var head = ['Student', 'Student ID'];
+    stds.forEach(function (sd) { head.push(sd.name + ' %'); });
+    head.push('Weakest objective');
+    mastery = [head.map(function (hh) { return { v: hh, s: X.XS.HEADER }; })];
+    r.rows.forEach(function (x) {
+      if (!x.scanned) return;
+      var mine = Q.Mastery.forStudent(t, x);
+      var row = [x.name, x.sid];
+      var worst = null;
+      stds.forEach(function (sd) {
+        var m = mine.filter(function (z) { return z.name === sd.name; })[0];
+        row.push(m ? { v: m.pct, s: X.XS.PCT } : '');
+        if (m && (!worst || m.pct < worst.pct)) worst = m;
+      });
+      row.push(worst && worst.level.id !== 'secure' ? worst.name : '');
+      mastery.push(row);
+    });
+    var classRow = [{ v: 'CLASS', s: X.XS.BOLD }, ''];
+    Q.Mastery.forClass(t, r);
+    stds.forEach(function (sd) {
+      var cs = Q.Mastery.forClass(t, r).filter(function (z) { return z.name === sd.name; })[0];
+      classRow.push(cs ? { v: cs.pct, s: X.XS.PCT } : '');
+    });
+    classRow.push('');
+    mastery.splice(1, 0, classRow);
+  }
+
   var sheets = [
     { name: 'Item analysis', rows: rows, cols: [10, 14, 14, 11, 13, 8, 15], freezeHeader: true },
     { name: 'Raw responses', rows: responses, cols: [26, 12], freezeHeader: true, autoFilter: true }
   ];
   if (t.written.length) sheets.push({ name: 'Written answers', rows: written, cols: [26, 12, 28, 9, 8, 46], freezeHeader: true });
+  if (mastery) sheets.push({ name: 'Mastery', rows: mastery, cols: [26, 12], freezeHeader: true, autoFilter: true });
 
   Q.downloadBlob(X.buildXlsx(sheets), fileBase() + '_item_analysis.xlsx');
   Q.toast('Item analysis saved.', 'good');
@@ -1242,6 +2795,18 @@ function topSheetBody(x, opts) {
       ];
       if (ts.showWrittenNotes) row.push({ text: rec.c || '', size: 9 });
       wbody.push(row);
+      var rub = SC.rubricOf(t, wi);
+      if (rub && rec.r) {
+        rub.criteria.forEach(function (cName, ci) {
+          var lv = rec.r[ci] == null ? null : rub.levels[rec.r[ci]];
+          wbody.push([
+            { text: '' },
+            { text: '· ' + cName, size: 9, color: '5B6577' },
+            { text: lv ? lv.label + ' (' + lv.pts + ')' : '—', align: 'center', size: 9,
+              color: lv && lv.pts === 0 ? 'B3261E' : '5B6577' }
+          ].concat(ts.showWrittenNotes ? [{ text: '' }] : []));
+        });
+      }
     });
     out += T(wbody, { header: true, widths: ww });
     if (t.written.some(function (w) { return w.expected; })) {
@@ -1249,6 +2814,29 @@ function topSheetBody(x, opts) {
       t.written.forEach(function (wq, wi) {
         if (wq.expected) out += P((wi + 1) + '. ' + wq.expected, { size: 10 });
       });
+    }
+  }
+
+  /* What to revise, rather than only what was scored. */
+  if (ts.showMastery && Q.Mastery.isTagged(t)) {
+    var mine = Q.Mastery.forStudent(t, x);
+    if (mine.length) {
+      out += P('What you have and haven’t got', { style: 'Heading2' });
+      out += T([[{ text: 'Topic' }, { text: 'Right' }, { text: 'Out of' }, { text: 'Level' }]]
+        .concat(mine.map(function (m) {
+          return [
+            { text: m.name, size: 10 },
+            { text: String(m.correct), align: 'center' },
+            { text: String(m.counted), align: 'center' },
+            { text: m.level.label, align: 'center', b: true,
+              color: m.level.id === 'secure' ? '1A7F4B' : m.level.id === 'developing' ? '8A5A00' : 'B3261E' }
+          ];
+        })), { header: true, widths: [0.52, 0.14, 0.14, 0.2] });
+      var weak = mine.filter(function (m) { return m.level.id !== 'secure'; });
+      if (weak.length) {
+        out += P('Worth another look: ' + weak.map(function (m) { return m.name; }).join(', ') + '.',
+          { size: 10, color: '8A5A00', spaceAfter: 140 });
+      }
     }
   }
 
@@ -1360,6 +2948,19 @@ function printTopSheets() {
       });
       h += '</table>';
     }
+    if (ts.showMastery && Q.Mastery.isTagged(t)) {
+      var mine = Q.Mastery.forStudent(t, x);
+      if (mine.length) {
+        h += '<h2>What you have and haven’t got</h2><table><tr><th>Topic</th>' +
+          '<th class="c">Right</th><th class="c">Out of</th><th class="c">Level</th></tr>';
+        mine.forEach(function (m) {
+          h += '<tr><td>' + X.xml(m.name) + '</td><td class="c">' + m.correct +
+            '</td><td class="c">' + m.counted + '</td><td class="c ' +
+            (m.level.id === 'secure' ? 'ok' : 'no') + '">' + m.level.label + '</td></tr>';
+        });
+        h += '</table>';
+      }
+    }
     if (ts.commentBox) h += '<h2>Teacher comments</h2>' +
       (x.comment ? '<p>' + X.xml(x.comment) + '</p>' : '') + '<div class="cbox"></div>';
     var sig = [];
@@ -1373,9 +2974,218 @@ function printTopSheets() {
   Q.openPrintWindow(h + '</body></html>', false);
 }
 
+/* ==================================================== export formats ====
+ * The teacher picks their gradebook once and never thinks about it again.
+ * Everything below the fold exists so that when a gradebook wants something
+ * odd, nobody has to wait for us to ship a new version.
+ */
+function savedFormats() { return Q.Prefs.get('formats', []); }
+function allFormats() { return X2.PRESETS.concat(savedFormats()); }
+function currentFormat() {
+  var id = Q.Prefs.get('formatId', 'simple');
+  var f = allFormats().filter(function (x) { return x.id === id; })[0];
+  return JSON.parse(JSON.stringify(f || X2.PRESETS[1]));
+}
+var workingFmt = null;
+function fmt() { return workingFmt || (workingFmt = currentFormat()); }
+
+function exportCtx() {
+  recompute();
+  return { test: State.test, results: State.results, byId: State.byId };
+}
+
+function renderFormatUI() {
+  var f = fmt();
+  var pick = $('#fmtPick');
+  pick.innerHTML = '';
+  allFormats().forEach(function (p) {
+    pick.appendChild(el('option', { value: p.id, selected: p.id === f.id }, p.name));
+  });
+  $('#fmtNote').textContent = f.note || 'Your own saved layout.';
+  $('#fmtDelete').hidden = !savedFormats().some(function (p) { return p.id === f.id; });
+
+  var add = $('#fmtAdd');
+  add.innerHTML = '';
+  var lastGroup = '';
+  X2.FIELDS.forEach(function (fl) {
+    if (fl.g !== lastGroup) { lastGroup = fl.g; add.appendChild(el('option', { disabled: true }, '— ' + fl.g + ' —')); }
+    add.appendChild(el('option', { value: fl.key }, fl.label));
+  });
+
+  var host = $('#fmtCols');
+  host.innerHTML = '';
+  (f.cols || []).forEach(function (key, i) {
+    var fl = X2.FIELD_BY_KEY[key];
+    if (!fl) return;
+    var row = el('div', { class: 'fmtcol' + (fl.expand ? ' multi' : '') });
+    row.appendChild(el('span', { class: 'fname', text: fl.label }));
+    if (!fl.expand) {
+      row.appendChild(el('input', {
+        value: (f.heads || {})[key] || fl.head, 'aria-label': 'Heading for ' + fl.label,
+        oninput: function (e) {
+          f.heads = f.heads || {};
+          f.heads[key] = e.target.value;
+          renderPreview();
+        }
+      }));
+    } else {
+      row.appendChild(el('span', { class: 'hint', style: 'flex:1;margin:0' }));
+    }
+    row.appendChild(el('button', { class: 'btn', text: '↑', title: 'Move up', disabled: i === 0,
+      onclick: function () { f.cols.splice(i - 1, 0, f.cols.splice(i, 1)[0]); renderFormatUI(); } }));
+    row.appendChild(el('button', { class: 'btn', text: '↓', title: 'Move down',
+      disabled: i === f.cols.length - 1,
+      onclick: function () { f.cols.splice(i + 1, 0, f.cols.splice(i, 1)[0]); renderFormatUI(); } }));
+    row.appendChild(el('button', { class: 'btn danger', text: '×', title: 'Remove column',
+      onclick: function () { f.cols.splice(i, 1); renderFormatUI(); } }));
+    host.appendChild(row);
+  });
+  renderPreview();
+}
+
+function renderPreview() {
+  var host = $('#fmtPreview');
+  host.innerHTML = '';
+  if (!State.test) return;
+  var built;
+  try { built = X2.buildRows(fmt(), exportCtx(), { onlyScanned: $('#fmtOnlyScanned').checked }); }
+  catch (e) { host.appendChild(el('p', { class: 'hint', text: 'Preview unavailable: ' + e.message })); return; }
+  var tb = el('tbody');
+  built.rows.slice(0, 4).forEach(function (r) {
+    tb.appendChild(el('tr', {}, r.map(function (v) { return el('td', { text: String(v) }); })));
+  });
+  if (!built.rows.length) tb.appendChild(el('tr', {}, [el('td', { class: 'dim', text: 'No rows yet.' })]));
+  host.appendChild(el('table', {}, [
+    el('thead', {}, [el('tr', {}, built.head.map(function (h) { return el('th', { text: h }); }))]), tb
+  ]));
+  if (built.rows.length > 4) {
+    host.appendChild(el('p', { class: 'hint', style: 'padding:6px 10px;margin:0',
+      text: 'Showing 4 of ' + built.rows.length + ' rows.' }));
+  }
+}
+
+function exportGradebookMapped(kind) {
+  if (!State.test) { Q.toast('Select a test first.', 'err'); return; }
+  var ctx = exportCtx();
+  var built = X2.buildRows(fmt(), ctx, { onlyScanned: $('#fmtOnlyScanned').checked });
+  if (!built.rows.length) { Q.toast('Nothing to export yet — scan some sheets first.', 'err'); return; }
+  var rows = [built.head].concat(built.rows);
+
+  if (kind === 'tsv') {
+    Q.copyToClipboard(X.toTsv(rows)).then(function () {
+      Q.toast('Copied. Open your sheet, click the first cell, and paste.', 'good', 6000);
+    }).catch(function () { Q.toast('The browser blocked the clipboard — use the .csv download.', 'err'); });
+    return;
+  }
+  if (kind === 'csv') {
+    Q.downloadText(X.toCsv(rows), fileBase() + '_gradebook.csv', 'text/csv');
+    Q.toast('CSV saved.', 'good');
+    return;
+  }
+  var head = built.head.map(function (h) { return { v: h, s: X.XS.HEADER }; });
+  var widths = built.head.map(function (h) { return Math.min(30, Math.max(9, String(h).length + 3)); });
+  Q.downloadBlob(X.buildXlsx([{ name: 'Grades', rows: [head].concat(built.rows),
+    cols: widths, freezeHeader: true, autoFilter: true }]), fileBase() + '_gradebook.xlsx');
+  Q.toast('Saved. Import it from your gradebook’s upload screen.', 'good', 6000);
+}
+
+/* Optional, and deliberately out of the way: post the same rows to a web
+ * address. For a district that already has somewhere to receive them. */
+function sendToEndpoint() {
+  var url = Q.Prefs.get('endpoint', '');
+  var body = el('div', {}, [
+    el('h3', { text: 'Send scores to a web address' }),
+    el('p', { class: 'hint', text: 'Optional, and not needed for normal use — the download and ' +
+      'the paste-into-Sheets button cover almost everyone. This is here for a school that already ' +
+      'has somewhere to receive results automatically.' })
+  ]);
+  var inp = el('input', { value: url, placeholder: 'https://…', 'aria-label': 'Web address' });
+  body.appendChild(el('label', {}, ['Web address to send to', inp]));
+  body.appendChild(el('p', { class: 'hint', text: 'QuickGrade will POST the same rows you see ' +
+    'in the preview, as JSON. Ask whoever runs the receiving end for the address — do not paste ' +
+    'one you were sent by someone you do not know.' }));
+
+  var out = el('p', { class: 'hint' });
+  body.appendChild(el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
+    el('button', { class: 'btn', text: 'Close', onclick: function () { h.close(); } }),
+    el('button', {
+      class: 'btn go', text: 'Save and send',
+      onclick: function () {
+        var u = inp.value.trim();
+        if (!/^https:\/\//i.test(u)) { out.textContent = 'Use an https:// address.'; return; }
+        Q.Prefs.set('endpoint', u);
+        var payload = X2.buildPayload(fmt(), exportCtx(), { onlyScanned: $('#fmtOnlyScanned').checked });
+        out.textContent = 'Sending ' + payload.rows.length + ' row(s)…';
+        /* text/plain keeps this a simple request, so no CORS preflight is
+         * needed against endpoints that do not handle OPTIONS. */
+        fetch(u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                   body: JSON.stringify(payload) })
+          .then(function (r) { out.textContent = r.ok ? 'Sent — the address accepted it.'
+                                                      : 'Sent, but it replied ' + r.status + '.'; })
+          .catch(function () {
+            return fetch(u, { method: 'POST', mode: 'no-cors',
+                              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                              body: JSON.stringify(payload) })
+              .then(function () { out.textContent = 'Sent. The address did not reply in a way we ' +
+                'can read, so check on that end that it arrived.'; })
+              .catch(function (e) { out.textContent = 'Could not reach that address: ' + e.message; });
+          });
+      }
+    })
+  ]));
+  body.appendChild(out);
+  var h = Q.modal(body);
+}
+
+/* A curve is applied to the class as a whole, so it lives with the grading
+ * scale rather than on any individual question. */
+function renderCurve() {
+  var host = $('#curveBox');
+  if (!host) return;
+  host.innerHTML = '';
+  var t = State.test;
+  var c = t.curve || (t.curve = { kind: 'none', value: 0 });
+
+  var kind = el('select', { class: 'sel', 'aria-label': 'Curve' },
+    SC.CURVES.map(function (x) {
+      return el('option', { value: x.id, selected: x.id === c.kind }, x.label);
+    }));
+  var val = el('input', { type: 'number', step: '0.5', value: c.value || 0,
+    style: 'width:90px', 'aria-label': 'Curve amount' });
+  var unit = el('span', { class: 'hint', style: 'margin:0' });
+  var note = el('p', { class: 'hint' });
+
+  function sync() {
+    var def = SC.CURVES.filter(function (x) { return x.id === kind.value; })[0] || {};
+    val.hidden = !def.unit;
+    unit.textContent = def.unit || '';
+    var r = State.results;
+    if (kind.value === 'none' || !r || !r.scannedRows.length) { note.textContent = ''; return; }
+    var lifted = r.rows.filter(function (x) { return x.scanned && x.curved; }).length;
+    var avg = r.scannedRows.length
+      ? Math.round(r.scannedRows.reduce(function (a, x) { return a + x.pct; }, 0) / r.scannedRows.length * 100)
+      : 0;
+    note.textContent = lifted + ' of ' + r.scannedRows.length +
+      ' scores changed. Class average is now ' + avg + '%. ' +
+      'The uncurved score is kept, so you can undo this at any time.';
+  }
+  function apply() {
+    t.curve = { kind: kind.value, value: parseFloat(val.value) || 0 };
+    saveTest().then(function () { recompute(); renderCurve(); renderPreview(); });
+  }
+  on(kind, 'change', function () { sync(); apply(); });
+  on(val, 'change', apply);
+
+  host.appendChild(el('div', { class: 'row gap wrap-row' }, [kind, val, unit]));
+  host.appendChild(note);
+  sync();
+}
+
 function renderExport() {
   recompute();
   if (!State.test) return;
+  renderFormatUI();
+  renderCurve();
   renderTopsheetOpts($('#topsheetOpts2'), State.test);
   var box = $('#scaleEditor');
   box.innerHTML = '';
@@ -1412,6 +3222,7 @@ function exportBackup(scopeTest) {
     });
     Q.downloadText(JSON.stringify(payload, null, 1),
       (scopeTest ? fileBase() : 'quickgrade_all') + '_backup.json', 'application/json');
+    Q.Prefs.set('lastBackup', Date.now());
     Q.toast('Backup saved. Scanned images are not included (they stay on this device).', 'good', 6000);
   });
 }
@@ -1438,8 +3249,16 @@ function wireUI() {
 
   /* tests */
   on($('#btnNewTest'), 'click', function () { openEditor(null); });
+  on($('#btnDemo'), 'click', function (e) { loadSampleClass(e.target); });
   on($('#btnCancelTest'), 'click', closeEditor);
   on($('#btnKeyClear'), 'click', function () { editing.mc.key = []; renderKeyGrid(); });
+  /* wrapped: the click event would otherwise arrive as the onApply callback */
+  on($('#btnKeyPaste'), 'click', function () { pasteKeyDialog(); });
+  on($('#btnPasteTopics'), 'click', function () {
+    if (!editing.mc.count) { Q.toast('Set the number of questions first.', 'err'); return; }
+    pasteTopicsDialog();
+  });
+  on($('#btnWrittenPaste'), 'click', pasteWrittenDialog);
   on($('#btnAddWritten'), 'click', function () {
     editing.written.push({ label: '', max: 5, kind: 'short', expected: '' });
     renderWrittenList();
@@ -1507,17 +3326,14 @@ function wireUI() {
   });
 
   /* roster */
+  on($('#rosterClass'), 'input', renderRosterTable);
   on($('#rosterClass'), 'change', renderRosterTable);
-  on($('#btnNewClass'), 'click', function () {
-    Q.promptBox('Name of the new class / period').then(function (v) {
-      if (!v) return;
-      var sel = $('#rosterClass');
-      sel.appendChild(el('option', { value: v, selected: true }, v));
-      sel.value = v;
-      renderRosterTable();
-    });
-  });
   on($('#btnRosterSave'), 'click', saveRosterPaste);
+  on($('#btnRosterImport'), 'click', function () { $('#rosterFile').click(); });
+  on($('#rosterFile'), 'change', function (e) {
+    if (e.target.files[0]) importRosterCsv(e.target.files[0]);
+    e.target.value = '';
+  });
   on($('#btnRosterClear'), 'click', function () {
     var cls = currentClass();
     Q.confirmBox('Remove every student in "' + cls + '"?').then(function (ok) {
@@ -1531,15 +3347,20 @@ function wireUI() {
   });
   on($('#btnRosterCsv'), 'click', function () {
     var cls = currentClass();
-    var rows = [['Name', 'Student ID', 'Class']].concat(
+    var rows = [['Name', 'Student ID', 'Class', 'Email']].concat(
       State.students.filter(function (s) { return s.cls === cls; })
         .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); })
-        .map(function (s) { return [s.name, s.sid, s.cls]; }));
+        .map(function (s) { return [s.name, s.sid, s.cls, s.email || '']; }));
     Q.downloadText(X.toCsv(rows), 'roster_' + (cls || 'class').replace(/\W+/g, '_') + '.csv', 'text/csv');
   });
-  on($('#btnPrintPersonal'), 'click', function () { printSheets('personal'); });
-  on($('#btnPrintBlank'), 'click', function () { printSheets('blank'); });
-  on($('#btnPrintKey'), 'click', function () { printSheets('key'); });
+  /* The picker only exists when a test has more than one version. */
+  function chosenForm() {
+    var sel = $('#printForm');
+    return sel && !sel.hidden ? sel.value : null;
+  }
+  on($('#btnPrintPersonal'), 'click', function () { printSheets('personal', chosenForm()); });
+  on($('#btnPrintBlank'), 'click', function () { printSheets('blank', chosenForm()); });
+  on($('#btnPrintKey'), 'click', function () { printSheets('key', chosenForm()); });
 
   /* scan */
   on($('#btnCamStart'), 'click', function () {
@@ -1554,6 +3375,15 @@ function wireUI() {
   $('#optSpeak').checked = Q.Prefs.get('speak', false);
   Q.Audio2.setEnabled($('#optSound').checked);
   on($('#btnPhotoImport'), 'click', function () { $('#photoInput').click(); });
+  on($('#btnCalibrate'), 'click', function () {
+    if (!Scanner.running) { Q.toast('Start the camera first.', 'err'); return; }
+    Scanner.startCalibration();
+  });
+  on($('#btnPrintCheck'), 'click', function () {
+    route('scan');
+    Q.toast('Start the camera, then hold up one printed blank sheet.', 'good', 6000);
+    setTimeout(function () { if (Scanner.running) Scanner.startCalibration(); }, 400);
+  });
   on($('#photoInput'), 'change', function (e) {
     if (e.target.files && e.target.files.length) Scanner.importFiles(e.target.files);
     e.target.value = '';
@@ -1561,17 +3391,23 @@ function wireUI() {
 
   /* review */
   on($('#showMissingOnly'), 'change', renderReview);
+  on($('#btnVerifyNames'), 'click', verifyNames);
   on($('#btnClearScans'), 'click', function () {
-    Q.confirmBox('Delete every scan for "' + State.test.title + '"? Grades you typed are kept.').then(function (ok) {
+    var mine = State.scans.slice();
+    if (!mine.length) { Q.toast('There are no scans to delete.', 'err'); return; }
+    Q.confirmBox('Delete all ' + mine.length + ' scanned sheet(s) for "' + State.test.title +
+      '"? You can bring them back afterwards. Grades you typed are kept.',
+      'Delete ' + mine.length + ' sheet(s)').then(function (ok) {
       if (!ok) return;
-      var mine = State.scans.slice();
-      var blobIds = [];
-      mine.forEach(function (s) { blobIds = blobIds.concat(collectBlobIds(s)); });
-      Promise.all([
-        Q.DB.delMany('scans', mine.map(function (s) { return s.id; })),
-        blobIds.length ? Q.DB.delMany('blobs', blobIds) : null
-      ]).then(function () {
-        State.scans = []; Scanner.resetSession(); recompute(); renderReview();
+      mine.forEach(function (sc) { sc.deleted = Date.now(); });
+      Q.DB.putMany('scans', mine).then(function () {
+        State.scans = [];
+        State.trash = State.trash.concat(mine);
+        Scanner.resetSession(); recompute(); renderReview();
+        Q.toast('Deleted ' + mine.length + ' sheet(s).', 'good', 9000, {
+          label: 'Undo',
+          fn: function () { restoreScans(mine).then(function () { renderReview(); }); }
+        });
       });
     });
   });
@@ -1585,20 +3421,43 @@ function wireUI() {
   document.addEventListener('keydown', gradeKeys);
 
   /* export */
-  on($('#exXlsx'), 'click', function () { recompute(); exportGradebookXlsx(); });
-  on($('#exCsv'), 'click', function () {
-    recompute();
-    var rows = gradebookRows(); rows.splice(1, 0, keyRow());
-    Q.downloadText(X.toCsv(rows), fileBase() + '_gradebook.csv', 'text/csv');
-    Q.toast('CSV saved — in Google Sheets use File ▸ Import ▸ Upload.', 'good', 6000);
+  on($('#exXlsx'), 'click', function () { exportGradebookMapped('xlsx'); });
+  on($('#exCsv'), 'click', function () { exportGradebookMapped('csv'); });
+  on($('#exTsv'), 'click', function () { exportGradebookMapped('tsv'); });
+  on($('#fmtPick'), 'change', function (e) {
+    Q.Prefs.set('formatId', e.target.value); workingFmt = null; renderFormatUI();
   });
-  on($('#exTsv'), 'click', function () {
-    recompute();
-    var rows = gradebookRows(); rows.splice(1, 0, keyRow());
-    Q.copyToClipboard(X.toTsv(rows)).then(function () {
-      Q.toast('Copied. Click cell A1 in Sheets or Excel and paste.', 'good', 6000);
-    }).catch(function () { Q.toast('Clipboard blocked by the browser — use the CSV button.', 'err'); });
+  on($('#fmtOnlyScanned'), 'change', renderPreview);
+  on($('#fmtAddBtn'), 'click', function () {
+    var k = $('#fmtAdd').value;
+    if (!k) return;
+    var f = fmt();
+    if (f.cols.indexOf(k) >= 0) { Q.toast('That column is already in the layout.', 'err'); return; }
+    f.cols.push(k); renderFormatUI();
   });
+  on($('#fmtReset'), 'click', function () { workingFmt = null; renderFormatUI(); });
+  on($('#fmtSave'), 'click', function () {
+    Q.promptBox('Name this layout', (fmt().name || '') + ' (mine)').then(function (name) {
+      if (!name) return;
+      var f = fmt();
+      var saved = savedFormats();
+      var copy = JSON.parse(JSON.stringify(f));
+      copy.id = Q.uid('fmt'); copy.name = name; copy.note = 'Your own saved layout.';
+      saved.push(copy);
+      Q.Prefs.set('formats', saved);
+      Q.Prefs.set('formatId', copy.id);
+      workingFmt = null; renderFormatUI();
+      Q.toast('Saved. It will be picked automatically from now on.', 'good', 5000);
+    });
+  });
+  on($('#fmtDelete'), 'click', function () {
+    var id = fmt().id;
+    Q.Prefs.set('formats', savedFormats().filter(function (p) { return p.id !== id; }));
+    Q.Prefs.set('formatId', 'simple');
+    workingFmt = null; renderFormatUI();
+  });
+  on($('#exSend'), 'click', sendToEndpoint);
+
   on($('#exDocx'), 'click', function () { recompute(); exportTopSheetsDocx(); });
   on($('#exPrintSheets'), 'click', function () { recompute(); printTopSheets(); });
   on($('#exRawXlsx'), 'click', function () { recompute(); exportItemAnalysisXlsx(); });
@@ -1610,7 +3469,12 @@ function wireUI() {
   });
 }
 
-global.QG.App = { State: State, route: route, recompute: recompute, selectTest: selectTest };
+global.QG.App = {
+  State: State, route: route, recompute: recompute, selectTest: selectTest,
+  /* internals the headless test suites drive directly */
+  __test: { deleteScan: deleteScan, restoreScans: restoreScans, purgeScans: purgeScans,
+            saveRule: saveRule, letterFor: letterFor }
+};
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
 else boot();
 })(window);

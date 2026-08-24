@@ -1,7 +1,15 @@
 /* QuickGrade — synth.js
- * Test-only. Renders an answer sheet straight from the shared geometry and
- * simulates photographing it (perspective, uneven light, grain). Used by
- * selftest.html and by the integration run; never loaded by the app itself.
+ *
+ * Renders an answer sheet straight from the shared geometry and simulates
+ * photographing it — perspective, uneven light, grain. Two uses:
+ *
+ *  1. the sample class, so anyone can see the whole app working without
+ *     owning a printer, and
+ *  2. the automated suites, which photograph sheets in software and push them
+ *     through the real decode path.
+ *
+ * It never fabricates results: everything it produces goes through the same
+ * detection and scoring the camera does.
  */
 (function (global) {
 'use strict';
@@ -10,12 +18,13 @@ var DPI = 150;
 function inx(x) { return x * DPI; }
 function uvToPx(pt) { return [inx(L.fid.x0 + pt.u * L.W), inx(L.fid.y0 + pt.v * L.H)]; }
 
-function drawBubble(ctx, pt, filled, letter) {
+/** alpha < 1 simulates a light pencil mark or an incomplete erasure. */
+function drawBubble(ctx, pt, filled, letter, alpha) {
   var p = uvToPx(pt), r = inx(L.bubbleR);
   ctx.lineWidth = 1.4; ctx.strokeStyle = '#1a1a1a';
   ctx.beginPath(); ctx.arc(p[0], p[1], r, 0, 6.2832); ctx.stroke();
   if (filled) {
-    ctx.fillStyle = '#000';
+    ctx.fillStyle = alpha == null || alpha >= 1 ? '#000' : 'rgba(0,0,0,' + alpha + ')';
     ctx.beginPath(); ctx.arc(p[0], p[1], r * 0.86, 0, 6.2832); ctx.fill();
   } else if (letter) {
     ctx.fillStyle = '#c0c0c0';
@@ -59,19 +68,30 @@ function renderSynthetic(test, pageIdx, opts) {
   ctx.font = inx(0.12) + 'px "Comic Sans MS", cursive';
   ctx.fillText(test.className || '', inx(L.classBox.x + 0.12), inx(L.classBox.y + 0.28));
 
-  var sidD = S.digits(opts.sid, L.idDigits);
-  S.idGrid().forEach(function (row, r) {
+  /* Must mirror renderPage exactly, including the per-test ID width. */
+  var nId = S.idDigitsOf(test);
+  var sidD = S.digits(opts.sid, nId);
+  S.idGrid(nId).forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
   var codeD = S.digits(test.code, L.codeDigits);
-  S.codeGrid().forEach(function (row, r) {
+  S.codeGrid(nId).forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, codeD[r] === d, String(d)); });
   });
-  S.pageRow().forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
+  S.pageRow(nId).forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 
   pg.mc.forEach(function (item) {
+    /* answers[q] may be: a choice index (clean mark), [a,b] (double-marked),
+     * or {k, alpha} (faint / half-erased) — so the reader's uncertainty
+     * handling can be exercised for real. */
     var pick = (opts.answers || {})[item.q];
-    item.choices.forEach(function (pt, k) { drawBubble(ctx, pt, pick === k, S.LETTERS[k]); });
+    item.choices.forEach(function (pt, k) {
+      var fill = false, alpha = 1;
+      if (Array.isArray(pick)) fill = pick.indexOf(k) >= 0;
+      else if (pick && typeof pick === 'object') { fill = pick.k === k; alpha = pick.alpha; }
+      else fill = pick === k;
+      drawBubble(ctx, pt, fill, S.LETTERS[k], alpha);
+    });
     ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.10) + 'px Arial';
     ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
     ctx.fillText(String(item.q + 1), inx(item.x + L.labelW - 0.05), inx(item.y));

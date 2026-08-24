@@ -4,7 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>QuickGrade — Scan &amp; Grade Paper Tests</title>
+<meta name="description" content="Scan paper tests with a camera, grade them, and export to Excel, Sheets, Word or Docs. Student data stays on the device.">
+<meta name="theme-color" content="#3554d1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="QuickGrade">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/app.css">
+<script>
+  /* Installable + fully offline once loaded. Only applies to the hosted copy;
+     from a file:// page there is no service-worker scope, so this no-ops. */
+  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+</script>
 </head>
 <body>
 
@@ -23,7 +40,7 @@
   <div class="ctx" id="ctxLabel">No test selected</div>
 </header>
 
-<main>
+<main id="main">
 
 <!-- ============================ TESTS ============================ -->
 <section class="view" id="view-tests">
@@ -31,20 +48,23 @@
     <div class="row between">
       <h1>Tests</h1>
       <div class="row gap">
+        <button class="btn" id="btnDemo">Sample class</button>
         <button class="btn" id="btnImportBackup">Import backup</button>
         <input type="file" id="backupInput" accept="application/json,.json" hidden>
         <button class="btn" id="btnExportBackup">Export backup</button>
         <button class="btn go" id="btnNewTest">+ New test</button>
       </div>
     </div>
+    <p class="hint" id="storageTotal"></p>
     <div id="testList" class="cards"></div>
+    <div id="workflow"></div>
 
     <div id="testEditor" hidden>
       <hr>
       <h2 id="editorTitle">New test</h2>
       <div class="grid2">
         <label>Test title <input id="f_title" placeholder="Unit 4 — Cell Biology"></label>
-        <label>Class / Period <input id="f_class" placeholder="Biology P3"></label>
+        <label>Class / Period <span class="hint" style="font-weight:400">&mdash; list several, separated by commas, to give one test to several periods</span><input id="f_class" placeholder="Biology P3, Biology P5"></label>
         <label>Date <input id="f_date" type="date"></label>
         <label>Test code (3 digits, printed on the sheet)
           <input id="f_code" maxlength="3" inputmode="numeric" placeholder="042"></label>
@@ -63,26 +83,90 @@
 
       <div class="keybar row gap wrap-row">
         <strong>Answer key</strong>
-        <button class="btn sm" id="btnKeyFromScan">Set key by scanning a completed sheet</button>
+        <button class="btn sm go" id="btnKeyPaste">Paste my answer key</button>
+        <button class="btn sm" id="btnKeyFromScan">Scan a completed sheet</button>
         <button class="btn sm" id="btnKeyClear">Clear key</button>
-        <span class="hint">Click a letter, or focus a box and type letters continuously.</span>
+        <span class="hint">Paste it in whatever form you already have it &mdash; or click letters below.</span>
       </div>
       <div id="keyGrid" class="keygrid"></div>
+
+      <details class="more">
+        <summary>What each question tests &mdash; standards and objectives</summary>
+        <div class="advbody">
+          <p class="hint">Tag the questions and QuickGrade will tell you what the class has not
+            got, instead of only who scored what.</p>
+          <div id="topicsList" class="topicprev"></div>
+          <button class="btn sm go" id="btnPasteTopics">Paste my objectives</button>
+        </div>
+      </details>
+
+      <details class="more">
+        <summary>Versions &mdash; different question orders so neighbours can&rsquo;t copy</summary>
+        <div class="advbody">
+          <p class="hint">Scramble the questions in your own test document, then paste the answer
+            key for each version. Each gets its own printed code, so a mixed pile of sheets sorts
+            itself out while you scan &mdash; you never have to say which is which.</p>
+          <div id="formsList" class="formslist"></div>
+          <button class="btn sm" id="btnAddForm">+ Add a second version</button>
+        </div>
+      </details>
 
       <h3>Written / short answer / fill-in questions</h3>
       <p class="hint">These get printed answer boxes. After scanning you grade them one question at a time across the whole class.</p>
       <div id="writtenList"></div>
-      <button class="btn sm" id="btnAddWritten">+ Add written question</button>
+      <div class="row gap wrap-row">
+        <button class="btn sm" id="btnAddWritten">+ Add one</button>
+        <button class="btn sm go" id="btnWrittenPaste">Paste my questions</button>
+      </div>
 
-      <h3>Top-sheet options <span class="hint">(the graded cover page each student gets back)</span></h3>
-      <div id="topsheetOpts" class="optgrid"></div>
+      <details class="more">
+        <summary>What goes on the sheet students get back</summary>
+        <div class="advbody"><div id="topsheetOpts" class="optgrid"></div></div>
+      </details>
 
       <h3>Answer-sheet options</h3>
       <div class="grid3">
-        <label class="chk"><input type="checkbox" id="f_prefillId" checked> Pre-print each student&rsquo;s ID bubbles (fastest, most reliable)</label>
+        <label>How students identify themselves
+          <select id="f_idDigits">
+            <option value="2">2-digit class number (1&ndash;99)</option>
+            <option value="3" selected>3-digit class number (1&ndash;999)</option>
+            <option value="4">4-digit ID</option>
+            <option value="6">6-digit district ID</option>
+          </select></label>
+        <label>Label above the ID bubbles
+          <input id="f_idLabel" placeholder="CLASS NUMBER"></label>
+        <label>Paper size
+          <select id="f_paper">
+            <option value="letter" selected>US Letter (8.5 &times; 11 in)</option>
+            <option value="a4">A4 (210 &times; 297 mm)</option>
+            <option value="legal">US Legal (8.5 &times; 14 in)</option>
+          </select></label>
+      </div>
+      <div class="grid3">
         <label>Written boxes per page <input id="f_wPerPage" type="number" min="1" max="6" value="2"></label>
         <label>Sheet instructions <input id="f_instr" placeholder="Use pencil. Fill bubbles completely."></label>
+        <label class="chk" style="margin-top:22px"><input type="checkbox" id="f_prefillId">
+          Pre-print each student&rsquo;s ID (only for small runs &mdash; needs a unique page per student)</label>
       </div>
+      <details class="more">
+        <summary>Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
+        <div class="advbody">
+      <div class="grid3">
+        <label>Name box <input id="f_lblName" placeholder="NAME"></label>
+        <label>Class box <input id="f_lblClass" placeholder="CLASS / PERIOD"></label>
+        <label>Page row <input id="f_lblPage" placeholder="PAGE"></label>
+      </div>
+      <div class="grid2">
+        <label>&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" placeholder="HOW TO FILL THIS IN"></label>
+        <label>Bubble examples, separated by <code>|</code>
+          <input id="f_lblSamples" placeholder="correct|too light|do not cross"></label>
+      </div>
+      <label>Advice line under the examples
+        <input id="f_lblTips" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
+        </div>
+      </details>
+      <p class="hint">Fewer digits means less for a student to bubble and fewer misreads.
+        Leave pre-printing <strong>off</strong> so you can print one master sheet and photocopy it for the class.</p>
 
       <div class="row gap end sticky-actions">
         <button class="btn" id="btnCancelTest">Cancel</button>
@@ -100,15 +184,16 @@
     <div class="grid2">
       <div>
         <label>Class / Period
-          <div class="row gap">
-            <select id="rosterClass" class="sel"></select>
-            <button class="btn sm" id="btnNewClass">+ New class</button>
-          </div>
+          <input id="rosterClass" list="classChoices" placeholder="Type a class name, e.g. Biology P3"
+            autocomplete="off" aria-label="Class or period">
+          <datalist id="classChoices"></datalist>
         </label>
-        <p class="hint">Paste one student per line: <code>Name</code> or <code>Name, ID</code>. IDs are assigned automatically if omitted.</p>
-        <textarea id="rosterPaste" rows="10" placeholder="Avery Nguyen&#10;Ben Carter, 100042&#10;Chloe Diaz"></textarea>
+        <p class="hint">Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.</p>
+        <textarea id="rosterPaste" rows="10" placeholder="Avery Nguyen&#10;Ben Carter, 42&#10;Chloe Diaz, 43, chloe.diaz@school.org"></textarea>
         <div class="row gap">
           <button class="btn go" id="btnRosterSave">Add / update students</button>
+          <button class="btn" id="btnRosterImport">Import CSV file</button>
+          <input type="file" id="rosterFile" accept=".csv,.tsv,.txt,text/csv" hidden>
           <button class="btn" id="btnRosterCsv">Export roster CSV</button>
         </div>
       </div>
@@ -122,10 +207,19 @@
     <hr>
     <h2>Print answer sheets</h2>
     <div class="row gap wrap-row">
-      <button class="btn go big" id="btnPrintPersonal">Print personalized sheets (whole class)</button>
-      <button class="btn big" id="btnPrintBlank">Print blank sheets</button>
-      <button class="btn big" id="btnPrintKey">Print answer-key sheet</button>
+      <select id="printForm" class="sel" aria-label="Which version to print" hidden></select>
+      <button class="btn go big" id="btnPrintBlank">Print the answer sheet</button>
+      <button class="btn big" id="btnPrintCheck">Check my printing</button>
     </div>
+    <details class="more">
+      <summary>Other kinds of sheet</summary>
+      <div class="advbody row gap wrap-row">
+        <button class="btn" id="btnPrintKey">Answer-key sheet
+          <span class="hint" style="margin:0">for setting the key by scanning</span></button>
+        <button class="btn" id="btnPrintPersonal">Personalized sheets
+          <span class="hint" style="margin:0">one unique page per student</span></button>
+      </div>
+    </details>
     <p class="hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.</p>
   </div>
 </section>
@@ -133,18 +227,19 @@
 <!-- ============================ SCAN ============================ -->
 <section class="view" id="view-scan">
   <div id="scanStage">
-    <video id="cam" playsinline muted autoplay></video>
-    <canvas id="overlay"></canvas>
-    <div id="flash"></div>
+    <video id="cam" playsinline muted autoplay aria-label="Camera view"></video>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+    <div id="flash" aria-hidden="true"></div>
 
     <div id="scanHud">
       <div class="hudrow">
         <button class="btn sm go" id="btnCamStart">Start camera</button>
-        <select id="camSelect" class="sel sm"></select>
+        <select id="camSelect" class="sel sm" aria-label="Camera"></select>
         <button class="btn sm" id="btnTorch" hidden>Light</button>
         <label class="chk sm"><input type="checkbox" id="optSpeak"> Speak</label>
         <label class="chk sm"><input type="checkbox" id="optSound" checked> Sound</label>
         <button class="btn sm" id="btnPhotoImport">Import photos</button>
+        <button class="btn sm" id="btnCalibrate">Check my printing</button>
         <input type="file" id="photoInput" accept="image/*" multiple hidden>
       </div>
       <div class="hudrow">
@@ -164,14 +259,20 @@
 <section class="view" id="view-review">
   <div class="wrap">
     <h1>Review scans</h1>
+    <div id="trashBox"></div>
     <div id="unresolvedBox"></div>
+    <div id="checksBox"></div>
     <div class="row between"><h2>Students</h2>
       <div class="row gap">
         <label class="chk sm"><input type="checkbox" id="showMissingOnly"> Problems only</label>
+        <button class="btn sm" id="btnVerifyNames">Check names against handwriting</button>
         <button class="btn sm danger" id="btnClearScans">Delete all scans for this test</button>
       </div>
     </div>
     <div id="reviewTable"></div>
+    <div id="masteryBox"></div>
+    <div id="questionBox"></div>
+    <div id="storageBox"></div>
   </div>
 </section>
 
@@ -180,7 +281,7 @@
   <div id="gradeShell">
     <div id="gradeTop">
       <div class="row gap wrap-row">
-        <select id="gradeQ" class="sel"></select>
+        <select id="gradeQ" class="sel" aria-label="Written question to grade"></select>
         <span class="pill" id="gradeProgress"></span>
         <span class="pill" id="gradeStudent"></span>
         <button class="btn sm" id="btnGradePrev">&#9664; Prev</button>
@@ -188,7 +289,7 @@
         <label class="chk sm"><input type="checkbox" id="gradeHideName" checked> Blind</label>
       </div>
     </div>
-    <div id="gradeImageWrap"><img id="gradeImage" alt="student response"></div>
+    <div id="gradeImageWrap"><img id="gradeImage" alt="Scanned student response for the selected question"></div>
     <div id="gradeBar">
       <div id="pointsRow"></div>
       <div class="row gap">
@@ -206,17 +307,57 @@
     <h1>Export</h1>
 
     <h2>Gradebook (scores)</h2>
-    <p class="hint">One row per student: totals, percent, letter grade, and per-question detail.</p>
-    <div class="row gap wrap-row">
-      <button class="btn go" id="exXlsx">Excel workbook (.xlsx)</button>
-      <button class="btn" id="exCsv">CSV (for Google Sheets)</button>
-      <button class="btn" id="exTsv">Copy for Sheets</button>
+    <p class="hint">Pick your gradebook once. QuickGrade remembers it and lays the columns out
+      the way that program expects.</p>
+
+    <div class="bigpick">
+      <label>My gradebook is
+        <select id="fmtPick" class="sel" aria-label="Which gradebook do you use"></select>
+      </label>
+      <p class="hint" id="fmtNote"></p>
     </div>
+
+    <div class="row gap wrap-row" style="margin:14px 0 4px">
+      <button class="btn go big" id="exXlsx">Download for my gradebook</button>
+      <button class="btn big" id="exTsv">Copy &mdash; paste into Google Sheets</button>
+    </div>
+    <p class="hint" id="exHint">Downloads an Excel file. Most gradebooks import
+      <code>.xlsx</code> or <code>.csv</code> directly.</p>
+
+    <details id="advExport">
+      <summary>More options</summary>
+      <div class="advbody">
+        <label class="chk"><input type="checkbox" id="fmtOnlyScanned" checked>
+          Leave out students who have nothing scanned
+          <span class="hint">(recommended &mdash; an empty row can wipe an existing grade)</span></label>
+
+        <div class="row gap wrap-row" style="margin:10px 0">
+          <button class="btn sm" id="exCsv">Download as .csv instead</button>
+          <button class="btn sm" id="exSend">Send to a web address&hellip;</button>
+        </div>
+
+        <h3>Change the columns</h3>
+        <p class="hint">Only needed if your gradebook rejects the file. Drag nothing, break
+          nothing &mdash; use the arrows, and rename a heading by typing over it.</p>
+        <div id="fmtCols" class="fmtcols"></div>
+        <div class="row gap wrap-row" style="margin:10px 0">
+          <select id="fmtAdd" class="sel" aria-label="Column to add"></select>
+          <button class="btn sm" id="fmtAddBtn">+ Add column</button>
+          <button class="btn sm" id="fmtSave">Save as my own layout&hellip;</button>
+          <button class="btn sm danger" id="fmtDelete" hidden>Delete this layout</button>
+          <button class="btn sm" id="fmtReset">Undo my changes</button>
+        </div>
+        <div id="fmtPreview" class="tbl" style="max-height:210px"></div>
+      </div>
+    </details>
 
     <h2>Graded top sheets (student hand-back pages)</h2>
     <p class="hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p>
-    <div id="topsheetOpts2" class="optgrid"></div>
-    <div class="row gap wrap-row">
+    <details class="more">
+      <summary>What goes on the page</summary>
+      <div class="advbody"><div id="topsheetOpts2" class="optgrid"></div></div>
+    </details>
+    <div class="row gap wrap-row" style="margin-top:10px">
       <button class="btn go" id="exDocx">Word document (.docx)</button>
       <button class="btn" id="exPrintSheets">Print / Save as PDF</button>
     </div>
@@ -227,6 +368,10 @@
       <button class="btn" id="exJson">JSON backup of this test</button>
     </div>
 
+    <h2>Curve</h2>
+    <p class="hint">Applies to everyone. The original score is always kept.</p>
+    <div id="curveBox"></div>
+
     <h2>Grading scale</h2>
     <div id="scaleEditor" class="row gap wrap-row"></div>
   </div>
@@ -234,13 +379,20 @@
 
 </main>
 
-<div id="toasts"></div>
+<!-- Scan results are otherwise only a flash and a beep; announce them too. -->
+<div id="srAnnounce" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
+<div id="toasts" role="status" aria-live="polite"></div>
 <div id="modal" hidden><div id="modalCard"></div></div>
 
 <script src="js/lib.js"></script>
 <script src="js/ooxml.js"></script>
+<script src="js/exportmap.js"></script>
+<script src="js/parse.js"></script>
+<script src="js/scoring.js"></script>
+<script src="js/mastery.js"></script>
 <script src="js/sheet.js"></script>
 <script src="js/vision.js"></script>
+<script src="js/synth.js"></script>
 <script src="js/scan.js"></script>
 <script src="js/app.js"></script>
 </body>

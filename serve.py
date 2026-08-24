@@ -115,7 +115,7 @@ def main():
 
     if args.https:
         if not (os.path.exists(CERT) and os.path.exists(KEY)):
-            print("Generating a self-signed certificate for %s ..." % ip)
+            print("Generating a self-signed certificate for %s ..." % ip, flush=True)
             try:
                 make_cert(ip)
             except ImportError:
@@ -125,25 +125,25 @@ def main():
         ctx.load_cert_chain(CERT, KEY)
         httpd.socket = ctx.wrap_socket(httpd.socket, server_side=True)
         url = "https://%s:%d/" % (ip, port)
-        print("\n  QuickGrade is running.\n")
-        print("  On this computer :  https://localhost:%d/" % port)
-        print("  On your phone    :  %s" % url)
-        print("\n  Your phone will warn that the certificate is not trusted - that is expected")
-        print("  for a server running on your own computer. Tap Advanced, then Proceed.")
-        print("  Both devices must be on the same Wi-Fi network.\n")
+        print("\n  QuickGrade is running.\n", flush=True)
+        print("  On this computer :  https://localhost:%d/" % port, flush=True)
+        print("  On your phone    :  %s" % url, flush=True)
+        print("\n  Your phone will warn that the certificate is not trusted - that is expected", flush=True)
+        print("  for a server running on your own computer. Tap Advanced, then Proceed.", flush=True)
+        print("  Both devices must be on the same Wi-Fi network.\n", flush=True)
     else:
         url = "http://localhost:%d/" % port
-        print("\n  QuickGrade is running at %s" % url)
-        print("  The camera works here because browsers trust localhost.")
-        print("  For a phone camera, stop this and run:  python serve.py --https\n")
+        print("\n  QuickGrade is running at %s" % url, flush=True)
+        print("  The camera works here because browsers trust localhost.", flush=True)
+        print("  For a phone camera, stop this and run:  python serve.py --https\n", flush=True)
 
-    print("  Press Ctrl+C to stop.\n")
+    print("  Press Ctrl+C to stop.\n", flush=True)
     if not args.no_browser and not args.https:
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
-        print("stopped")
+        print("stopped", flush=True)
 
 
 if __name__ == "__main__":

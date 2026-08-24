@@ -291,8 +291,9 @@ function findSheet(gray, w, h, opts) {
  * decodeIdentity(gray,w,h,H,white) -> {sid, code, page, idConf, flags[]}
  * Reads the student-ID, test-code and page-number bubble grids.
  */
-function decodeIdentity(gray, w, h, H, white) {
+function decodeIdentity(gray, w, h, H, white, idDigits) {
   var L = S.L, flags = [];
+  var nId = idDigits || L.idDigits;
   function readRows(rows) {
     var digitsOut = [], conf = 1, blanks = 0;
     rows.forEach(function (row) {
@@ -303,15 +304,15 @@ function decodeIdentity(gray, w, h, H, white) {
     });
     return { d: digitsOut, conf: conf, blanks: blanks };
   }
-  var idr = readRows(S.idGrid());
-  var cdr = readRows(S.codeGrid());
+  var idr = readRows(S.idGrid(nId));
+  var cdr = readRows(S.codeGrid(nId));
 
-  var pageDk = S.pageRow().map(function (pt) { return darkness(gray, w, h, H, pt, white); });
+  var pageDk = S.pageRow(nId).map(function (pt) { return darkness(gray, w, h, H, pt, white); });
   var pres = readGroup(pageDk, 0.22, 0.16);
 
   var sid = idr.blanks ? null : idr.d.join('');
   var code = cdr.blanks ? null : cdr.d.join('');
-  if (idr.blanks) flags.push(idr.blanks === L.idDigits ? 'no-id' : 'partial-id');
+  if (idr.blanks) flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
   if (!code) flags.push('no-code');
   if (pres.state !== 'ok') flags.push('no-page');
 

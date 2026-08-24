@@ -256,28 +256,85 @@ function speak(text) {
 }
 
 /* ----------------------------------------------------------- UI bits */
-function toast(msg, kind, ms) {
+/** toast(msg, kind, ms, action) — action = {label, fn} renders an inline button. */
+function toast(msg, kind, ms, action) {
   var box = $('#toasts'); if (!box) return;
-  var t = el('div', { class: 'toast' + (kind ? ' ' + kind : ''), text: msg });
+  var t = el('div', { class: 'toast' + (kind ? ' ' + kind : '') }, [
+    el('span', { text: msg })
+  ]);
+  if (action && action.label) {
+    t.appendChild(el('button', {
+      class: 'toast-act', text: action.label,
+      onclick: function () {
+        if (t.parentNode) t.parentNode.removeChild(t);
+        action.fn();
+      }
+    }));
+  }
   box.appendChild(t);
+  /* A pile of notices covers the page it is describing. */
+  while (box.children.length > 3) box.removeChild(box.firstChild);
   setTimeout(function () {
     t.style.transition = 'opacity .3s'; t.style.opacity = '0';
     setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, 320);
   }, ms || 3200);
 }
 
-/** Modal. content = DOM node or HTML string. Returns {close}. */
+var FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),' +
+                'textarea:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
+
+/**
+ * Modal. content = DOM node or HTML string. Returns {close}.
+ * Announces itself as a dialog, moves focus in, keeps Tab inside it, and
+ * hands focus back to whatever opened it — a keyboard or screen-reader user
+ * otherwise ends up tabbing around the page behind the dialog.
+ */
 function modal(content, opts) {
   opts = opts || {};
   var m = $('#modal'), card = $('#modalCard');
+  var opener = document.activeElement;
   card.innerHTML = '';
   if (typeof content === 'string') card.innerHTML = content;
   else card.appendChild(content);
+
+  m.setAttribute('role', 'dialog');
+  m.setAttribute('aria-modal', 'true');
+  card.setAttribute('tabindex', '-1');
+  var heading = card.querySelector('h1,h2,h3');
+  if (heading) {
+    if (!heading.id) heading.id = 'modalTitle';
+    m.setAttribute('aria-labelledby', heading.id);
+  } else {
+    m.removeAttribute('aria-labelledby');
+  }
   m.hidden = false;
-  function close() { m.hidden = true; card.innerHTML = ''; document.removeEventListener('keydown', onKey); m.removeEventListener('click', onBg); }
-  function onKey(e) { if (e.key === 'Escape') close(); }
+
+  var first = card.querySelector(FOCUSABLE);
+  (first || card).focus();
+
+  function close() {
+    m.hidden = true;
+    card.innerHTML = '';
+    document.removeEventListener('keydown', onKey, true);
+    m.removeEventListener('click', onBg);
+    if (opener && document.contains(opener)) opener.focus();
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
+    if (e.key !== 'Tab') return;
+    var items = Array.prototype.filter.call(card.querySelectorAll(FOCUSABLE), function (n) {
+      return n.offsetParent !== null;
+    });
+    if (!items.length) { e.preventDefault(); card.focus(); return; }
+    var lo = items[0], hi = items[items.length - 1];
+    if (e.shiftKey && (document.activeElement === lo || document.activeElement === card)) {
+      e.preventDefault(); hi.focus();
+    } else if (!e.shiftKey && document.activeElement === hi) {
+      e.preventDefault(); lo.focus();
+    }
+  }
   function onBg(e) { if (e.target === m && !opts.sticky) close(); }
-  document.addEventListener('keydown', onKey);
+  document.addEventListener('keydown', onKey, true);
   m.addEventListener('click', onBg);
   return { close: close, card: card };
 }
