@@ -188,10 +188,15 @@ function selectTest(t) {
 
 function updateCtx() {
   var t = State.test;
-  $('#ctxLabel').textContent = t ? (t.title || 'Untitled') + ' · ' + (t.className || 'no class') +
-    ' · code ' + t.code + ' · ' + State.pages.length + 'pp' : 'No test selected';
+  $('#ctxLabel').textContent = t
+    ? T('hdr.ctx', { title: t.title || T('tests.untitled'),
+                     cls: t.className || T('hdr.noClass'),
+                     code: t.code, pages: State.pages.length })
+    : T('hdr.noTest');
   var pill = $('#pillTest');
-  if (pill) pill.textContent = t ? (t.title || 'Untitled') + ' (' + t.code + ')' : 'No test';
+  if (pill) pill.textContent = t
+    ? T('scan.pill.test', { title: t.title || T('tests.untitled'), code: t.code })
+    : T('scan.pill.noTest');
 }
 
 function saveTest() {

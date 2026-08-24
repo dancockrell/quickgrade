@@ -238,6 +238,8 @@ I.packs.ar = {
 
   /* --- header --- */
   'hdr.language': 'اللغة',
+  'hdr.ctx': '{title} · {cls} · رمز {code} · {pages} ص',
+  'hdr.noClass': 'بلا صف',
   'hdr.noTest': 'لم يُحدَّد اختبار',
   'hdr.privacy': 'الخصوصية',
   'hdr.privacy.title': 'أين تذهب بيانات الطلاب، وكيف تُثبت ذلك لمدرستك',
@@ -426,6 +428,7 @@ I.packs.ar = {
   'scan.pickTestStatus': 'اختر اختباراً أولاً',
   'scan.pill.idle': 'في الانتظار',
   'scan.pill.noTest': 'لا اختبار',
+  'scan.pill.test': '{title} ({code})',
   'scan.pill.sheets': '٠ أوراق',
   'scan.reading': 'جارٍ القراءة…',
   'scan.readyNext': 'جاهز للورقة التالية',

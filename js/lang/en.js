@@ -235,7 +235,9 @@ I.packs.en = {
   'grade.untitled': 'written',
 
   /* --- hdr --- */
+  'hdr.ctx': '{title} · {cls} · code {code} · {pages}pp',
   'hdr.language': 'Language',
+  'hdr.noClass': 'no class',
   'hdr.noTest': 'No test selected',
   'hdr.privacy': 'Privacy',
   'hdr.privacy.title': 'Where student data goes, and how to show that to your school',
@@ -431,6 +433,7 @@ I.packs.en = {
   'scan.pill.idle': 'Idle',
   'scan.pill.noTest': 'No test',
   'scan.pill.sheets': '0 sheets',
+  'scan.pill.test': '{title} ({code})',
   'scan.reading': 'Reading…',
   'scan.readyNext': 'Ready for the next sheet',
   'scan.replacedAnnounce': 'Rescanned {page} for {name}.',
