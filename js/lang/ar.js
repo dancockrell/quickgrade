@@ -753,6 +753,11 @@ I.packs.ar = {
   'sheet.docTitle': '{title} — أوراق الإجابة',
   'sheet.printBtn.one': 'اطبع {n} صفحة',
   'sheet.printBtn.other': 'اطبع {n} صفحة',
-  'sheet.printAdvice': 'اضبط المقياس على <b>100% / الحجم الفعلي</b>، والهوامش على <b>بلا</b>، والورق على <b>{paper}</b>. لا تفعّل &laquo;ملاءمة الصفحة&raquo; إن كانت تضيف حدوداً.'
+  'sheet.printAdvice': 'اضبط المقياس على <b>100% / الحجم الفعلي</b>، والهوامش على <b>بلا</b>، والورق على <b>{paper}</b>. لا تفعّل &laquo;ملاءمة الصفحة&raquo; إن كانت تضيف حدوداً.',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'ص,صح,صحيح,نعم',
+  'parse.falseWords': 'خ,خطأ,خاطئ,لا',
+  'parse.pointWords': 'درجة,درجات,نقطة,نقاط'
 };
 })(window.QG.I18N);

@@ -12,7 +12,44 @@
 'use strict';
 
 var LETTERS = 'ABCDEFGHIJ';
-var TF = { T: 0, TRUE: 0, F: 1, FALSE: 1, Y: 0, YES: 0, N: 1, NO: 1 };
+/* English is always understood, whatever the interface language: a teacher
+ * may well be pasting a key that came from an English source. The pack adds
+ * its own words on top rather than replacing these. */
+var TF_EN = { T: 0, TRUE: 0, F: 1, FALSE: 1, Y: 0, YES: 0, N: 1, NO: 1 };
+var POINT_WORDS_EN = ['pts', 'pt', 'points', 'point', 'marks', 'mark'];
+
+function packList(key) {
+  var v;
+  try { v = global.QG.T(key); } catch (e) { return []; }
+  if (!v || v === key) return [];
+  return v.split(/[,|]/).map(function (x) { return x.trim(); }).filter(Boolean);
+}
+
+/* Rebuilt when the language changes, not on every line of a pasted key. */
+var _tf = null, _tfLang = null;
+function tfMap() {
+  var lang = null;
+  try { lang = global.QG.I18N.lang; } catch (e) {}
+  if (_tf && _tfLang === lang) return _tf;
+  _tfLang = lang;
+  var m = {}, k;
+  for (k in TF_EN) m[k] = TF_EN[k];
+  packList('parse.trueWords').forEach(function (w) { m[w.toUpperCase()] = 0; });
+  packList('parse.falseWords').forEach(function (w) { m[w.toUpperCase()] = 1; });
+  _tf = m;
+  return m;
+}
+
+function pointWords() {
+  return POINT_WORDS_EN.concat(packList('parse.pointWords'));
+}
+
+/* Longest first, so "points" is not eaten by "pt". */
+function pointWordPattern() {
+  var ws = pointWords().slice().sort(function (a, b) { return b.length - a.length; })
+    .map(function (w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+  return '(?:' + ws.join('|') + ')';
+}
 
 function norm(text) {
   return String(text || '')
@@ -36,13 +73,13 @@ function parseAnswerKey(text) {
   /* ---------- 1. true/false or yes/no ---------- */
   var tokens = raw.split(/[\s,;|]+/).filter(Boolean);
   var tfTokens = tokens.filter(function (t) {
-    return TF[t.replace(/^\d+\s*[.):\-]?/, '').toUpperCase()] != null;
+    return tfMap()[t.replace(/^\d+\s*[.):\-]?/, '').toUpperCase()] != null;
   });
   var numberedTF = tokens.length && tfTokens.length >= tokens.length * 0.8;
   if (numberedTF && tokens.length > 1) {
     var tfAns = tokens.map(function (t) {
       var v = t.replace(/^\d+\s*[.):\-]?/, '').toUpperCase();
-      return TF[v] != null ? TF[v] : null;
+      return tfMap()[v] != null ? tfMap()[v] : null;
     });
     return finish(tfAns, 'true/false', warnings, 2);
   }
@@ -51,13 +88,18 @@ function parseAnswerKey(text) {
    * A numbered true/false key ("1. T") is rewritten to "1. A" / "1. B" first,
    * so the ordinary line parser handles it without a second code path. */
   var forcedTF = false;
-  var tfLine = /^(\s*\d{1,3}\s*[.):\-\t=,;]+\s*)(TRUE|FALSE|YES|NO|[TFYN])\s*$/i;
+  /* Built from the vocabulary rather than hard-coded, so a Korean "1. O"
+   * or a Thai "1. ถูก" is recognised as a true/false key. */
+  var tfWords = Object.keys(tfMap()).sort(function (a, b) { return b.length - a.length; })
+    .map(function (w) { return w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); });
+  var tfLine = new RegExp('^(\\s*\\d{1,3}\\s*[.):\\-\\t=,;]+\\s*)(' +
+    tfWords.join('|') + ')\\s*$', 'i');
   var tfCount = 0;
   var rewritten = norm(raw).split(/\r?\n/).map(function (line) {
     var m = line.match(tfLine);
     if (!m) return line;
     tfCount++;
-    return m[1] + (TF[m[2].toUpperCase()] === 0 ? 'A' : 'B');
+    return m[1] + (tfMap()[m[2].toUpperCase()] === 0 ? 'A' : 'B');
   });
   if (tfCount >= 2) { raw = rewritten.join('\n'); forcedTF = true; }
 
@@ -148,9 +190,10 @@ function parseWritten(text, defaultMax) {
     if (!s) return;
     s = s.replace(/^\d{1,3}\s*[.):\-]\s*/, '');          // drop a leading number
     var max = null;
-    var m = s.match(/[\(\[]\s*(\d+(?:\.\d+)?)\s*(?:pts?|points?|marks?)?\s*[\)\]]\s*$/i) ||
-            s.match(/[\-–—,;\t]\s*(\d+(?:\.\d+)?)\s*(?:pts?|points?|marks?)\s*$/i) ||
-            s.match(/\s(\d+(?:\.\d+)?)\s*(?:pts?|points?|marks?)\s*$/i) ||
+    var PW = pointWordPattern();
+    var m = s.match(new RegExp('[\\(\\[]\\s*(\\d+(?:\\.\\d+)?)\\s*' + PW + '?\\s*[\\)\\]]\\s*$', 'i')) ||
+            s.match(new RegExp('[\\-–—,;\\t]\\s*(\\d+(?:\\.\\d+)?)\\s*' + PW + '\\s*$', 'i')) ||
+            s.match(new RegExp('\\s(\\d+(?:\\.\\d+)?)\\s*' + PW + '\\s*$', 'i')) ||
             s.match(/\t\s*(\d+(?:\.\d+)?)\s*$/);
     if (m) { max = parseFloat(m[1]); s = s.slice(0, m.index).trim().replace(/[\-–—,;:]\s*$/, ''); }
     if (!s) return;

@@ -721,6 +721,11 @@ I.packs.th = {
   'sheet.footer': 'กระดาษคำตอบ QuickGrade · พิมพ์ที่ 100% · รักษาสี่เหลี่ยมมุมทั้งสี่ให้สะอาด',
   'sheet.docTitle': '{title} — กระดาษคำตอบ',
   'sheet.printBtn.other': 'พิมพ์ {n} หน้า',
-  'sheet.printAdvice': 'ตั้งมาตราส่วนเป็น <b>100% / ขนาดจริง</b> ขอบกระดาษ <b>ไม่มี</b> กระดาษ <b>{paper}</b> อย่าเปิด &ldquo;ย่อให้พอดีหน้า&rdquo; ถ้ามันเพิ่มขอบ'
+  'sheet.printAdvice': 'ตั้งมาตราส่วนเป็น <b>100% / ขนาดจริง</b> ขอบกระดาษ <b>ไม่มี</b> กระดาษ <b>{paper}</b> อย่าเปิด &ldquo;ย่อให้พอดีหน้า&rdquo; ถ้ามันเพิ่มขอบ',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'ถูก,จริง,ใช่',
+  'parse.falseWords': 'ผิด,เท็จ,ไม่ใช่',
+  'parse.pointWords': 'คะแนน'
 };
 })(window.QG.I18N);

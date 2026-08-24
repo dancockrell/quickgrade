@@ -812,6 +812,11 @@ I.packs.ru = {
   'sheet.printBtn.few': 'Печать {n} страниц',
   'sheet.printBtn.many': 'Печать {n} страниц',
   'sheet.printBtn.other': 'Печать {n} страниц',
-  'sheet.printAdvice': 'Установите масштаб <b>100% / Реальный размер</b>, поля <b>Нет</b>, бумага <b>{paper}</b>. Не включайте &laquo;вписать в страницу&raquo;, если это добавляет рамку.'
+  'sheet.printAdvice': 'Установите масштаб <b>100% / Реальный размер</b>, поля <b>Нет</b>, бумага <b>{paper}</b>. Не включайте &laquo;вписать в страницу&raquo;, если это добавляет рамку.',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'В,ВЕРНО,Д,ДА,П,ПРАВДА',
+  'parse.falseWords': 'Н,НЕВЕРНО,НЕТ,Л,ЛОЖЬ',
+  'parse.pointWords': 'балл,балла,баллов,б'
 };
 })(window.QG.I18N);

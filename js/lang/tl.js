@@ -746,6 +746,11 @@ I.packs.tl = {
   'sheet.docTitle': '{title} — mga sagutang papel',
   'sheet.printBtn.one': 'I-print ang {n} pahina',
   'sheet.printBtn.other': 'I-print ang {n} pahina',
-  'sheet.printAdvice': 'Itakda ang scale sa <b>100% / Actual size</b>, margins <b>None</b>, papel <b>{paper}</b>. Huwag buksan ang &ldquo;fit to page&rdquo; kung nagdaragdag ito ng border.'
+  'sheet.printAdvice': 'Itakda ang scale sa <b>100% / Actual size</b>, margins <b>None</b>, papel <b>{paper}</b>. Huwag buksan ang &ldquo;fit to page&rdquo; kung nagdaragdag ito ng border.',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'TAMA,OO,O',
+  'parse.falseWords': 'MALI,HINDI,M',
+  'parse.pointWords': 'puntos,puntong'
 };
 })(window.QG.I18N);

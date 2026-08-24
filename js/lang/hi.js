@@ -746,6 +746,11 @@ I.packs.hi = {
   'sheet.docTitle': '{title} — उत्तर-पत्रक',
   'sheet.printBtn.one': '{n} पृष्ठ छापें',
   'sheet.printBtn.other': '{n} पृष्ठ छापें',
-  'sheet.printAdvice': 'स्केल <b>100% / वास्तविक आकार</b>, मार्जिन <b>कोई नहीं</b>, काग़ज़ <b>{paper}</b> रखें। यदि “फ़िट टू पेज” किनारे जोड़ता हो तो उसे चालू न करें।'
+  'sheet.printAdvice': 'स्केल <b>100% / वास्तविक आकार</b>, मार्जिन <b>कोई नहीं</b>, काग़ज़ <b>{paper}</b> रखें। यदि “फ़िट टू पेज” किनारे जोड़ता हो तो उसे चालू न करें।',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'सही,हाँ,हां',
+  'parse.falseWords': 'गलत,ग़लत,नहीं',
+  'parse.pointWords': 'अंक'
 };
 })(window.QG.I18N);

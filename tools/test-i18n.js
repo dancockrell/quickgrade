@@ -175,6 +175,55 @@ function keysUsedInSource() {
     }
   }
 
+  // ------------------------------- the parsers speak the language too
+  /* A teacher pastes a key in their own notation. Korean papers are marked
+   * O and X; Thai writes points as คะแนน. If the parser only knows English,
+   * the written maximum silently falls back to the default and the test is
+   * marked out of the wrong number — wrong, and it looks right. */
+  const parse = await page.evaluate(async () => {
+    const out = {};
+    const set = async c => { QG.I18N.set(c); await new Promise(r => setTimeout(r, 120)); };
+
+    await set('ko');
+    const koKey = QG.Parse.parseAnswerKey('1. O\n2. X\n3. O\n4. X');
+    out.koTF = { n: koKey.filled, mode: koKey.mode, max: koKey.maxChoice };
+    out.koPts = QG.Parse.parseWritten('삼투 현상을 설명하시오 (7점)', 5)[0];
+
+    await set('th');
+    out.thPts = QG.Parse.parseWritten('อธิบายออสโมซิส (8 คะแนน)', 5)[0];
+    const thKey = QG.Parse.parseAnswerKey('1. ถูก\n2. ผิด\n3. ถูก');
+    out.thTF = { n: thKey.filled, mode: thKey.mode };
+
+    await set('ru');
+    out.ruPts = QG.Parse.parseWritten('Объясните осмос - 6 баллов', 5)[0];
+
+    /* English must still parse an English key while another language is set, */
+    out.enInKo = QG.Parse.parseWritten('Explain osmosis (4 points)', 5)[0];
+
+    /* and English on its own must not start reading O as true. */
+    await set('en');
+    out.enO = QG.Parse.parseAnswerKey('1. O\n2. X\n3. O').mode;
+    out.enPts = QG.Parse.parseWritten('Explain osmosis (9 points)', 5)[0];
+    return out;
+  });
+
+  ok('[ko] reads an O/X key as true/false',
+    parse.koTF.mode === 'true/false' && parse.koTF.n === 4 && parse.koTF.max === 2,
+    parse.koTF.mode + ', ' + parse.koTF.n + ' answers');
+  ok('[ko] reads points written as 점', parse.koPts && parse.koPts.max === 7,
+    parse.koPts ? parse.koPts.max : 'no match');
+  ok('[th] reads points written as คะแนน', parse.thPts && parse.thPts.max === 8,
+    parse.thPts ? parse.thPts.max : 'no match');
+  ok('[th] reads a ถูก/ผิด key as true/false',
+    parse.thTF.mode === 'true/false' && parse.thTF.n === 3, parse.thTF.mode);
+  ok('[ru] reads points written as баллов', parse.ruPts && parse.ruPts.max === 6,
+    parse.ruPts ? parse.ruPts.max : 'no match');
+  ok('an English key still parses while another language is active',
+    parse.enInKo && parse.enInKo.max === 4, parse.enInKo ? parse.enInKo.max : 'no match');
+  ok('English alone does not treat O as true', parse.enO !== 'true/false', parse.enO);
+  ok('English points still parse', parse.enPts && parse.enPts.max === 9,
+    parse.enPts ? parse.enPts.max : 'no match');
+
   // ------------------------------------------------------- round trip
   const back = await page.evaluate(async () => {
     QG.I18N.set('en');

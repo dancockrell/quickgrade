@@ -287,6 +287,11 @@ I.packs.en = {
   'obj.untaggedCount.one': '{n} question is not tagged and will not appear in any mastery report.',
   'obj.untaggedCount.other': '{n} questions are not tagged and will not appear in any mastery report.',
 
+  /* --- parse --- */
+  'parse.falseWords': 'F,FALSE,N,NO',
+  'parse.pointWords': 'pts,points,marks',
+  'parse.trueWords': 'T,TRUE,Y,YES',
+
   /* --- print --- */
   'print.answerKey': 'ANSWER KEY',
   'print.versionSuffix': ' — VERSION {id}',

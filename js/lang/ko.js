@@ -721,6 +721,11 @@ I.packs.ko = {
   'sheet.footer': 'QuickGrade 답안지 · 100%로 인쇄 · 네 모서리 사각형을 깨끗이',
   'sheet.docTitle': '{title} — 답안지',
   'sheet.printBtn.other': '{n}쪽 인쇄',
-  'sheet.printAdvice': '배율을 <b>100% / 실제 크기</b>, 여백을 <b>없음</b>, 용지를 <b>{paper}</b>(으)로 설정하세요. 테두리가 생긴다면 &ldquo;페이지에 맞춤&rdquo;을 켜지 마세요.'
+  'sheet.printAdvice': '배율을 <b>100% / 실제 크기</b>, 여백을 <b>없음</b>, 용지를 <b>{paper}</b>(으)로 설정하세요. 테두리가 생긴다면 &ldquo;페이지에 맞춤&rdquo;을 켜지 마세요.',
+
+  /* --- words the paste parsers should recognise --- */
+  'parse.trueWords': 'O,예,맞음,참',
+  'parse.falseWords': 'X,아니오,틀림,거짓',
+  'parse.pointWords': '점,점수'
 };
 })(window.QG.I18N);
