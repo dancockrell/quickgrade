@@ -197,11 +197,13 @@ function scoreStudent(test, answers, states, wRecords, variant) {
 }
 
 /* ------------------------------------------------------------- curving */
+/* `key` not `label`: this array is built at load time, before a language is
+ * chosen, so the caller resolves the name when it draws it. */
 var CURVES = [
-  { id: 'none',       label: 'No curve' },
-  { id: 'addPoints',  label: 'Add points to every score',   unit: 'points' },
-  { id: 'addPercent', label: 'Add percentage points',       unit: '%' },
-  { id: 'topIsFull',  label: 'Scale so the top score is 100%' }
+  { id: 'none',       key: 'curve.none' },
+  { id: 'addPoints',  key: 'curve.addPoints',  unit: 'curve.unit.points' },
+  { id: 'addPercent', key: 'curve.addPercent', unit: 'curve.unit.percent' },
+  { id: 'topIsFull',  key: 'curve.topIsFull' }
 ];
 
 /**
@@ -232,16 +234,17 @@ function hasCurve(test) { return !!(test.curve && test.curve.kind && test.curve.
 
 /** Human summary of what has been changed about a question. */
 function ruleSummary(test, q, variant) {
+  var T = global.QG.T;
   var r = ruleFor(test, q, variant), bits = [];
-  if (r.drop) return 'dropped — not counted for anyone';
-  if (r.credit) bits.push('everyone gets credit');
+  if (r.drop) return T('rule.dropped');
+  if (r.credit) bits.push(T('rule.credit'));
   if (r.accept && r.accept.length) {
-    bits.push('also accepts ' + r.accept.map(function (i) {
+    bits.push(T('rule.accepts', { letters: r.accept.map(function (i) {
       return global.QG.Sheet.LETTERS[i];
-    }).join(' and '));
+    }).join(T('rule.and')) }));
   }
-  if (r.points != null) bits.push('worth ' + r.points);
-  return bits.join(', ');
+  if (r.points != null) bits.push(T('rule.worth', { n: r.points }));
+  return bits.join(T('rule.join'));
 }
 
 global.QG = global.QG || {};

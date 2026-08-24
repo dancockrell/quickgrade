@@ -4,7 +4,7 @@
 
 var Q = global.QG, S = Q.Sheet, X = Q.OOXML, X2 = Q.ExportMap,
     SC = Q.Scoring, Scanner = Q.Scanner;
-var $ = Q.$, $$ = Q.$$, el = Q.el, on = Q.on;
+var $ = Q.$, $$ = Q.$$, el = Q.el, on = Q.on, T = Q.T;
 
 /* ================================================================ state */
 var State = {
@@ -160,7 +160,7 @@ function boot() {
     setTimeout(backupNudge, 2500);
   }).catch(function (e) {
     console.error(e);
-    Q.toast('Startup problem: ' + e.message, 'err', 8000);
+    Q.toast(T('toast.startupProblem', { msg: e.message }), 'err', 8000);
   });
 }
 
@@ -204,7 +204,7 @@ function saveGrades() { return Q.DB.put('kv', { k: 'grades:' + State.test.id, v:
 
 /* ============================================================== router */
 function route(name) {
-  if (name === 'scan' && !State.test) { Q.toast('Create or select a test first.', 'err'); name = 'tests'; }
+  if (name === 'scan' && !State.test) { Q.toast(T('toast.createOrSelect'), 'err'); name = 'tests'; }
   $$('.view').forEach(function (v) { v.classList.toggle('active', v.id === 'view-' + name); });
   $$('.navbtn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === name); });
   Q.Prefs.set('view', name);
@@ -460,11 +460,11 @@ function demoTest() {
 }
 
 function loadSampleClass(btn) {
-  if (!global.QG.Synth) { Q.toast('The sample generator did not load.', 'err'); return; }
+  if (!global.QG.Synth) { Q.toast(T('demo.noGenerator'), 'err'); return; }
   /* Stamped up front: the backup reminder fires on a timer and must not
    * land on top of a sample the teacher is still watching build. */
   Q.Prefs.set('sampleLoadedAt', Date.now());
-  if (btn) { btn.disabled = true; btn.textContent = 'Building the sample…'; }
+  if (btn) { btn.disabled = true; btn.textContent = T('demo.building'); }
   var Sy = global.QG.Synth;
   var t = demoTest();
   var students = DEMO_NAMES.map(function (n, i) {
@@ -502,7 +502,7 @@ function loadSampleClass(btn) {
               w: 980, h: 1110, noise: 9, vignette: 0.3,
               corners: [[150 + i * 3, 96], [880, 88 + i * 2], [905, 1010], [128, 1022]]
             });
-            if (btn) btn.textContent = 'Scanning sheet ' + (files.length + 1) + '…';
+            if (btn) btn.textContent = T('demo.scanning', { n: files.length + 1 });
             return Sy.canvasToFile(photo, st.sid + '_' + pi + '.jpg')
               .then(function (f) { files.push(f); });
           });
@@ -527,15 +527,14 @@ function loadSampleClass(btn) {
       recompute();
       renderTests(); renderRosterView();
       route('review');
-      Q.toast('Sample class ready — 8 students, sheets scanned. Everything here went ' +
-        'through the real reader.', 'good', 8000);
+      Q.toast(T('demo.ready'), 'good', 8000);
     })
     .catch(function (e) {
       console.error(e);
-      Q.toast('Could not build the sample: ' + e.message, 'err', 7000);
+      Q.toast(T('demo.failed', { msg: e.message }), 'err', 7000);
     })
     .then(function () {
-      if (btn) { btn.disabled = false; btn.textContent = 'See it working with a sample class'; }
+      if (btn) { btn.disabled = false; btn.textContent = T('demo.button'); }
     });
 }
 
@@ -546,26 +545,24 @@ function loadSampleClass(btn) {
  */
 function firstRunPanel() {
   var wrap = el('div', { class: 'firstrun' });
-  wrap.appendChild(el('h2', { text: 'Let’s grade your first test' }));
+  wrap.appendChild(el('h2', { text: T('fr.h2') }));
   wrap.appendChild(el('p', { class: 'hint',
-    text: 'Three questions and you’ll have a sheet to photocopy. About a minute.' }));
+    text: T('fr.lede') }));
 
-  var title = el('input', { placeholder: 'e.g. Unit 4 — Cell Biology', 'aria-label': 'Test name' });
-  var cls = el('input', { placeholder: 'e.g. Biology P3', 'aria-label': 'Class name' });
-  var key = el('textarea', { rows: 5, 'aria-label': 'Answer key',
-    placeholder: '1. B\n2. C\n3. A\n\n…or just  B C A D E' });
+  var title = el('input', { placeholder: T('fr.title.ph'), 'aria-label': T('fr.title.aria') });
+  var cls = el('input', { placeholder: T('fr.class.ph'), 'aria-label': T('fr.class.aria') });
+  var key = el('textarea', { rows: 5, 'aria-label': T('fr.key.aria'),
+    placeholder: T('fr.key.ph') });
   var readout = el('p', { class: 'hint' });
-  var go = el('button', { class: 'btn go big', text: 'Make my answer sheet', disabled: true });
+  var go = el('button', { class: 'btn go big', text: T('fr.go'), disabled: true });
 
   function parsed() { return Q.Parse.parseAnswerKey(key.value); }
   function refresh() {
     var p = parsed();
     var haveKey = p.answers.length > 0;
     if (!key.value.trim()) readout.textContent = '';
-    else if (!haveKey) readout.innerHTML = '<b class="bad">Can’t read that yet.</b> ' +
-      'Try one answer per line, like “1. B”.';
-    else readout.innerHTML = '<b class="ok">' + p.filled + ' answers</b>, ' +
-      p.maxChoice + ' choices each.';
+    else if (!haveKey) readout.innerHTML = T('fr.cantRead');
+    else readout.innerHTML = T('fr.keyRead', { n: p.filled, c: p.maxChoice });
     go.disabled = !(title.value.trim() && cls.value.trim() && haveKey);
   }
   [title, cls, key].forEach(function (n) { on(n, 'input', refresh); });
@@ -593,17 +590,14 @@ function firstRunPanel() {
     }).then(function () {
       renderTests(); renderRosterView();
       printSheets('blank');
-      Q.toast('Test created. Print one sheet, photocopy it for the class, then come ' +
-        'back and press Scan.', 'good', 9000);
+      Q.toast(T('fr.created'), 'good', 9000);
     });
   });
 
   var steps = [
-    ['What is the test called?', title, null],
-    ['Which class is it for?', cls, 'You can add more classes later.'],
-    ['Paste your answer key', key,
-     'However you already have it written — numbered list, a run of letters, ' +
-     'a column from a spreadsheet, T/F.']
+    [T('fr.step1'), title, null],
+    [T('fr.step2'), cls, T('fr.step2.hint')],
+    [T('fr.step3'), key, T('fr.step3.hint')]
   ];
   var list = el('ol', { class: 'steps' });
   steps.forEach(function (s) {
@@ -615,20 +609,19 @@ function firstRunPanel() {
   wrap.appendChild(list);
   wrap.appendChild(el('div', { class: 'row gap wrap-row' }, [
     go,
-    el('button', { class: 'btn', text: 'Set it up myself',
+    el('button', { class: 'btn', text: T('fr.manual'),
       onclick: function () { openEditor(null); } }),
-    el('button', { class: 'btn', text: 'Restore a backup',
+    el('button', { class: 'btn', text: T('fr.restore'),
       onclick: function () { $('#backupInput').click(); } })
   ]));
   wrap.appendChild(el('div', { class: 'demoline' }, [
     el('span', { class: 'hint', style: 'margin:0',
-      text: 'Want to look around first? This builds a class of eight, prints their sheets, ' +
-            'photographs them and reads them back — the real reader, no printer needed.' }),
-    el('button', { class: 'btn', text: 'See it working with a sample class',
+      text: T('fr.demoLine') }),
+    el('button', { class: 'btn', text: T('demo.button'),
       onclick: function (e) { loadSampleClass(e.target); } })
   ]));
   wrap.appendChild(el('p', { class: 'hint', style: 'margin-top:14px',
-    text: 'Everything stays on this computer. There is no account and nothing is uploaded.' }));
+    text: T('fr.privacy') }));
   setTimeout(function () { title.focus(); }, 60);
   return wrap;
 }
@@ -657,22 +650,24 @@ function renderWorkflow() {
   });
 
   var steps = [
-    { t: 'Answer key', v: t.mc.count ? keySet + ' of ' + t.mc.count + ' set' : 'no MC questions',
-      ok: !t.mc.count || keySet === t.mc.count, go: 'tests', act: 'Edit test',
+    { t: T('wf.key'), v: t.mc.count ? T('wf.key.v', { n: keySet, total: t.mc.count })
+                                    : T('wf.key.none'),
+      ok: !t.mc.count || keySet === t.mc.count, go: 'tests', act: T('wf.act.edit'),
       run: function () { openEditor(t); } },
-    { t: 'Roster', v: roster ? roster + ' student' + (roster === 1 ? '' : 's') +
-        (multiClass() ? ' across ' + t.classes.length + ' classes' : '') : 'none yet',
-      ok: roster > 0, go: 'roster', act: 'Add students' },
-    { t: 'Print sheets', v: State.pages.length + ' page' + (State.pages.length === 1 ? '' : 's') + ' each',
-      ok: roster > 0, go: 'roster', act: 'Print' },
-    { t: 'Scan', v: scanned + ' of ' + (roster || '?') + ' scanned' +
-        (r.unresolved.length ? ' · ' + r.unresolved.length + ' unmatched' : ''),
+    { t: T('wf.roster'), v: roster ? T('wf.roster.v', { n: roster }) +
+        (multiClass() ? T('wf.roster.across', { n: t.classes.length }) : '') : T('wf.roster.none'),
+      ok: roster > 0, go: 'roster', act: T('wf.act.addStudents') },
+    { t: T('wf.print'), v: T('wf.print.v', { n: State.pages.length }),
+      ok: roster > 0, go: 'roster', act: T('wf.act.print') },
+    { t: T('wf.scan'), v: T('wf.scan.v', { n: scanned, total: roster || '?' }) +
+        (r.unresolved.length ? T('wf.scan.unmatched', { n: r.unresolved.length }) : ''),
       ok: roster > 0 && scanned >= roster && !r.unresolved.length,
-      warn: r.unresolved.length > 0, go: 'scan', act: 'Scan' },
-    { t: 'Grade written', v: t.written.length ? wDone + ' of ' + wTotal + ' graded' : 'none on this test',
-      ok: !t.written.length || (wTotal > 0 && wDone === wTotal), go: 'written', act: 'Grade' },
-    { t: 'Export', v: scanned ? 'ready' : 'nothing to export yet',
-      ok: false, go: 'export', act: 'Export' }
+      warn: r.unresolved.length > 0, go: 'scan', act: T('wf.act.scan') },
+    { t: T('wf.gradeW'), v: t.written.length ? T('wf.gradeW.v', { n: wDone, total: wTotal })
+                                             : T('wf.gradeW.none'),
+      ok: !t.written.length || (wTotal > 0 && wDone === wTotal), go: 'written', act: T('wf.act.grade') },
+    { t: T('wf.export'), v: scanned ? T('wf.export.ready') : T('wf.export.none'),
+      ok: false, go: 'export', act: T('wf.act.export') }
   ];
 
   var firstTodo = steps.findIndex(function (s) { return !s.ok; });
@@ -692,19 +687,19 @@ function renderWorkflow() {
       })
     ]));
   });
-  host.appendChild(el('h3', { text: 'Where this test stands' }));
+  host.appendChild(el('h3', { text: T('wf.h3') }));
   host.appendChild(flow);
 }
 
 function duplicateTest(t) {
   var c = JSON.parse(JSON.stringify(t));
   c.id = Q.uid('t'); c.createdAt = Date.now();
-  c.title = (t.title || 'Untitled') + ' (copy)';
+  c.title = T('tests.copyOf', { title: t.title || T('tests.untitled') });
   c.code = String(Math.floor(Math.random() * 900) + 100);
   Q.DB.put('tests', c).then(function () {
     State.tests.unshift(normalizeTest(c));
     renderTests();
-    Q.toast('Duplicated. Give the copy its own test code before printing.', 'good', 5000);
+    Q.toast(T('toast.duplicated'), 'good', 5000);
   });
 }
 
@@ -713,7 +708,7 @@ function openEditor(t) {
   editing = t ? JSON.parse(JSON.stringify(t)) : newTest();
   normalizeTest(editing);
   $('#testEditor').hidden = false;
-  $('#editorTitle').textContent = t ? 'Edit test' : 'New test';
+  $('#editorTitle').textContent = t ? T('tests.editorEdit') : T('tests.editorNew');
   $('#btnDeleteTest').hidden = !t;
   $('#f_title').value = editing.title;
   $('#f_class').value = editing.className;
@@ -748,7 +743,7 @@ function renderKeyGrid() {
   var g = $('#keyGrid');
   g.innerHTML = '';
   var n = editing.mc.count, ch = editing.mc.choices;
-  if (!n) { g.appendChild(el('span', { class: 'hint', text: 'No multiple-choice questions.' })); return; }
+  if (!n) { g.appendChild(el('span', { class: 'hint', text: T('tests.key.noMc') })); return; }
   for (var i = 0; i < n; i++) (function (i) {
     var opts = el('div', { class: 'opts' });
     for (var k = 0; k < ch; k++) (function (k) {
@@ -794,8 +789,8 @@ function renderKeyGrid() {
  * already fixed and must match.
  */
 function pasteKeyDialog(onApply) {
-  var ta = el('textarea', { rows: 9, 'aria-label': 'Answer key',
-    placeholder: '1. B\n2. C\n3. A\n\n…or  B C A D E\n…or paste a column straight out of a spreadsheet' });
+  var ta = el('textarea', { rows: 9, 'aria-label': T('dlg.key.aria'),
+    placeholder: T('dlg.key.ph') });
   var summary = el('p', { class: 'hint' });
   var warnBox = el('div');
   var preview = el('div', { class: 'keygrid', style: 'max-height:180px;overflow:auto' });
@@ -812,22 +807,19 @@ function pasteKeyDialog(onApply) {
     qtext = Q.Parse.parseQuestionText(ta.value);
     var nQt = Object.keys(qtext).length;
     qtWrap.hidden = nQt < 2;
-    qtLabel.lastChild.textContent = 'Also keep the wording of ' + nQt +
-      ' question(s), to print on the graded sheet students get back';
+    qtLabel.lastChild.textContent = T('dlg.key.keepWording', { n: nQt });
     preview.innerHTML = '';
     warnBox.innerHTML = '';
     if (!ta.value.trim()) { summary.textContent = ''; applyBtn.disabled = true; return; }
     if (!parsed.answers.length) {
-      summary.innerHTML = '<b class="bad">Could not read that.</b>';
+      summary.innerHTML = T('dlg.key.unreadable');
       (parsed.warnings || []).forEach(function (w) {
         warnBox.appendChild(el('p', { class: 'hint', text: w }));
       });
       applyBtn.disabled = true;
       return;
     }
-    summary.innerHTML = '<b class="ok">Found ' + parsed.filled + ' answer' +
-      (parsed.filled === 1 ? '' : 's') + '</b> — read as a ' + parsed.mode +
-      ', with ' + parsed.maxChoice + ' choices per question.';
+    summary.innerHTML = T('dlg.key.found', { n: parsed.filled, mode: parsed.mode, c: parsed.maxChoice });
     (parsed.warnings || []).forEach(function (w) {
       warnBox.appendChild(el('p', { class: 'hint warnc', text: '⚠ ' + w }));
     });
@@ -842,20 +834,19 @@ function pasteKeyDialog(onApply) {
   }
 
   var applyBtn = el('button', {
-    class: 'btn go', text: 'Use this key', disabled: true,
+    class: 'btn go', text: T('dlg.key.apply'), disabled: true,
     onclick: function () {
       if (!parsed || !parsed.answers.length) return;
       if (onApply) {
         /* A second version must line up question-for-question with version A,
          * otherwise the two are not the same test. */
         if (parsed.answers.length !== editing.mc.count) {
-          Q.toast('That key has ' + parsed.answers.length + ' answers but the test has ' +
-            editing.mc.count + ' questions. Every version needs the same number.', 'err', 8000);
+          Q.toast(T('toast.keyMismatch', { n: parsed.answers.length, total: editing.mc.count }), 'err', 8000);
           return;
         }
         onApply(parsed);
         h.close();
-        Q.toast('Key set for that version.', 'good');
+        Q.toast(T('toast.keySetVersion'), 'good');
         return;
       }
       editing.mc.count = Q.clamp(parsed.answers.length, 0, 300);
@@ -873,20 +864,17 @@ function pasteKeyDialog(onApply) {
       $('#f_choices').value = editing.mc.choices;
       renderKeyGrid();
       h.close();
-      Q.toast('Key set: ' + parsed.filled + ' answers, ' + editing.mc.choices +
-        ' choices. Check it below before saving.', 'good', 6000);
+      Q.toast(T('toast.keySet', { n: parsed.filled, c: editing.mc.choices }), 'good', 6000);
     }
   });
 
   var body = el('div', {}, [
-    el('h3', { text: 'Paste your answer key' }),
-    el('p', { class: 'hint', text: 'However you already have it written — a numbered list, ' +
-      'a run of letters, a column copied out of a spreadsheet, T/F, upper or lower case. ' +
-      'Nothing is changed until you press the button.' }),
+    el('h3', { text: T('dlg.key.h3') }),
+    el('p', { class: 'hint', text: T('dlg.key.hint') }),
     ta, summary, warnBox, qtWrap,
     el('div', { style: 'margin-top:6px' }, [preview]),
     el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
-      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      el('button', { class: 'btn', text: T('common.cancel'), onclick: function () { h.close(); } }),
       applyBtn
     ])
   ]);
@@ -897,8 +885,8 @@ function pasteKeyDialog(onApply) {
 
 /* ---- paste written questions, with their point values ---- */
 function pasteWrittenDialog() {
-  var ta = el('textarea', { rows: 8, 'aria-label': 'Written questions',
-    placeholder: 'Explain osmosis in your own words. (5 points)\nName three organelles - 6 pts\nCompare mitosis and meiosis' });
+  var ta = el('textarea', { rows: 8, 'aria-label': T('dlg.w.aria'),
+    placeholder: T('dlg.w.ph') });
   var summary = el('p', { class: 'hint' });
   var list = el('div');
   var parsed = [];
@@ -907,33 +895,32 @@ function pasteWrittenDialog() {
     parsed = Q.Parse.parseWritten(ta.value, 5);
     list.innerHTML = '';
     summary.textContent = parsed.length
-      ? 'Found ' + parsed.length + ' question' + (parsed.length === 1 ? '' : 's') +
-        ', worth ' + parsed.reduce(function (a, w) { return a + w.max; }, 0) + ' points in total.'
+      ? T('dlg.w.found', { n: parsed.length,
+                           pts: parsed.reduce(function (a, w) { return a + w.max; }, 0) })
       : '';
     parsed.forEach(function (w, i) {
       list.appendChild(el('div', { class: 'fmtcol' }, [
         el('span', { class: 'fname', text: (i + 1) + '. ' + w.label }),
-        el('span', { class: 'dim', text: w.max + ' pts' })
+        el('span', { class: 'dim', text: T('common.pts', { n: w.max }) })
       ]));
     });
     applyBtn.disabled = !parsed.length;
   }
   var applyBtn = el('button', {
-    class: 'btn go', text: 'Add these questions', disabled: true,
+    class: 'btn go', text: T('dlg.w.apply'), disabled: true,
     onclick: function () {
       editing.written = (editing.written || []).concat(parsed);
       renderWrittenList();
       h.close();
-      Q.toast('Added ' + parsed.length + ' written question(s).', 'good');
+      Q.toast(T('toast.writtenAdded', { n: parsed.length }), 'good');
     }
   });
   var body = el('div', {}, [
-    el('h3', { text: 'Paste your written questions' }),
-    el('p', { class: 'hint', text: 'One per line. Put the points in brackets or after a dash — ' +
-      '"(5 points)", "- 6 pts", or a tab. Anything without points is worth 5.' }),
+    el('h3', { text: T('dlg.w.h3') }),
+    el('p', { class: 'hint', text: T('dlg.w.hint') }),
     ta, summary, list,
     el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
-      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      el('button', { class: 'btn', text: T('common.cancel'), onclick: function () { h.close(); } }),
       applyBtn
     ])
   ]);
@@ -947,9 +934,8 @@ function pasteWrittenDialog() {
  * already keeps it, then shown back before it is applied.
  */
 function pasteTopicsDialog() {
-  var ta = el('textarea', { rows: 8, 'aria-label': 'Objectives',
-    placeholder: 'Cells: 1-8\nTransport: 9-16\nEnergy: 17-24\n\n' +
-      '…or  1. Cells   …or one objective per line, in question order' });
+  var ta = el('textarea', { rows: 8, 'aria-label': T('dlg.obj.aria'),
+    placeholder: T('dlg.obj.ph') });
   var summary = el('p', { class: 'hint' });
   var warnBox = el('div');
   var preview = el('div', { class: 'topicprev' });
@@ -959,8 +945,7 @@ function pasteTopicsDialog() {
     parsed = Q.Parse.parseTopics(ta.value, editing.mc.count);
     preview.innerHTML = ''; warnBox.innerHTML = '';
     if (!ta.value.trim()) { summary.textContent = ''; applyBtn.disabled = true; return; }
-    summary.innerHTML = '<b class="ok">' + parsed.assigned + ' of ' + editing.mc.count +
-      ' questions tagged</b> — read as a ' + parsed.mode + '.';
+    summary.innerHTML = T('dlg.obj.summary', { n: parsed.assigned, total: editing.mc.count, mode: parsed.mode });
     (parsed.warnings || []).forEach(function (w) {
       warnBox.appendChild(el('p', { class: 'hint warnc', text: '⚠ ' + w }));
     });
@@ -973,30 +958,28 @@ function pasteTopicsDialog() {
     order.forEach(function (name) {
       preview.appendChild(el('div', { class: 'topicrow' }, [
         el('b', { text: name }),
-        el('span', { class: 'dim', text: groups[name].length + ' question' +
-          (groups[name].length === 1 ? '' : 's') + ': ' + groups[name].join(', ') })
+        el('span', { class: 'dim', text: T('dlg.obj.qlist', { n: groups[name].length,
+          list: groups[name].join(', ') }) })
       ]));
     });
     applyBtn.disabled = !parsed.assigned;
   }
   var applyBtn = el('button', {
-    class: 'btn go', text: 'Use these objectives', disabled: true,
+    class: 'btn go', text: T('dlg.obj.apply'), disabled: true,
     onclick: function () {
       editing.mc.topic = parsed.topics.slice();
       editing.options.topsheet.showMastery = true;
       renderTopics();
       h.close();
-      Q.toast('Tagged ' + parsed.assigned + ' questions. Mastery will now show in Review ' +
-        'and on the sheets students get back.', 'good', 7000);
+      Q.toast(T('toast.tagged', { n: parsed.assigned }), 'good', 7000);
     }
   });
   var body = el('div', {}, [
-    el('h3', { text: 'What does each question test?' }),
-    el('p', { class: 'hint', text: 'Standards, objectives, topics — whatever you call them. ' +
-      'List a name with the questions it covers, or one name per line in question order.' }),
+    el('h3', { text: T('dlg.obj.h3') }),
+    el('p', { class: 'hint', text: T('dlg.obj.hint') }),
     ta, summary, warnBox, preview,
     el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
-      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
+      el('button', { class: 'btn', text: T('common.cancel'), onclick: function () { h.close(); } }),
       applyBtn
     ])
   ]);
@@ -1012,15 +995,14 @@ function renderTopics() {
   var stds = Q.Mastery.standardsOf(editing);
   if (!stds.length) {
     box.appendChild(el('p', { class: 'hint',
-      text: 'Not tagged yet. Optional — but it turns a percentage into a list of what to reteach.' }));
+      text: T('obj.untagged') }));
     return;
   }
   stds.forEach(function (s) {
     box.appendChild(el('div', { class: 'topicrow' }, [
       el('b', { text: s.name }),
-      el('span', { class: 'dim', text: s.questions.length + ' question' +
-        (s.questions.length === 1 ? '' : 's') }),
-      el('button', { class: 'btn sm danger', text: '×', title: 'Remove this objective',
+      el('span', { class: 'dim', text: T('common.questions', { n: s.questions.length }) }),
+      el('button', { class: 'btn sm danger', text: '×', title: T('obj.remove'),
         onclick: function () {
           s.questions.forEach(function (q) { editing.mc.topic[q] = ''; });
           renderTopics();
@@ -1030,7 +1012,7 @@ function renderTopics() {
   var untagged = editing.mc.count - stds.reduce(function (a, s) { return a + s.questions.length; }, 0);
   if (untagged > 0) {
     box.appendChild(el('p', { class: 'hint warnc',
-      text: untagged + ' question(s) are not tagged and will not appear in any mastery report.' }));
+      text: T('obj.untaggedCount', { n: untagged }) }));
   }
 }
 
@@ -1044,7 +1026,7 @@ function renderMastery() {
 
   var list = Q.Mastery.forClass(t, r);
   host.appendChild(el('div', { class: 'row between wrap-row' }, [
-    el('h2', { text: 'What the class has and hasn’t got' }),
+    el('h2', { text: T('mastery.h2') }),
     el('span', { class: 'hint', text: Q.Mastery.classHeadline(t, r) })
   ]));
 
@@ -1058,15 +1040,16 @@ function renderMastery() {
       el('td', {}, [el('div', { class: 'qbar' + (lvl.id === 'notyet' ? ' hard' : '') },
         [el('i', { style: 'width:' + Math.max(2, pct) + '%' })])]),
       el('td', { class: 'mono', text: pct + '%' }),
-      el('td', {}, [el('span', { class: 'lvl ' + lvl.id, text: lvl.label })]),
-      el('td', { class: 'dim', text: s.secure + ' secure · ' + s.developing +
-        ' developing · ' + s.notyet + ' not yet' })
+      el('td', {}, [el('span', { class: 'lvl ' + lvl.id, text: T(lvl.key) })]),
+      el('td', { class: 'dim', text: T('mastery.counts', { secure: s.secure,
+        developing: s.developing, notyet: s.notyet }) })
     ]));
   });
   host.appendChild(el('div', { class: 'tbl' }, [
     el('table', {}, [
-      el('thead', {}, [el('tr', {}, ['Objective', 'Questions', 'Class', '', 'Level', 'Students']
-        .map(function (h) { return el('th', { text: h }); }))]),
+      el('thead', {}, [el('tr', {}, ['mastery.col.objective', 'mastery.col.questions',
+        'mastery.col.class', '', 'mastery.col.level', 'mastery.col.students']
+        .map(function (h) { return el('th', { text: h ? T(h) : '' }); }))]),
       tb
     ])
   ]));
@@ -1110,24 +1093,24 @@ function renderForms() {
     row.appendChild(el('span', { class: 'vtag', text: f.id }));
 
     var code = el('input', { value: f.code, maxlength: 3, inputmode: 'numeric',
-      style: 'width:78px', 'aria-label': 'Printed code for version ' + f.id });
+      style: 'width:78px', 'aria-label': T('ver.codeAria', { id: f.id }) });
     on(code, 'change', function () {
       var v = S.digits(code.value, 3).join('');
       code.value = v;
       if (f.primary) editing.code = v; else editing.forms[i - 1].code = v;
       renderForms();
     });
-    row.appendChild(el('span', { class: 'hint', style: 'margin:0', text: 'code' }));
+    row.appendChild(el('span', { class: 'hint', style: 'margin:0', text: T('ver.code') }));
     row.appendChild(code);
 
     row.appendChild(el('span', {
       class: filled === editing.mc.count && editing.mc.count ? 'ok' : 'warnc',
       style: 'font-size:12.5px',
-      text: filled + ' of ' + editing.mc.count + ' answers'
+      text: T('ver.answers', { n: filled, total: editing.mc.count })
     }));
 
     row.appendChild(el('button', {
-      class: 'btn sm' + (filled ? '' : ' go'), text: filled ? 'Change key' : 'Paste key',
+      class: 'btn sm' + (filled ? '' : ' go'), text: filled ? T('ver.changeKey') : T('ver.pasteKey'),
       onclick: function () {
         if (f.primary) { pasteKeyDialog(); return; }
         pasteKeyDialog(function (parsed) {
@@ -1139,7 +1122,7 @@ function renderForms() {
 
     if (!f.primary) {
       row.appendChild(el('button', {
-        class: 'btn sm danger', text: 'Remove',
+        class: 'btn sm danger', text: T('common.remove'),
         onclick: function () { editing.forms.splice(i - 1, 1); renderForms(); }
       }));
     }
@@ -1154,11 +1137,10 @@ function renderForms() {
   });
   if (clash.length) {
     box.appendChild(el('p', { class: 'hint bad',
-      text: 'Two versions share the code ' + clash[0].code +
-        '. Give each one a different code or the scanner cannot tell them apart.' }));
+      text: T('ver.clash', { code: clash[0].code }) }));
   }
   $('#btnAddForm').textContent = forms.length > 1
-    ? '+ Add version ' + nextFormLetter() : '+ Add a second version';
+    ? T('ver.addNamed', { letter: nextFormLetter() }) : T('tests.ver.add');
 }
 
 /* ========================================================= rubric setup ==
@@ -1173,8 +1155,8 @@ function rubricDialog(wi) {
     : { levels: JSON.parse(JSON.stringify(SC.DEFAULT_LEVELS)), criteria: [] };
 
   var levelBox = el('div', { class: 'topicprev' });
-  var critArea = el('textarea', { rows: 5, 'aria-label': 'Criteria, one per line',
-    placeholder: 'Uses the correct terms\nExplains the mechanism\nGives an example' });
+  var critArea = el('textarea', { rows: 5, 'aria-label': T('rub.criteria'),
+    placeholder: T('rub.criteria.ph') });
   critArea.value = draft.criteria.join('\n');
   var summary = el('p', { class: 'hint' });
 
@@ -1182,14 +1164,14 @@ function rubricDialog(wi) {
     levelBox.innerHTML = '';
     draft.levels.forEach(function (lv, i) {
       var row = el('div', { class: 'topicrow' });
-      var lab = el('input', { value: lv.label, 'aria-label': 'Level name',
+      var lab = el('input', { value: lv.label, 'aria-label': T('rub.levelName'),
         oninput: function (e) { lv.label = e.target.value; } });
       var pts = el('input', { type: 'number', step: '0.5', value: lv.pts, style: 'width:82px',
-        'aria-label': 'Points for ' + lv.label,
+        'aria-label': T('rub.pointsFor', { label: lv.label }),
         oninput: function (e) { lv.pts = parseFloat(e.target.value) || 0; refreshSummary(); } });
       row.appendChild(lab);
       row.appendChild(pts);
-      row.appendChild(el('button', { class: 'btn sm danger', text: '×', title: 'Remove level',
+      row.appendChild(el('button', { class: 'btn sm danger', text: '×', title: T('rub.removeLevel'),
         disabled: draft.levels.length <= 2,
         onclick: function () { draft.levels.splice(i, 1); refresh(); } }));
       levelBox.appendChild(row);
@@ -1203,45 +1185,44 @@ function rubricDialog(wi) {
     draft.criteria = criteria();
     var max = SC.rubricMax(draft);
     summary.innerHTML = draft.criteria.length
-      ? '<b class="ok">' + draft.criteria.length + ' criteria</b> × top level of ' +
-        Math.max.apply(null, draft.levels.map(function (l) { return l.pts || 0; })) +
-        ' = <b>' + max + ' points</b> for this question.'
-      : 'Add at least one criterion.';
+      ? T('rub.summary', { n: draft.criteria.length,
+          top: Math.max.apply(null, draft.levels.map(function (l) { return l.pts || 0; })),
+          max: max })
+      : T('rub.needCriterion');
     applyBtn.disabled = !draft.criteria.length;
   }
   on(critArea, 'input', refreshSummary);
 
   var applyBtn = el('button', {
-    class: 'btn go', text: 'Use this rubric',
+    class: 'btn go', text: T('rub.apply'),
     onclick: function () {
       draft.criteria = criteria();
       wq.rubric = draft;
       wq.max = SC.rubricMax(draft);
       renderWrittenList();
       h.close();
-      Q.toast('Rubric set — this question is now worth ' + wq.max + '.', 'good');
+      Q.toast(T('toast.rubricSet', { n: wq.max }), 'good');
     }
   });
 
   var body = el('div', {}, [
-    el('h3', { text: 'Rubric for “' + (wq.label || 'this question') + '”' }),
-    el('p', { class: 'hint', text: 'The same levels apply to every criterion, so marking is ' +
-      'one key per criterion. The question total follows automatically.' }),
-    el('label', { text: 'Levels' }), levelBox,
-    el('button', { class: 'btn sm', text: '+ Add level',
+    el('h3', { text: T('rub.h3', { label: wq.label || T('rub.thisQuestion') }) }),
+    el('p', { class: 'hint', text: T('rub.hint') }),
+    el('label', { text: T('rub.levels') }), levelBox,
+    el('button', { class: 'btn sm', text: T('rub.addLevel'),
       onclick: function () {
         var top = Math.max.apply(null, draft.levels.map(function (l) { return l.pts || 0; }));
-        draft.levels.push({ label: 'Level ' + (draft.levels.length + 1), pts: top + 1 });
+        draft.levels.push({ label: T('rub.levelN', { n: draft.levels.length + 1 }), pts: top + 1 });
         refresh();
       } }),
-    el('label', { text: 'Criteria, one per line', style: 'margin-top:16px' }), critArea,
+    el('label', { text: T('rub.criteria'), style: 'margin-top:16px' }), critArea,
     summary,
     el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
-      el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
-      wq.rubric ? el('button', { class: 'btn danger', text: 'Remove rubric',
+      el('button', { class: 'btn', text: T('common.cancel'), onclick: function () { h.close(); } }),
+      wq.rubric ? el('button', { class: 'btn danger', text: T('rub.remove'),
         onclick: function () {
           delete wq.rubric; renderWrittenList(); h.close();
-          Q.toast('Rubric removed — back to a single mark out of ' + wq.max + '.', 'good');
+          Q.toast(T('toast.rubricRemoved', { n: wq.max }), 'good');
         } }) : null,
       applyBtn
     ])
@@ -1255,27 +1236,27 @@ function renderWrittenList() {
   box.innerHTML = '';
   (editing.written || []).forEach(function (w, i) {
     var row = el('div', { class: 'wrow' }, [
-      el('input', { value: w.label || '', placeholder: 'Question ' + (i + 1) + ' prompt / label',
+      el('input', { value: w.label || '', placeholder: T('wlist.labelPh', { n: i + 1 }),
         oninput: function (e) { w.label = e.target.value; } }),
       el('input', { type: 'number', min: '0', step: '0.5', value: w.max == null ? 5 : w.max,
-        title: 'Max points', oninput: function (e) { w.max = +e.target.value || 0; } }),
+        title: T('wlist.maxPoints'), oninput: function (e) { w.max = +e.target.value || 0; } }),
       el('select', { onchange: function (e) { w.kind = e.target.value; } },
         ['short', 'essay', 'fill'].map(function (k) {
           return el('option', { value: k, selected: (w.kind || 'short') === k },
-            k === 'short' ? 'Short answer' : k === 'essay' ? 'Essay' : 'Fill-in');
+            k === 'short' ? T('wlist.short') : k === 'essay' ? T('wlist.essay') : T('wlist.fill'));
         })),
-      el('input', { value: w.expected || '', placeholder: 'Expected answer (optional)',
+      el('input', { value: w.expected || '', placeholder: T('wlist.expected'),
         oninput: function (e) { w.expected = e.target.value; } }),
       el('button', { class: 'btn sm' + (w.rubric ? ' go' : ''),
-        text: w.rubric ? 'Rubric · ' + w.rubric.criteria.length : 'Rubric',
-        title: w.rubric ? 'Edit the rubric' : 'Mark against criteria instead of one number',
+        text: w.rubric ? T('wlist.rubricN', { n: w.rubric.criteria.length }) : T('wlist.rubric'),
+        title: w.rubric ? T('wlist.rubricEdit') : T('wlist.rubricAdd'),
         onclick: function () { rubricDialog(i); } }),
       el('button', { class: 'btn sm danger', text: '×',
         onclick: function () { editing.written.splice(i, 1); renderWrittenList(); } })
     ]);
     box.appendChild(row);
   });
-  if (!editing.written.length) box.appendChild(el('p', { class: 'hint', text: 'None yet.' }));
+  if (!editing.written.length) box.appendChild(el('p', { class: 'hint', text: T('wlist.none') }));
 }
 
 function renderTopsheetOpts(box, t) {
@@ -1291,8 +1272,8 @@ function renderTopsheetOpts(box, t) {
     ]));
   });
   box.appendChild(el('label', { class: 'optfoot' }, [
-    el('span', { text: 'Footer note printed on every top sheet' }),
-    el('input', { value: t.options.footer || '', placeholder: 'e.g. Corrections due Friday for half credit back',
+    el('span', { text: T('topsheet.footer') }),
+    el('input', { value: t.options.footer || '', placeholder: T('topsheet.footer.ph'),
       oninput: function (e) { t.options.footer = e.target.value; if (t === State.test) saveTest(); } })
   ]));
 }
@@ -1346,7 +1327,7 @@ function renderPrintForms() {
   var keep = sel.value;
   sel.innerHTML = '';
   forms.forEach(function (f) {
-    sel.appendChild(el('option', { value: f.id }, 'Version ' + f.id + '  (code ' + f.code + ')'));
+    sel.appendChild(el('option', { value: f.id }, T('ver.option', { id: f.id, code: f.code })));
   });
   if (keep) sel.value = keep;
 }
@@ -1377,9 +1358,9 @@ function renderRosterTable() {
       el('td', { class: 'dim', text: s.sid }),
       el('td', { class: 'dim', text: s.email || '' }),
       el('td', {}, [el('button', {
-        class: 'btn sm danger', text: '×', title: 'Remove student',
+        class: 'btn sm danger', text: '×', title: T('roster.removeStudent'),
         onclick: function () {
-          Q.confirmBox('Remove ' + s.name + ' from the roster?').then(function (ok) {
+          Q.confirmBox(T('roster.removeConfirm', { name: s.name })).then(function (ok) {
             if (!ok) return;
             Q.DB.del('students', s.sid).then(function () {
               State.students = State.students.filter(function (x) { return x.sid !== s.sid; });
@@ -1391,8 +1372,9 @@ function renderRosterTable() {
     ]));
   });
   box.appendChild(el('table', {}, [
-    el('thead', {}, [el('tr', {}, [el('th', { text: 'Name' }), el('th', { text: 'No.' }),
-      el('th', { text: 'Email' }), el('th', {})])]), tb
+    el('thead', {}, [el('tr', {}, [el('th', { text: T('roster.col.name') }),
+      el('th', { text: T('roster.col.no') }),
+      el('th', { text: T('roster.col.email') }), el('th', {})])]), tb
   ]));
 }
 /* Short sequential ids: a student can bubble "042" in seconds, and one master
@@ -1412,15 +1394,14 @@ function idWidthProblem(t) {
   var n = S.idDigitsOf(t);
   var tooLong = classStudents().filter(function (s) { return S.normId(s.sid).length > n; });
   if (!tooLong.length) return null;
-  return tooLong.length + ' student id(s) need more than ' + n + ' digits (e.g. ' +
-    S.normId(tooLong[0].sid) + ' — ' + tooLong[0].name + '). Raise the ID length on the test, ' +
-    'or renumber the roster.';
+  return T('roster.idTooLong', { n: tooLong.length, digits: n,
+    example: S.normId(tooLong[0].sid), name: tooLong[0].name });
 }
 function saveRosterPaste() {
   var cls = currentClass();
-  if (!cls) { Q.toast('Type a class name first.', 'err'); $('#rosterClass').focus(); return; }
+  if (!cls) { Q.toast(T('toast.needClass'), 'err'); $('#rosterClass').focus(); return; }
   var lines = $('#rosterPaste').value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean);
-  if (!lines.length) { Q.toast('Nothing to add.', 'err'); return; }
+  if (!lines.length) { Q.toast(T('toast.nothingToAdd'), 'err'); return; }
   var add = [], taken = {};
   State.students.forEach(function (s) { taken[s.sid] = 1; });
   var counter = parseInt(nextSid(), 10);
@@ -1447,7 +1428,7 @@ function saveRosterPaste() {
       else { while (taken[String(counter)]) counter++; sid = String(counter); counter++; }
     }
     if (/^9+$/.test(sid)) {
-      Q.toast('An all-nines number is reserved for the answer key — skipped ' + name, 'err');
+      Q.toast(T('toast.reservedId', { name: name }), 'err');
       return;
     }
     taken[sid] = 1;
@@ -1468,7 +1449,7 @@ function saveRosterPaste() {
      * appear in the suggestion list without a reload. */
     renderRosterView(); recompute();
     $('#rosterPaste').value = '';
-    Q.toast('Saved ' + add.length + ' student' + (add.length === 1 ? '' : 's') + '.', 'good');
+    Q.toast(T('toast.studentsSaved', { n: add.length }), 'good');
   });
 }
 
@@ -1496,10 +1477,10 @@ function parseCsv(text) {
 
 function importRosterCsv(file) {
   var cls = currentClass();
-  if (!cls) { Q.toast('Type a class name first.', 'err'); $('#rosterClass').focus(); return; }
+  if (!cls) { Q.toast(T('toast.needClass'), 'err'); $('#rosterClass').focus(); return; }
   Q.readFileText(file).then(function (txt) {
     var rows = parseCsv(txt);
-    if (!rows.length) { Q.toast('That file looked empty.', 'err'); return; }
+    if (!rows.length) { Q.toast(T('toast.fileEmpty'), 'err'); return; }
 
     var head = rows[0].map(function (h) { return String(h).trim().toLowerCase(); });
     var looksLikeHeader = head.some(function (h) {
@@ -1547,27 +1528,26 @@ function importRosterCsv(file) {
       lines.push([name, id, mail].filter(function (x, i) { return i === 0 || x; }).join(', '));
     });
 
-    if (!lines.length) { Q.toast('Could not find any names in that file.', 'err', 6000); return; }
+    if (!lines.length) { Q.toast(T('toast.noNamesInFile'), 'err', 6000); return; }
     $('#rosterPaste').value = lines.join('\n');
-    Q.toast('Found ' + lines.length + ' student(s). Check the list, then press ' +
-      '"Add / update students".', 'good', 7000);
-  }).catch(function (e) { Q.toast('Could not read that file: ' + e.message, 'err', 6000); });
+    Q.toast(T('toast.foundStudents', { n: lines.length }), 'good', 7000);
+  }).catch(function (e) { Q.toast(T('toast.fileUnreadable', { msg: e.message }), 'err', 6000); });
 }
 
 function printSheets(mode, formId) {
   var t = State.test;
-  if (!t) { Q.toast('Select a test first.', 'err'); return; }
+  if (!t) { Q.toast(T('toast.selectTest'), 'err'); return; }
   var form = SC.variantOf(t, formId);
   var problem = idWidthProblem(t);
   if (problem) { Q.toast(problem, 'err', 9000); return; }
   var people, opts = { prefill: false, keyMode: false, form: form };
   if (mode === 'personal') {
     people = classStudents();
-    if (!people.length) { Q.toast('No students in "' + (t.className || '') + '". Add a roster first.', 'err', 5000); return; }
+    if (!people.length) { Q.toast(T('toast.noStudentsIn', { cls: t.className || '' }), 'err', 5000); return; }
     opts.prefill = !!t.options.prefillId;
   } else if (mode === 'key') {
     people = [{ sid: S.keySid(S.idDigitsOf(t)),
-                 name: 'ANSWER KEY' + (form.primary ? '' : ' — VERSION ' + form.id),
+                 name: T('print.answerKey') + (form.primary ? '' : T('print.versionSuffix', { id: form.id })),
                  cls: t.className }];
     opts.prefill = true; opts.keyMode = true;
   } else {
@@ -1684,18 +1664,18 @@ function renderTrash() {
   if (!State.trash.length) return;
   var n = State.trash.length;
   host.appendChild(el('div', { class: 'trashbar' }, [
-    el('span', { text: n + ' deleted sheet' + (n === 1 ? '' : 's') + ' can still be brought back.' }),
-    el('button', { class: 'btn sm go', text: 'Bring them back',
+    el('span', { text: T('trash.count', { n: n }) }),
+    el('button', { class: 'btn sm go', text: T('trash.restore'),
       onclick: function () {
         restoreScans(State.trash.slice()).then(function () {
           renderReview();
-          Q.toast('Restored ' + n + ' sheet(s).', 'good');
+          Q.toast(T('toast.restored', { n: n }), 'good');
         });
       } }),
-    el('button', { class: 'btn sm danger', text: 'Delete permanently',
+    el('button', { class: 'btn sm danger', text: T('trash.purge'),
       onclick: function () {
-        Q.confirmBox('Permanently delete ' + n + ' sheet(s)? This cannot be undone.',
-          'Delete for good').then(function (yes) {
+        Q.confirmBox(T('trash.purgeConfirm', { n: n }),
+          T('trash.purgeYes')).then(function (yes) {
           if (!yes) return;
           purgeScans(State.trash.slice()).then(function () { renderReview(); });
         });
@@ -1713,38 +1693,38 @@ function renderReview() {
 
   if (r.unresolved.length) {
     var wrap = el('div', { class: 'unres' }, [
-      el('h3', { text: '⚠ ' + r.unresolved.length + ' sheet' + (r.unresolved.length === 1 ? '' : 's') +
-        ' could not be matched to a student' })
+      el('h3', { text: T('unres.h3', { n: r.unresolved.length }) })
     ]);
     r.unresolved.forEach(function (sc) {
       var row = el('div', { class: 'unrow' });
-      row.appendChild(el('img', { src: sc.thumb, alt: 'sheet' }));
-      var crop = el('img', { alt: 'handwritten name', style: 'height:46px;flex:0 0 auto' });
+      row.appendChild(el('img', { src: sc.thumb, alt: T('unres.alt.sheet') }));
+      var crop = el('img', { alt: T('unres.alt.name'), style: 'height:46px;flex:0 0 auto' });
       if (sc.nameCrop) {
         Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) crop.src = b.data; });
       }
       row.appendChild(crop);
       row.appendChild(el('span', { class: 'dim',
-        text: 'page ' + sc.page + (sc.sid ? ' · ID ' + sc.sid + ' (not on roster)' : ' · no ID bubbled') }));
-      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, 'Assign to…')].concat(
+        text: T('unres.page', { n: sc.page }) +
+          (sc.sid ? T('unres.idUnknown', { sid: sc.sid }) : T('unres.noId')) }));
+      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('unres.assignTo'))].concat(
         classStudents().map(function (s) { return el('option', { value: s.sid }, s.name + ' · ' + s.sid); })
       ));
       row.appendChild(sel);
       row.appendChild(el('button', {
-        class: 'btn sm go', text: 'Assign',
+        class: 'btn sm go', text: T('unres.assign'),
         onclick: function () {
-          if (!sel.value) { Q.toast('Pick a student first.', 'err'); return; }
+          if (!sel.value) { Q.toast(T('toast.pickStudent'), 'err'); return; }
           assignScan(sc, sel.value);
         }
       }));
       row.appendChild(el('button', {
-        class: 'btn sm', text: 'View sheet',
+        class: 'btn sm', text: T('unres.viewSheet'),
         onclick: function () { viewSheet(sc); }
       }));
       row.appendChild(el('button', {
-        class: 'btn sm danger', text: 'Delete',
+        class: 'btn sm danger', text: T('common.delete'),
         onclick: function () {
-          Q.confirmBox('Delete this scan?').then(function (ok) { if (ok) deleteScan(sc).then(renderReview); });
+          Q.confirmBox(T('unres.deleteConfirm')).then(function (ok) { if (ok) deleteScan(sc).then(renderReview); });
         }
       }));
       wrap.appendChild(row);
@@ -1771,13 +1751,13 @@ function renderReview() {
     var flags = [];
     if (!x.scanned) {
       flags.push(r.unresolved.length
-        ? 'not scanned — check the unmatched sheets above'
-        : 'not scanned');
+        ? T('flag.notScannedCheck')
+        : T('flag.notScanned'));
     }
     else {
-      if (x.missing.length) flags.push('missing p' + x.missing.join(',p'));
-      if (x.multi) flags.push(x.multi + ' double-marked');
-      if (x.blank) flags.push(x.blank + ' blank');
+      if (x.missing.length) flags.push(T('flag.missingPages', { pages: x.missing.join(',') }));
+      if (x.multi) flags.push(T('flag.doubleMarked', { n: x.multi }));
+      if (x.blank) flags.push(T('flag.blank', { n: x.blank }));
     }
     var cells = [
       el('td', { text: x.name }),
@@ -1792,18 +1772,21 @@ function renderReview() {
       el('td', { text: x.scanned ? x.correct + '/' + State.test.mc.count : '—' }),
       el('td', { text: State.test.written.length ? x.wGraded + '/' + State.test.written.length : '—' }),
       el('td', { text: x.scanned ? x.total + '/' + x.max + '  (' + Math.round(x.pct * 100) + '%)' : '—' }),
-      el('td', { class: flags.length ? 'warnc' : 'dim', text: flags.join(' · ') || 'ok' }),
+      el('td', { class: flags.length ? 'warnc' : 'dim', text: flags.join(' · ') || T('flag.ok') }),
       el('td', {}, [el('button', {
-        class: 'btn sm', text: 'Sheets',
+        class: 'btn sm', text: T('review.sheets'),
         onclick: function () { viewStudentSheets(x); }
       })])
     ])));
   });
-  var heads = ['Student', 'ID'].concat(multiClass() ? ['Class'] : [])
-    .concat(SC.hasForms(State.test) ? ['Ver'] : [])
-    .concat(['Pages', 'MC', 'Written', 'Score', 'Notes', '']);
+  var heads = ['review.col.student', 'review.col.id']
+    .concat(multiClass() ? ['review.col.class'] : [])
+    .concat(SC.hasForms(State.test) ? ['review.col.ver'] : [])
+    .concat(['review.col.pages', 'review.col.mc', 'review.col.written',
+             'review.col.score', 'review.col.notes', '']);
   var t = el('table', {}, [
-    el('thead', {}, [el('tr', {}, heads.map(function (h) { return el('th', { text: h }); }))]), tb
+    el('thead', {}, [el('tr', {}, heads.map(function (h) {
+      return el('th', { text: h ? T(h) : '' }); }))]), tb
   ]);
   var host = $('#reviewTable');
   host.innerHTML = '';
@@ -1822,17 +1805,15 @@ function renderChecks() {
   if (!list.length) {
     if (State.scans.length) {
       host.appendChild(el('div', { class: 'clearbox' }, [
-        el('span', { text: '✓ Every mark on ' + State.scans.length + ' scanned page' +
-          (State.scans.length === 1 ? '' : 's') + ' read cleanly. Nothing needs a second look.' })
+        el('span', { text: T('checks.allClean', { n: State.scans.length }) })
       ]));
     }
     return;
   }
 
   var wrap = el('div', { class: 'checks' }, [
-    el('h3', { text: list.length + ' mark' + (list.length === 1 ? '' : 's') + ' worth a second look' }),
-    el('p', { class: 'hint', text: 'These were read, but not cleanly. The strip is the actual paper. ' +
-      'Confirm it or correct it — either way it stops asking.' })
+    el('h3', { text: T('checks.h3', { n: list.length }) }),
+    el('p', { class: 'hint', text: T('checks.hint') })
   ]);
 
   list.slice(0, 40).forEach(function (c) {
@@ -1841,39 +1822,39 @@ function renderChecks() {
       el('b', { text: 'Q' + (c.q + 1) }),
       el('span', { text: c.name })
     ]));
-    var img = el('img', { class: 'cstrip', alt: 'question ' + (c.q + 1) });
+    var img = el('img', { class: 'cstrip', alt: T('checks.alt', { n: c.q + 1 }) });
     Q.DB.get('blobs', c.info.blob).then(function (b) { if (b) img.src = b.data; });
     row.appendChild(img);
     row.appendChild(el('div', { class: 'cwhy' }, [
       el('span', { class: 'warnc', text: c.info.why }),
-      el('span', { class: 'dim', text: 'read as ' +
-        (c.info.read >= 0 ? S.LETTERS[c.info.read] : 'blank') +
-        ' · key is ' + (t.mc.key[c.q] != null ? S.LETTERS[t.mc.key[c.q]] : '?') })
+      el('span', { class: 'dim', text: T('checks.readAs', {
+        read: c.info.read >= 0 ? S.LETTERS[c.info.read] : T('common.blank'),
+        key: t.mc.key[c.q] != null ? S.LETTERS[t.mc.key[c.q]] : '?' }) })
     ]));
 
     var opts = el('div', { class: 'copts' });
     for (var k = 0; k < t.mc.choices; k++) (function (k) {
       opts.appendChild(el('button', {
         class: 'opt' + (c.info.read === k ? ' on' : ''), text: S.LETTERS[k],
-        title: 'Record ' + S.LETTERS[k],
+        title: T('checks.record', { letter: S.LETTERS[k] }),
         onclick: function () { setOverride(c, k); }
       }));
     })(0 + k);
-    opts.appendChild(el('button', { class: 'btn sm', text: 'blank',
+    opts.appendChild(el('button', { class: 'btn sm', text: T('common.blank'),
       onclick: function () { setOverride(c, -1); } }));
-    opts.appendChild(el('button', { class: 'btn sm go', text: 'Looks right',
+    opts.appendChild(el('button', { class: 'btn sm go', text: T('checks.looksRight'),
       onclick: function () { confirmCheck(c); } }));
     row.appendChild(opts);
     wrap.appendChild(row);
   });
   if (list.length > 40) {
-    wrap.appendChild(el('p', { class: 'hint', text: 'Showing the first 40 of ' + list.length + '.' }));
+    wrap.appendChild(el('p', { class: 'hint', text: T('checks.showingFirst', { n: list.length }) }));
   }
   wrap.appendChild(el('button', {
-    class: 'btn sm', text: 'Accept all remaining as read',
+    class: 'btn sm', text: T('checks.acceptAll'),
     onclick: function () {
-      Q.confirmBox('Accept all ' + list.length + ' flagged marks exactly as the reader saw them?',
-        'Accept all').then(function (ok) {
+      Q.confirmBox(T('checks.acceptAllConfirm', { n: list.length }),
+        T('checks.acceptAllYes')).then(function (ok) {
         if (!ok) return;
         var touched = {};
         list.forEach(function (c) {
@@ -1894,8 +1875,8 @@ function setOverride(c, choice) {
   c.scan.overrides[c.q] = choice;
   Q.DB.put('scans', c.scan).then(function () {
     recompute(); renderReview();
-    Q.toast('Q' + (c.q + 1) + ' for ' + c.name + ' recorded as ' +
-      (choice >= 0 ? S.LETTERS[choice] : 'blank') + '.', 'good');
+    Q.toast(T('toast.recorded', { q: c.q + 1, name: c.name,
+      answer: choice >= 0 ? S.LETTERS[choice] : T('common.blank') }), 'good');
   });
 }
 function confirmCheck(c) {
@@ -1917,9 +1898,8 @@ function renderQuestionTable() {
   if (!r.scannedRows.length) return;
 
   var head = el('div', { class: 'row between wrap-row' }, [
-    el('h2', { text: 'How the class did, question by question' }),
-    el('span', { class: 'hint', text: 'Click any question to drop it, accept another ' +
-      'answer, or give everyone credit.' })
+    el('h2', { text: T('qtab.h2') }),
+    el('span', { class: 'hint', text: T('qtab.hint') })
   ]);
   host.appendChild(head);
 
@@ -1944,10 +1924,10 @@ function renderQuestionTable() {
         return S.LETTERS[i] + ':' + d;
       }).join('  ') }),
       el('td', { class: modified ? 'warnc' : 'dim',
-        text: modified ? SC.ruleSummary(t, q) : (flag === 'hard' ? 'most of the class missed this'
-          : flag === 'easy' ? 'everyone got it' : '') }),
+        text: modified ? SC.ruleSummary(t, q) : (flag === 'hard' ? T('qtab.hard')
+          : flag === 'easy' ? T('qtab.easy') : '') }),
       el('td', {}, [el('button', {
-        class: 'btn sm' + (modified ? ' go' : ''), text: modified ? 'Change' : 'Fix…',
+        class: 'btn sm' + (modified ? ' go' : ''), text: modified ? T('qtab.change') : T('qtab.fix'),
         onclick: function () { fixQuestionDialog(q); }
       })])
     ]));
@@ -1955,8 +1935,9 @@ function renderQuestionTable() {
 
   host.appendChild(el('div', { class: 'tbl' }, [
     el('table', {}, [
-      el('thead', {}, [el('tr', {}, ['Q', 'Key', 'Class correct', '', 'Answers chosen', '', '']
-        .map(function (h) { return el('th', { text: h }); }))]),
+      el('thead', {}, [el('tr', {}, ['qtab.col.q', 'qtab.col.key', 'qtab.col.correct', '',
+        'qtab.col.chosen', '', '']
+        .map(function (h) { return el('th', { text: h ? T(h) : '' }); }))]),
       tb
     ])
   ]));
@@ -1966,9 +1947,8 @@ function fixQuestionDialog(q) {
   var t = State.test;
   var rule = JSON.parse(JSON.stringify(SC.ruleFor(t, q)));
   var body = el('div', {}, [
-    el('h3', { text: 'Question ' + (q + 1) }),
-    el('p', { class: 'hint', text: 'Nothing is rescanned and no student answer is changed — ' +
-      'this only changes how the question is scored, for everyone.' })
+    el('h3', { text: T('fix.h3', { n: q + 1 }) }),
+    el('p', { class: 'hint', text: T('fix.hint') })
   ]);
 
   var accept = el('div', { class: 'row gap wrap-row', style: 'margin:8px 0 14px' });
@@ -1979,7 +1959,7 @@ function fixQuestionDialog(q) {
       var on = isKey || (rule.accept || []).indexOf(k) >= 0;
       accept.appendChild(el('button', {
         class: 'opt' + (on ? ' on' : ''), text: S.LETTERS[k],
-        title: isKey ? 'The answer key' : 'Also accept ' + S.LETTERS[k],
+        title: isKey ? T('fix.isKey') : T('fix.alsoAccept', { letter: S.LETTERS[k] }),
         disabled: isKey,
         onclick: function () {
           rule.accept = rule.accept || [];
@@ -1990,11 +1970,11 @@ function fixQuestionDialog(q) {
       }));
     })(k);
     accept.appendChild(el('span', { class: 'hint', style: 'margin:0',
-      text: t.mc.key[q] == null ? 'No key set for this question.'
-        : S.LETTERS[t.mc.key[q]] + ' is the key. Click another letter to accept it too.' }));
+      text: t.mc.key[q] == null ? T('fix.noKey')
+        : T('fix.keyIs', { letter: S.LETTERS[t.mc.key[q]] }) }));
   }
   drawAccept();
-  body.appendChild(el('label', { text: 'Answers that count as correct' }));
+  body.appendChild(el('label', { text: T('fix.acceptLabel') }));
   body.appendChild(accept);
 
   var dropBox = el('input', { type: 'checkbox', checked: !!rule.drop });
@@ -2003,10 +1983,10 @@ function fixQuestionDialog(q) {
     value: rule.points != null ? rule.points : (t.mc.points == null ? 1 : t.mc.points) });
 
   body.appendChild(el('label', { class: 'chk', style: 'margin:6px 0' },
-    [dropBox, 'Drop this question — it stops counting for anyone, and the test is out of less']));
+    [dropBox, T('fix.drop')]));
   body.appendChild(el('label', { class: 'chk', style: 'margin:6px 0' },
-    [creditBox, 'Give everyone the points, whatever they answered']));
-  body.appendChild(el('label', { style: 'margin-top:12px' }, ['Points for this question', ptsInput]));
+    [creditBox, T('fix.credit')]));
+  body.appendChild(el('label', { style: 'margin-top:12px' }, [T('fix.points'), ptsInput]));
 
   var preview = el('p', { class: 'hint' });
   function refresh() {
@@ -2018,9 +1998,8 @@ function fixQuestionDialog(q) {
       var s = SC.scoreQuestion(scratch, q, row.answers[q], row.states[q]);
       if (s.earned > 0) n++;
     });
-    preview.textContent = 'With this change, ' + n + ' of ' +
-      State.results.scannedRows.length + ' students earn points on question ' + (q + 1) +
-      '. The test would be out of ' + Q.round2(SC.mcPossible(scratch) + SC.writtenPossible(scratch)) + '.';
+    preview.textContent = T('fix.preview', { n: n, total: State.results.scannedRows.length,
+      q: q + 1, outOf: Q.round2(SC.mcPossible(scratch) + SC.writtenPossible(scratch)) });
   }
   function collect() {
     var out = {};
@@ -2038,10 +2017,10 @@ function fixQuestionDialog(q) {
   body.appendChild(preview);
 
   body.appendChild(el('div', { class: 'row gap end', style: 'margin-top:16px' }, [
-    el('button', { class: 'btn', text: 'Cancel', onclick: function () { h.close(); } }),
-    el('button', { class: 'btn danger', text: 'Reset to normal',
+    el('button', { class: 'btn', text: T('common.cancel'), onclick: function () { h.close(); } }),
+    el('button', { class: 'btn danger', text: T('fix.reset'),
       onclick: function () { saveRule(q, null); h.close(); } }),
-    el('button', { class: 'btn go', text: 'Apply',
+    el('button', { class: 'btn go', text: T('common.apply'),
       onclick: function () { saveRule(q, collect()); h.close(); } })
   ]));
   var h = Q.modal(body);
@@ -2056,8 +2035,8 @@ function saveRule(q, rule) {
     recompute();
     renderReview();
     Q.toast(rule && Object.keys(rule).length
-      ? 'Question ' + (q + 1) + ': ' + SC.ruleSummary(t, q) + '. Every score updated.'
-      : 'Question ' + (q + 1) + ' back to normal scoring.', 'good', 5000);
+      ? T('toast.ruleSet', { q: q + 1, summary: SC.ruleSummary(t, q) })
+      : T('toast.ruleCleared', { q: q + 1 }), 'good', 5000);
   });
 }
 
@@ -2101,7 +2080,7 @@ function renderStorage() {
   var ids = imageIdsForTest();
   if (!ids.length) return;
 
-  var line = el('span', { text: 'Working out how much space this test uses…' });
+  var line = el('span', { text: T('storage.working') });
   host.appendChild(el('div', { class: 'trashbar' }, [line]));
 
   estimateImageBytes(ids).then(function (bytes) {
@@ -2110,21 +2089,18 @@ function renderStorage() {
     /* Say nothing at all until this is worth a teacher's attention. */
     if (bytes < 25 * 1048576) {
       bar.className = 'hint';
-      bar.textContent = ids.length + ' scanned image' + (ids.length === 1 ? '' : 's') +
-        ' kept for this test, about ' + humanBytes(bytes) + '.';
+      bar.textContent = T('storage.kept', { n: ids.length, size: humanBytes(bytes) });
       bar.appendChild(el('button', { class: 'btn sm', style: 'margin-left:10px',
-        text: 'Free up the space', onclick: freeUp }));
+        text: T('storage.freeUp'), onclick: freeUp }));
       return;
     }
-    bar.appendChild(el('span', { html: 'This test is holding <b>' + ids.length +
-      '</b> scanned image' + (ids.length === 1 ? '' : 's') + ', about <b>' + humanBytes(bytes) +
-      '</b>. They are only needed while you are reviewing and grading.' }));
-    bar.appendChild(el('button', { class: 'btn sm', text: 'Free up the space', onclick: freeUp }));
+    bar.appendChild(el('span', { html: T('storage.holdingBig', { n: ids.length,
+      size: humanBytes(bytes) }) }));
+    bar.appendChild(el('button', { class: 'btn sm', text: T('storage.freeUp'), onclick: freeUp }));
 
     function freeUp() {
-        Q.confirmBox('Remove ' + ids.length + ' scanned image(s), about ' + humanBytes(bytes) + '?\n\nEvery score, answer, written mark and comment is kept. You will no ' +
-          'longer be able to look at the scanned paper for this test.',
-          'Remove the images').then(function (ok) {
+        Q.confirmBox(T('storage.freeConfirm', { n: ids.length, size: humanBytes(bytes) }),
+          T('storage.freeYes')).then(function (ok) {
           if (!ok) return;
           Q.DB.delMany('blobs', ids).then(function () {
             State.scans.concat(State.trash).forEach(function (sc) {
@@ -2134,7 +2110,7 @@ function renderStorage() {
             return Q.DB.putMany('scans', State.scans.concat(State.trash));
           }).then(function () {
             recompute(); renderReview();
-            Q.toast('Freed about ' + humanBytes(bytes) + '. All scores kept.', 'good', 6000);
+            Q.toast(T('toast.freed', { size: humanBytes(bytes) }), 'good', 6000);
           });
         });
     }
@@ -2150,9 +2126,9 @@ function renderStorageTotal() {
   navigator.storage.estimate().then(function (e) {
     if (!e || !e.quota) return;
     var pct = Math.round(e.usage / e.quota * 100);
-    host.textContent = 'Using ' + humanBytes(e.usage) + ' of the ' +
-      Math.round(e.quota / 1073741824 * 10) / 10 + ' GB this browser allows' +
-      (pct >= 1 ? ' (' + pct + '%)' : '') + '.';
+    host.textContent = T('storage.total', { used: humanBytes(e.usage),
+      gb: Math.round(e.quota / 1073741824 * 10) / 10 }) +
+      (pct >= 1 ? T('storage.totalPct', { pct: pct }) : '') + '.';
     if (pct > 70) host.className = 'hint warnc';
   });
 }
@@ -2160,10 +2136,8 @@ function renderStorageTotal() {
 /* ---- name contact sheet: catches a student using someone else's sheet ---- */
 function verifyNames() {
   var body = el('div', {}, [
-    el('h3', { text: 'Check the handwriting against the name we filed it under' }),
-    el('p', { class: 'hint', text: 'A student who picks up the wrong pre-printed sheet is filed under ' +
-      'the printed ID, not the name they wrote. This is the only way to catch that. ' +
-      'Anything that does not match, click to reassign.' })
+    el('h3', { text: T('names.h3') }),
+    el('p', { class: 'hint', text: T('names.hint') })
   ]);
   var grid = el('div', { class: 'namegrid' });
   var seen = {}, n = 0;
@@ -2173,22 +2147,22 @@ function verifyNames() {
       if (!sc.nameCrop || seen[sc.sid || sc.id]) return;
       seen[sc.sid || sc.id] = 1; n++;
       var cell = el('div', { class: 'namecell' });
-      var img = el('img', { alt: 'handwritten name' });
+      var img = el('img', { alt: T('unres.alt.name') });
       Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) img.src = b.data; });
       cell.appendChild(img);
-      cell.appendChild(el('b', { text: sc.sid ? studentName(sc.sid) : 'unassigned' }));
-      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, 'reassign…')].concat(
+      cell.appendChild(el('b', { text: sc.sid ? studentName(sc.sid) : T('names.unassigned') }));
+      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('names.reassign'))].concat(
         classStudents().map(function (s) { return el('option', { value: s.sid }, s.name); })));
       on(sel, 'change', function () {
         if (!sel.value) return;
         var mine = State.scans.filter(function (x) { return S.normId(x.sid) === S.normId(sc.sid); });
         Promise.all(mine.map(function (x) { return assignScan(x, sel.value, true); }))
-          .then(function () { h.close(); renderReview(); Q.toast('Reassigned.', 'good'); });
+          .then(function () { h.close(); renderReview(); Q.toast(T('toast.reassigned'), 'good'); });
       });
       cell.appendChild(sel);
       grid.appendChild(cell);
     });
-  if (!n) body.appendChild(el('p', { class: 'hint', text: 'No scanned name images yet.' }));
+  if (!n) body.appendChild(el('p', { class: 'hint', text: T('names.none') }));
   body.appendChild(grid);
   var h = Q.modal(body);
 }
@@ -2204,17 +2178,17 @@ function assignScan(sc, sid, quiet) {
     recompute();
     if (quiet) return;
     renderReview();
-    Q.toast('Assigned to ' + studentName(sid) + '.', 'good');
+    Q.toast(T('toast.assignedTo', { name: studentName(sid) }), 'good');
   });
 }
 
 function viewSheet(sc) {
-  var body = el('div', {}, [el('h3', { text: 'Scanned sheet — page ' + sc.page })]);
+  var body = el('div', {}, [el('h3', { text: T('view.sheetPage', { n: sc.page }) })]);
   var img = el('img', { class: 'namecrop', src: sc.thumb, style: 'max-width:100%' });
   body.appendChild(img);
   if (sc.pageImg) Q.DB.get('blobs', sc.pageImg).then(function (b) { if (b) img.src = b.data; });
   if (sc.nameCrop) {
-    body.appendChild(el('p', { class: 'hint', text: 'Name written on the sheet:' }));
+    body.appendChild(el('p', { class: 'hint', text: T('view.nameOnSheet') }));
     var c = el('img', { class: 'namecrop' });
     Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) c.src = b.data; });
     body.appendChild(c);
@@ -2224,17 +2198,17 @@ function viewSheet(sc) {
 function viewStudentSheets(x) {
   var mine = State.scans.filter(function (s) { return S.normId(s.sid) === S.normId(x.sid); })
     .sort(function (a, b) { return a.page - b.page; });
-  var body = el('div', {}, [el('h3', { text: x.name + ' — ' + mine.length + ' page(s)' })]);
-  if (!mine.length) body.appendChild(el('p', { class: 'hint', text: 'Nothing scanned yet.' }));
+  var body = el('div', {}, [el('h3', { text: T('view.studentPages', { name: x.name, n: mine.length }) })]);
+  if (!mine.length) body.appendChild(el('p', { class: 'hint', text: T('view.nothingScanned') }));
   mine.forEach(function (sc) {
-    body.appendChild(el('p', { class: 'hint', text: 'Page ' + sc.page +
-      ' · scanned ' + new Date(sc.ts).toLocaleTimeString() }));
+    body.appendChild(el('p', { class: 'hint', text: T('view.pageScannedAt', { n: sc.page,
+      time: new Date(sc.ts).toLocaleTimeString() }) }));
     var img = el('img', { class: 'namecrop', src: sc.thumb });
     if (sc.pageImg) Q.DB.get('blobs', sc.pageImg).then(function (b) { if (b) img.src = b.data; });
     body.appendChild(img);
-    body.appendChild(el('button', { class: 'btn sm danger', text: 'Delete this page scan',
+    body.appendChild(el('button', { class: 'btn sm danger', text: T('view.deletePage'),
       onclick: function () {
-        Q.confirmBox('Delete page ' + sc.page + ' for ' + x.name + '?').then(function (ok) {
+        Q.confirmBox(T('view.deletePageConfirm', { n: sc.page, name: x.name })).then(function (ok) {
           if (ok) deleteScan(sc).then(function () { renderReview(); });
         });
       } }));
@@ -2278,7 +2252,7 @@ function renderWrittenGrading() {
   sel.innerHTML = '';
   if (!t || !t.written.length) {
     $('#gradeImage').removeAttribute('src');
-    $('#gradeProgress').textContent = 'This test has no written questions.';
+    $('#gradeProgress').textContent = T('grade.noWritten');
     $('#pointsRow').innerHTML = '';
     sel.appendChild(el('option', {}, '—'));
     return;
@@ -2292,7 +2266,7 @@ function renderWrittenGrading() {
       if (rec && typeof rec.p === 'number') done++;
     });
     sel.appendChild(el('option', { value: i, selected: i === GState.qIdx },
-      'Q' + (i + 1) + ': ' + (wq.label || 'written') + '  (' + done + '/' + total + ' graded)'));
+      T('grade.qOption', { n: i + 1, label: wq.label || T('grade.untitled'), done: done, total: total })));
   });
   GState.qIdx = Q.clamp(GState.qIdx, 0, t.written.length - 1);
   GState.list = buildGradeList(GState.qIdx);
@@ -2307,7 +2281,8 @@ function showGradeItem() {
   var item = GState.list[GState.pos];
   var img = $('#gradeImage');
   $('#gradeProgress').textContent = GState.list.length
-    ? (GState.pos + 1) + ' of ' + GState.list.length : 'nothing scanned yet';
+    ? T('grade.progress', { n: GState.pos + 1, total: GState.list.length })
+    : T('grade.nothingScanned');
 
   if (!item) {
     img.removeAttribute('src');
@@ -2315,7 +2290,7 @@ function showGradeItem() {
     $('#pointsRow').innerHTML = '';
     return;
   }
-  $('#gradeStudent').textContent = $('#gradeHideName').checked ? 'hidden' : item.name;
+  $('#gradeStudent').textContent = $('#gradeHideName').checked ? T('grade.hidden') : item.name;
 
   if (item.blobId) {
     Q.DB.get('blobs', item.blobId).then(function (b) {
@@ -2355,11 +2330,11 @@ function showGradeItem() {
     grid.appendChild(el('div', { class: 'rubtotal' + (done ? ' done' : '') }, [
       el('b', { text: earned + ' / ' + SC.rubricMax(rubric) }),
       el('span', { class: 'hint', style: 'margin:0',
-        text: done ? 'complete — press Enter for the next student'
-                   : 'press 1–' + rubric.levels.length + ' to mark the next criterion' })
+        text: done ? T('grade.rubricDone')
+                   : T('grade.rubricPrompt', { n: rubric.levels.length }) })
     ]));
     row.appendChild(grid);
-    row.appendChild(el('button', { class: 'btn sm', text: 'skip',
+    row.appendChild(el('button', { class: 'btn sm', text: T('grade.skip'),
       onclick: function () { move(1); } }));
     renderQuickComments();
     return;
@@ -2374,7 +2349,7 @@ function showGradeItem() {
       onclick: function () { setPoints(v, true); }
     }));
   });
-  row.appendChild(el('button', { class: 'pbtn', text: 'skip', title: 'Leave ungraded and move on',
+  row.appendChild(el('button', { class: 'pbtn', text: T('grade.skip'), title: T('grade.skipTitle'),
     onclick: function () { move(1); } }));
   row.appendChild(el('input', {
     type: 'number', step: '0.5', min: '0', max: String(max), placeholder: '/' + max,
@@ -2389,13 +2364,14 @@ function showGradeItem() {
 function renderQuickComments() {
   var qc = $('#quickComments');
   qc.innerHTML = '';
-  (Q.Prefs.get('quickComments', ['Good work', 'Show your work', 'Incomplete', 'Off topic', 'Nearly — see key'])
+  (Q.Prefs.get('quickComments', [T('qc.good'), T('qc.showWork'), T('qc.incomplete'),
+      T('qc.offTopic'), T('qc.nearly')])
     .concat(['+ add'])).forEach(function (c) {
       qc.appendChild(el('button', {
         class: 'qc', text: c,
         onclick: function () {
           if (c === '+ add') {
-            Q.promptBox('Add a quick comment').then(function (v) {
+            Q.promptBox(T('qc.add')).then(function (v) {
               if (!v) return;
               var list = Q.Prefs.get('quickComments', []);
               list.push(v); Q.Prefs.set('quickComments', list); showGradeItem();
@@ -2458,12 +2434,12 @@ function move(d) {
       if (GState.qIdx < t.written.length - 1) {
         GState.qIdx++; GState.pos = 0;
         Q.Audio2.done();
-        Q.toast('On to question ' + (GState.qIdx + 1) + '.', 'good');
+        Q.toast(T('toast.onToQuestion', { n: GState.qIdx + 1 }), 'good');
         renderWrittenGrading();
         return;
       }
       Q.Audio2.done();
-      Q.toast('All written questions graded.', 'good', 5000);
+      Q.toast(T('toast.allGraded'), 'good', 5000);
       next = GState.list.length - 1;
     }
   }
@@ -2626,7 +2602,7 @@ function exportGradebookXlsx() {
     { name: 'Summary', rows: summary, cols: [22, 30] }
   ]);
   Q.downloadBlob(blob, fileBase() + '_gradebook.xlsx');
-  Q.toast('Excel gradebook saved. It also imports cleanly into Google Sheets.', 'good', 5000);
+  Q.toast(T('toast.xlsxSaved'), 'good', 5000);
 }
 
 function exportItemAnalysisXlsx() {
@@ -2706,13 +2682,13 @@ function exportItemAnalysisXlsx() {
   if (mastery) sheets.push({ name: 'Mastery', rows: mastery, cols: [26, 12], freezeHeader: true, autoFilter: true });
 
   Q.downloadBlob(X.buildXlsx(sheets), fileBase() + '_item_analysis.xlsx');
-  Q.toast('Item analysis saved.', 'good');
+  Q.toast(T('toast.itemAnalysisSaved'), 'good');
 }
 
 /* --------------------------------------------------------- top sheets */
 function topSheetBody(x, opts) {
   var t = State.test, r = State.results, ts = t.options.topsheet;
-  var P = X.p, T = X.table;
+  var P = X.p, TBL = X.table;
   var out = '';
 
   out += P(x.name || 'Unknown student', { style: 'Heading1' });
@@ -2736,7 +2712,7 @@ function topSheetBody(x, opts) {
       { text: x.correct + ' / ' + t.mc.count + ' correct', align: 'center', size: 11 },
       t.written.length ? { text: x.wPts + ' / ' + x.wMax, align: 'center', size: 11 } : null
     ].filter(Boolean)];
-    out += T(band, { header: false });
+    out += TBL(band, { header: false });
   }
 
   var extra = [];
@@ -2786,7 +2762,7 @@ function topSheetBody(x, opts) {
       body.push(row);
     }
     if (body.length === 1) body.push([{ text: 'Every multiple-choice question was correct.', colspan: head.length }]);
-    out += T(body, { header: true, widths: widths });
+    out += TBL(body, { header: true, widths: widths });
   }
 
   if (ts.showWritten && t.written.length) {
@@ -2819,7 +2795,7 @@ function topSheetBody(x, opts) {
         });
       }
     });
-    out += T(wbody, { header: true, widths: ww });
+    out += TBL(wbody, { header: true, widths: ww });
     if (t.written.some(function (w) { return w.expected; })) {
       out += P('Expected answers', { style: 'Heading2' });
       t.written.forEach(function (wq, wi) {
@@ -2833,13 +2809,13 @@ function topSheetBody(x, opts) {
     var mine = Q.Mastery.forStudent(t, x);
     if (mine.length) {
       out += P('What you have and haven’t got', { style: 'Heading2' });
-      out += T([[{ text: 'Topic' }, { text: 'Right' }, { text: 'Out of' }, { text: 'Level' }]]
+      out += TBL([[{ text: 'Topic' }, { text: 'Right' }, { text: 'Out of' }, { text: 'Level' }]]
         .concat(mine.map(function (m) {
           return [
             { text: m.name, size: 10 },
             { text: String(m.correct), align: 'center' },
             { text: String(m.counted), align: 'center' },
-            { text: m.level.label, align: 'center', b: true,
+            { text: T(m.level.key), align: 'center', b: true,
               color: m.level.id === 'secure' ? '1A7F4B' : m.level.id === 'developing' ? '8A5A00' : 'B3261E' }
           ];
         })), { header: true, widths: [0.52, 0.14, 0.14, 0.2] });
@@ -2878,20 +2854,20 @@ function topSheetBody(x, opts) {
 function exportTopSheetsDocx() {
   var t = State.test, r = State.results;
   var rows = r.rows.filter(function (x) { return x.scanned; });
-  if (!rows.length) { Q.toast('No scanned students yet.', 'err'); return; }
+  if (!rows.length) { Q.toast(T('toast.noScannedStudents'), 'err'); return; }
   var body = '';
   rows.forEach(function (x, i) {
     if (i) body += t.options.topsheet.pageBreakEach ? X.pageBreak() : X.emptyP(14);
     body += topSheetBody(x);
   });
   Q.downloadBlob(X.buildDocx(body), fileBase() + '_top_sheets.docx');
-  Q.toast('Word file saved — ' + rows.length + ' top sheet(s). Opens in Word and in Google Docs.', 'good', 6000);
+  Q.toast(T('toast.docxSaved', { n: rows.length }), 'good', 6000);
 }
 
 function printTopSheets() {
   var t = State.test, r = State.results, ts = t.options.topsheet;
   var rows = r.rows.filter(function (x) { return x.scanned; });
-  if (!rows.length) { Q.toast('No scanned students yet.', 'err'); return; }
+  if (!rows.length) { Q.toast(T('toast.noScannedStudents'), 'err'); return; }
   var css = '@page{size:letter;margin:.6in}' +
     'body{font:12px/1.45 Calibri,Arial,sans-serif;color:#111;margin:0}' +
     '.sh{page-break-after:always}.sh:last-child{page-break-after:auto}' +
@@ -2967,7 +2943,7 @@ function printTopSheets() {
         mine.forEach(function (m) {
           h += '<tr><td>' + X.xml(m.name) + '</td><td class="c">' + m.correct +
             '</td><td class="c">' + m.counted + '</td><td class="c ' +
-            (m.level.id === 'secure' ? 'ok' : 'no') + '">' + m.level.label + '</td></tr>';
+            (m.level.id === 'secure' ? 'ok' : 'no') + '">' + X.xml(T(m.level.key)) + '</td></tr>';
         });
         h += '</table>';
       }
@@ -3032,7 +3008,7 @@ function renderFormatUI() {
     row.appendChild(el('span', { class: 'fname', text: fl.label }));
     if (!fl.expand) {
       row.appendChild(el('input', {
-        value: (f.heads || {})[key] || fl.head, 'aria-label': 'Heading for ' + fl.label,
+        value: (f.heads || {})[key] || fl.head, 'aria-label': T('cols.headingFor', { label: fl.label }),
         oninput: function (e) {
           f.heads = f.heads || {};
           f.heads[key] = e.target.value;
@@ -3042,12 +3018,12 @@ function renderFormatUI() {
     } else {
       row.appendChild(el('span', { class: 'hint', style: 'flex:1;margin:0' }));
     }
-    row.appendChild(el('button', { class: 'btn', text: '↑', title: 'Move up', disabled: i === 0,
+    row.appendChild(el('button', { class: 'btn', text: '↑', title: T('cols.moveUp'), disabled: i === 0,
       onclick: function () { f.cols.splice(i - 1, 0, f.cols.splice(i, 1)[0]); renderFormatUI(); } }));
-    row.appendChild(el('button', { class: 'btn', text: '↓', title: 'Move down',
+    row.appendChild(el('button', { class: 'btn', text: '↓', title: T('cols.moveDown'),
       disabled: i === f.cols.length - 1,
       onclick: function () { f.cols.splice(i + 1, 0, f.cols.splice(i, 1)[0]); renderFormatUI(); } }));
-    row.appendChild(el('button', { class: 'btn danger', text: '×', title: 'Remove column',
+    row.appendChild(el('button', { class: 'btn danger', text: '×', title: T('cols.remove'),
       onclick: function () { f.cols.splice(i, 1); renderFormatUI(); } }));
     host.appendChild(row);
   });
@@ -3060,44 +3036,44 @@ function renderPreview() {
   if (!State.test) return;
   var built;
   try { built = X2.buildRows(fmt(), exportCtx(), { onlyScanned: $('#fmtOnlyScanned').checked }); }
-  catch (e) { host.appendChild(el('p', { class: 'hint', text: 'Preview unavailable: ' + e.message })); return; }
+  catch (e) { host.appendChild(el('p', { class: 'hint', text: T('cols.previewFailed', { msg: e.message }) })); return; }
   var tb = el('tbody');
   built.rows.slice(0, 4).forEach(function (r) {
     tb.appendChild(el('tr', {}, r.map(function (v) { return el('td', { text: String(v) }); })));
   });
-  if (!built.rows.length) tb.appendChild(el('tr', {}, [el('td', { class: 'dim', text: 'No rows yet.' })]));
+  if (!built.rows.length) tb.appendChild(el('tr', {}, [el('td', { class: 'dim', text: T('cols.noRows') })]));
   host.appendChild(el('table', {}, [
     el('thead', {}, [el('tr', {}, built.head.map(function (h) { return el('th', { text: h }); }))]), tb
   ]));
   if (built.rows.length > 4) {
     host.appendChild(el('p', { class: 'hint', style: 'padding:6px 10px;margin:0',
-      text: 'Showing 4 of ' + built.rows.length + ' rows.' }));
+      text: T('cols.showing4', { n: built.rows.length }) }));
   }
 }
 
 function exportGradebookMapped(kind) {
-  if (!State.test) { Q.toast('Select a test first.', 'err'); return; }
+  if (!State.test) { Q.toast(T('toast.selectTest'), 'err'); return; }
   var ctx = exportCtx();
   var built = X2.buildRows(fmt(), ctx, { onlyScanned: $('#fmtOnlyScanned').checked });
-  if (!built.rows.length) { Q.toast('Nothing to export yet — scan some sheets first.', 'err'); return; }
+  if (!built.rows.length) { Q.toast(T('toast.nothingToExport'), 'err'); return; }
   var rows = [built.head].concat(built.rows);
 
   if (kind === 'tsv') {
     Q.copyToClipboard(X.toTsv(rows)).then(function () {
-      Q.toast('Copied. Open your sheet, click the first cell, and paste.', 'good', 6000);
-    }).catch(function () { Q.toast('The browser blocked the clipboard — use the .csv download.', 'err'); });
+      Q.toast(T('toast.copied'), 'good', 6000);
+    }).catch(function () { Q.toast(T('toast.clipboardBlocked'), 'err'); });
     return;
   }
   if (kind === 'csv') {
     Q.downloadText(X.toCsv(rows), fileBase() + '_gradebook.csv', 'text/csv');
-    Q.toast('CSV saved.', 'good');
+    Q.toast(T('toast.csvSaved'), 'good');
     return;
   }
   var head = built.head.map(function (h) { return { v: h, s: X.XS.HEADER }; });
   var widths = built.head.map(function (h) { return Math.min(30, Math.max(9, String(h).length + 3)); });
   Q.downloadBlob(X.buildXlsx([{ name: 'Grades', rows: [head].concat(built.rows),
     cols: widths, freezeHeader: true, autoFilter: true }]), fileBase() + '_gradebook.xlsx');
-  Q.toast('Saved. Import it from your gradebook’s upload screen.', 'good', 6000);
+  Q.toast(T('toast.gradebookSaved'), 'good', 6000);
 }
 
 /* Optional, and deliberately out of the way: post the same rows to a web
@@ -3105,41 +3081,36 @@ function exportGradebookMapped(kind) {
 function sendToEndpoint() {
   var url = Q.Prefs.get('endpoint', '');
   var body = el('div', {}, [
-    el('h3', { text: 'Send scores to a web address' }),
-    el('p', { class: 'hint', text: 'Optional, and not needed for normal use — the download and ' +
-      'the paste-into-Sheets button cover almost everyone. This is here for a school that already ' +
-      'has somewhere to receive results automatically.' })
+    el('h3', { text: T('send.h3') }),
+    el('p', { class: 'hint', text: T('send.hint') })
   ]);
-  var inp = el('input', { value: url, placeholder: 'https://…', 'aria-label': 'Web address' });
-  body.appendChild(el('label', {}, ['Web address to send to', inp]));
-  body.appendChild(el('p', { class: 'hint', text: 'QuickGrade will POST the same rows you see ' +
-    'in the preview, as JSON. Ask whoever runs the receiving end for the address — do not paste ' +
-    'one you were sent by someone you do not know.' }));
+  var inp = el('input', { value: url, placeholder: 'https://…', 'aria-label': T('send.aria') });
+  body.appendChild(el('label', {}, [T('send.label'), inp]));
+  body.appendChild(el('p', { class: 'hint', text: T('send.warning') }));
 
   var out = el('p', { class: 'hint' });
   body.appendChild(el('div', { class: 'row gap end', style: 'margin-top:14px' }, [
-    el('button', { class: 'btn', text: 'Close', onclick: function () { h.close(); } }),
+    el('button', { class: 'btn', text: T('common.close'), onclick: function () { h.close(); } }),
     el('button', {
-      class: 'btn go', text: 'Save and send',
+      class: 'btn go', text: T('send.go'),
       onclick: function () {
         var u = inp.value.trim();
-        if (!/^https:\/\//i.test(u)) { out.textContent = 'Use an https:// address.'; return; }
+        if (!/^https:\/\//i.test(u)) { out.textContent = T('send.needHttps'); return; }
         Q.Prefs.set('endpoint', u);
         var payload = X2.buildPayload(fmt(), exportCtx(), { onlyScanned: $('#fmtOnlyScanned').checked });
-        out.textContent = 'Sending ' + payload.rows.length + ' row(s)…';
+        out.textContent = T('send.sending', { n: payload.rows.length });
         /* text/plain keeps this a simple request, so no CORS preflight is
          * needed against endpoints that do not handle OPTIONS. */
         fetch(u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                    body: JSON.stringify(payload) })
-          .then(function (r) { out.textContent = r.ok ? 'Sent — the address accepted it.'
-                                                      : 'Sent, but it replied ' + r.status + '.'; })
+          .then(function (r) { out.textContent = r.ok ? T('send.accepted')
+                                                      : T('send.replied', { status: r.status }); })
           .catch(function () {
             return fetch(u, { method: 'POST', mode: 'no-cors',
                               headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                               body: JSON.stringify(payload) })
-              .then(function () { out.textContent = 'Sent. The address did not reply in a way we ' +
-                'can read, so check on that end that it arrived.'; })
-              .catch(function (e) { out.textContent = 'Could not reach that address: ' + e.message; });
+              .then(function () { out.textContent = T('send.opaque'); })
+              .catch(function (e) { out.textContent = T('send.failed', { msg: e.message }); });
           });
       }
     })
@@ -3157,28 +3128,26 @@ function renderCurve() {
   var t = State.test;
   var c = t.curve || (t.curve = { kind: 'none', value: 0 });
 
-  var kind = el('select', { class: 'sel', 'aria-label': 'Curve' },
+  var kind = el('select', { class: 'sel', 'aria-label': T('curve.aria') },
     SC.CURVES.map(function (x) {
-      return el('option', { value: x.id, selected: x.id === c.kind }, x.label);
+      return el('option', { value: x.id, selected: x.id === c.kind }, T(x.key));
     }));
   var val = el('input', { type: 'number', step: '0.5', value: c.value || 0,
-    style: 'width:90px', 'aria-label': 'Curve amount' });
+    style: 'width:90px', 'aria-label': T('curve.amount') });
   var unit = el('span', { class: 'hint', style: 'margin:0' });
   var note = el('p', { class: 'hint' });
 
   function sync() {
     var def = SC.CURVES.filter(function (x) { return x.id === kind.value; })[0] || {};
     val.hidden = !def.unit;
-    unit.textContent = def.unit || '';
+    unit.textContent = def.unit ? T(def.unit) : '';
     var r = State.results;
     if (kind.value === 'none' || !r || !r.scannedRows.length) { note.textContent = ''; return; }
     var lifted = r.rows.filter(function (x) { return x.scanned && x.curved; }).length;
     var avg = r.scannedRows.length
       ? Math.round(r.scannedRows.reduce(function (a, x) { return a + x.pct; }, 0) / r.scannedRows.length * 100)
       : 0;
-    note.textContent = lifted + ' of ' + r.scannedRows.length +
-      ' scores changed. Class average is now ' + avg + '%. ' +
-      'The uncurved score is kept, so you can undo this at any time.';
+    note.textContent = T('curve.note', { n: lifted, total: r.scannedRows.length, avg: avg });
   }
   function apply() {
     t.curve = { kind: kind.value, value: parseFloat(val.value) || 0 };
@@ -3212,7 +3181,7 @@ function renderExport() {
         onclick: function () { scale.splice(i, 1); saveTest().then(function () { recompute(); renderExport(); }); } })
     ]));
   });
-  box.appendChild(el('button', { class: 'btn sm', text: '+ band',
+  box.appendChild(el('button', { class: 'btn sm', text: T('scale.addBand'),
     onclick: function () { scale.push([50, 'F']); saveTest().then(function () { recompute(); renderExport(); }); } }));
 }
 
@@ -3234,13 +3203,13 @@ function exportBackup(scopeTest) {
     Q.downloadText(JSON.stringify(payload, null, 1),
       (scopeTest ? fileBase() : 'quickgrade_all') + '_backup.json', 'application/json');
     Q.Prefs.set('lastBackup', Date.now());
-    Q.toast('Backup saved. Scanned images are not included (they stay on this device).', 'good', 6000);
+    Q.toast(T('toast.backupSaved'), 'good', 6000);
   });
 }
 function importBackup(file) {
   return Q.readFileText(file).then(function (txt) {
     var d = JSON.parse(txt);
-    if (d.app !== 'quickgrade') throw new Error('Not a QuickGrade backup file');
+    if (d.app !== 'quickgrade') throw new Error(T('toast.notABackup'));
     var jobs = [];
     if (d.tests && d.tests.length) jobs.push(Q.DB.putMany('tests', d.tests.map(normalizeTest)));
     if (d.students && d.students.length) jobs.push(Q.DB.putMany('students', d.students));
@@ -3248,9 +3217,9 @@ function importBackup(file) {
     Object.keys(d.grades || {}).forEach(function (k) { jobs.push(Q.DB.put('kv', { k: k, v: d.grades[k] })); });
     return Promise.all(jobs);
   }).then(function () {
-    Q.toast('Backup imported. Reloading…', 'good');
+    Q.toast(T('toast.backupImported'), 'good');
     setTimeout(function () { location.reload(); }, 900);
-  }).catch(function (e) { Q.toast('Import failed: ' + e.message, 'err', 6000); });
+  }).catch(function (e) { Q.toast(T('toast.importFailed', { msg: e.message }), 'err', 6000); });
 }
 
 /* =============================================================== wire */
@@ -3266,7 +3235,7 @@ function wireUI() {
   /* wrapped: the click event would otherwise arrive as the onApply callback */
   on($('#btnKeyPaste'), 'click', function () { pasteKeyDialog(); });
   on($('#btnPasteTopics'), 'click', function () {
-    if (!editing.mc.count) { Q.toast('Set the number of questions first.', 'err'); return; }
+    if (!editing.mc.count) { Q.toast(T('toast.needQuestionCount'), 'err'); return; }
     pasteTopicsDialog();
   });
   on($('#btnWrittenPaste'), 'click', pasteWrittenDialog);
@@ -3285,19 +3254,14 @@ function wireUI() {
     });
   });
   on($('#btnKeyFromScan'), 'click', function () {
-    Q.modal('<h3>Capture the key by scanning</h3>' +
-      '<p>Print the <b>answer-key sheet</b> from the Roster tab (it is pre-bubbled with ID 999999), ' +
-      'or bubble a blank sheet with ID <b>999999</b> and the correct answers.</p>' +
-      '<p>Scan it like any other sheet — QuickGrade recognises 999999 as the key and fills this grid in.</p>' +
-      '<p class="hint">Save this test first so the sheet carries the right test code.</p>');
+    Q.modal(T('keyscan.body'));
   });
   on($('#btnSaveTest'), 'click', function () {
     collectEditor();
-    if (!editing.title) { Q.toast('Give the test a title.', 'err'); return; }
+    if (!editing.title) { Q.toast(T('toast.needTitle'), 'err'); return; }
     var dupCode = State.tests.filter(function (t) { return t.code === editing.code && t.id !== editing.id; });
     if (dupCode.length) {
-      Q.toast('Warning: test code ' + editing.code + ' is already used by "' + dupCode[0].title +
-        '". Sheets could be scanned into the wrong test.', 'err', 8000);
+      Q.toast(T('toast.codeClash', { code: editing.code, title: dupCode[0].title }), 'err', 8000);
     }
     Q.DB.put('tests', editing).then(function () {
       var i = State.tests.findIndex(function (t) { return t.id === editing.id; });
@@ -3305,7 +3269,7 @@ function wireUI() {
       return selectTest(editing);
     }).then(function () {
       closeEditor(); renderTests(); renderRosterView();
-      Q.toast('Saved.', 'good');
+      Q.toast(T('toast.saved'), 'good');
     });
   });
   on($('#btnDeleteTest'), 'click', function () {
@@ -3387,12 +3351,12 @@ function wireUI() {
   Q.Audio2.setEnabled($('#optSound').checked);
   on($('#btnPhotoImport'), 'click', function () { $('#photoInput').click(); });
   on($('#btnCalibrate'), 'click', function () {
-    if (!Scanner.running) { Q.toast('Start the camera first.', 'err'); return; }
+    if (!Scanner.running) { Q.toast(T('toast.startCameraFirst'), 'err'); return; }
     Scanner.startCalibration();
   });
   on($('#btnPrintCheck'), 'click', function () {
     route('scan');
-    Q.toast('Start the camera, then hold up one printed blank sheet.', 'good', 6000);
+    Q.toast(T('toast.holdUpBlank'), 'good', 6000);
     setTimeout(function () { if (Scanner.running) Scanner.startCalibration(); }, 400);
   });
   on($('#photoInput'), 'change', function (e) {
@@ -3405,18 +3369,17 @@ function wireUI() {
   on($('#btnVerifyNames'), 'click', verifyNames);
   on($('#btnClearScans'), 'click', function () {
     var mine = State.scans.slice();
-    if (!mine.length) { Q.toast('There are no scans to delete.', 'err'); return; }
-    Q.confirmBox('Delete all ' + mine.length + ' scanned sheet(s) for "' + State.test.title +
-      '"? You can bring them back afterwards. Grades you typed are kept.',
-      'Delete ' + mine.length + ' sheet(s)').then(function (ok) {
+    if (!mine.length) { Q.toast(T('toast.noScansToDelete'), 'err'); return; }
+    Q.confirmBox(T('scan.deleteAllConfirm', { n: mine.length, title: State.test.title }),
+      T('scan.deleteAllYes', { n: mine.length })).then(function (ok) {
       if (!ok) return;
       mine.forEach(function (sc) { sc.deleted = Date.now(); });
       Q.DB.putMany('scans', mine).then(function () {
         State.scans = [];
         State.trash = State.trash.concat(mine);
         Scanner.resetSession(); recompute(); renderReview();
-        Q.toast('Deleted ' + mine.length + ' sheet(s).', 'good', 9000, {
-          label: 'Undo',
+        Q.toast(T('toast.deletedSheets', { n: mine.length }), 'good', 9000, {
+          label: T('common.undo'),
           fn: function () { restoreScans(mine).then(function () { renderReview(); }); }
         });
       });
@@ -3443,22 +3406,22 @@ function wireUI() {
     var k = $('#fmtAdd').value;
     if (!k) return;
     var f = fmt();
-    if (f.cols.indexOf(k) >= 0) { Q.toast('That column is already in the layout.', 'err'); return; }
+    if (f.cols.indexOf(k) >= 0) { Q.toast(T('toast.columnAlready'), 'err'); return; }
     f.cols.push(k); renderFormatUI();
   });
   on($('#fmtReset'), 'click', function () { workingFmt = null; renderFormatUI(); });
   on($('#fmtSave'), 'click', function () {
-    Q.promptBox('Name this layout', (fmt().name || '') + ' (mine)').then(function (name) {
+    Q.promptBox(T('cols.nameLayout'), T('cols.mineSuffix', { name: fmt().name || '' })).then(function (name) {
       if (!name) return;
       var f = fmt();
       var saved = savedFormats();
       var copy = JSON.parse(JSON.stringify(f));
-      copy.id = Q.uid('fmt'); copy.name = name; copy.note = 'Your own saved layout.';
+      copy.id = Q.uid('fmt'); copy.name = name; copy.note = T('cols.ownNote');
       saved.push(copy);
       Q.Prefs.set('formats', saved);
       Q.Prefs.set('formatId', copy.id);
       workingFmt = null; renderFormatUI();
-      Q.toast('Saved. It will be picked automatically from now on.', 'good', 5000);
+      Q.toast(T('toast.layoutSaved'), 'good', 5000);
     });
   });
   on($('#fmtDelete'), 'click', function () {

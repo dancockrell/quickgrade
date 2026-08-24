@@ -13,9 +13,9 @@ var SC = null;
 function sc() { return SC || (SC = global.QG.Scoring); }
 
 var LEVELS = [
-  { id: 'secure',     label: 'Secure',     min: 80 },
-  { id: 'developing', label: 'Developing', min: 60 },
-  { id: 'notyet',     label: 'Not yet',    min: 0 }
+  { id: 'secure',     key: 'level.secure',     min: 80 },
+  { id: 'developing', key: 'level.developing', min: 60 },
+  { id: 'notyet',     key: 'level.notyet',     min: 0 }
 ];
 
 function thresholds(test) {
@@ -98,11 +98,12 @@ function classHeadline(test, results) {
   var list = forClass(test, results);
   if (!list.length) return '';
   var weak = list.filter(function (s) { return s.pct < thresholds(test).developing / 100; });
-  if (!weak.length) return 'Every objective is at or above the developing threshold.';
+  var T = global.QG.T;
+  if (!weak.length) return T('mastery.allSecure');
   return weak.length === 1
-    ? 'Weakest objective: ' + weak[0].name + ', ' + Math.round(weak[0].pct * 100) + '% across the class.'
-    : weak.length + ' objectives are below the developing threshold, weakest is ' +
-      weak[0].name + ' at ' + Math.round(weak[0].pct * 100) + '%.';
+    ? T('mastery.weakestOne', { name: weak[0].name, pct: Math.round(weak[0].pct * 100) })
+    : T('mastery.weakestMany', { n: weak.length, name: weak[0].name,
+        pct: Math.round(weak[0].pct * 100) });
 }
 
 global.QG = global.QG || {};

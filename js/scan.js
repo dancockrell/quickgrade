@@ -6,7 +6,7 @@
 'use strict';
 
 var Q = global.QG, V = Q.Vision, S = Q.Sheet;
-var $ = Q.$, el = Q.el;
+var $ = Q.$, el = Q.el, T = Q.T;
 
 var DET_W = 480;         // detection resolution (fast)
 var CAP_W = 1400;        // sampling / crop resolution (accurate)
@@ -51,7 +51,7 @@ Scanner.listCameras = function () {
 
 Scanner.start = function (deviceId) {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    Q.toast('This browser cannot open a camera here. Use "Import photos", or open the app over https:// (see README).', 'err', 8000);
+    Q.toast(T('scan.noCamera'), 'err', 8000);
     return Promise.reject(new Error('no getUserMedia'));
   }
   ensureCanvases();
@@ -71,14 +71,14 @@ Scanner.start = function (deviceId) {
     v.play().catch(function () {});
     Scanner.running = true;
     Q.Prefs.set('camId', deviceId || '');
-    setStatus('Looking for a sheet…');
+    setStatus(T('scan.looking'));
     var caps = Scanner.track.getCapabilities ? Scanner.track.getCapabilities() : {};
     $('#btnTorch').hidden = !(caps && caps.torch);
     loop();
     return Scanner.listCameras().then(fillCameraSelect);
   }).catch(function (e) {
-    Q.toast('Camera error: ' + (e && e.message ? e.message : e), 'err', 7000);
-    setStatus('Camera unavailable');
+    Q.toast(T('scan.cameraError', { msg: e && e.message ? e.message : e }), 'err', 7000);
+    setStatus(T('scan.cameraUnavailable'));
     throw e;
   });
 };
@@ -99,7 +99,7 @@ Scanner.toggleTorch = function () {
   if (!Scanner.track || !Scanner.track.applyConstraints) return;
   Scanner._torch = !Scanner._torch;
   Scanner.track.applyConstraints({ advanced: [{ torch: Scanner._torch }] })
-    .catch(function () { Q.toast('This camera has no controllable light.', 'err'); });
+    .catch(function () { Q.toast(T('scan.noTorch'), 'err'); });
 };
 
 function fillCameraSelect(devs) {
@@ -188,7 +188,7 @@ function tick() {
   var v = Scanner.video;
   if (!v || !v.videoWidth || Scanner.busy) return;
   var test = Scanner.hooks.getTest && Scanner.hooks.getTest();
-  if (!test) { setStatus('Pick a test first', 'bad'); return; }
+  if (!test) { setStatus(T('scan.pickTestStatus'), 'bad'); return; }
   S.usePaper(test);   // aspect check + identity grids depend on the paper
 
   var vw = v.videoWidth, vh = v.videoHeight;
@@ -206,7 +206,7 @@ function tick() {
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);
-    setStatus('Looking for a sheet…');
+    setStatus(T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);
@@ -218,16 +218,16 @@ function tick() {
   var white = V.whiteLevel(capGray.g, capW, capH, Hcap);
   var ident = V.decodeIdentity(capGray.g, capW, capH, Hcap, white, S.idDigitsOf(test));
 
-  if (ident.page == null) { setStatus('Hold steadier — page marker unclear'); Scanner.pending = null; return; }
+  if (ident.page == null) { setStatus(T('scan.pageUnclear')); Scanner.pending = null; return; }
 
   var pages = Scanner.hooks.getPages();
-  if (ident.page > pages.length) { setStatus('Page ' + ident.page + ' is not part of this test', 'bad'); return; }
+  if (ident.page > pages.length) { setStatus(T('scan.pageNotInTest', { n: ident.page }), 'bad'); return; }
   /* The printed code identifies which version of the test this is, so a
    * mixed pile of version A and version B sheets can be fed through in any
    * order without anyone choosing anything. */
   var form = Q.Scoring.formByCode(test, ident.code);
   if (!form) {
-    setStatus('Not this test — sheet is code ' + (ident.code || '?'), 'bad');
+    setStatus(T('scan.wrongTest', { code: ident.code || '?' }), 'bad');
     Scanner.pending = null;
     return;
   }
@@ -246,15 +246,15 @@ function tick() {
   var key = (ident.sid || 'ANON') + '|' + ident.page + '|' + hashAnswers(ans.answers);
   ctxForm = form;
   var now = Date.now();
-  if (Scanner.recent[key] && now - Scanner.recent[key] < RESCAN_MS) { setStatus('Ready for the next sheet', 'ok'); return; }
+  if (Scanner.recent[key] && now - Scanner.recent[key] < RESCAN_MS) { setStatus(T('scan.readyNext'), 'ok'); return; }
 
   if (!Scanner.pending || Scanner.pending.key !== key) {
     Scanner.pending = { key: key, n: 1 };
-    setStatus('Reading…');
+    setStatus(T('scan.reading'));
     return;
   }
   Scanner.pending.n++;
-  if (Scanner.pending.n < STABLE_FRAMES) { setStatus('Reading…'); return; }
+  if (Scanner.pending.n < STABLE_FRAMES) { setStatus(T('scan.reading')); return; }
 
   Scanner.pending = null;
   Scanner.recent[key] = now;
@@ -263,7 +263,7 @@ function tick() {
     test: test, pages: pages, pageDesc: pageDesc, ident: ident, ans: ans,
     form: form, capImg: capImg, H: Hcap, capW: capW, capH: capH
   }).catch(function (e) {
-    console.error(e); Q.toast('Could not save that scan: ' + e.message, 'err');
+    console.error(e); Q.toast(T('scan.saveFailed', { msg: e.message }), 'err');
   }).then(function () { Scanner.busy = false; });
 }
 
@@ -294,33 +294,33 @@ function reportCalibration(test, ident, ans, pageDesc, found, detW, detH) {
   function add(ok, warn, label, detail) {
     rows.push({ ok: ok, warn: warn, label: label, detail: detail });
   }
-  add(true, false, 'Sheet found', 'all four corner squares detected');
-  add(ident.code === expectCode, false, 'Test code',
-    ident.code === expectCode ? 'read ' + ident.code + ' as printed'
-      : 'read ' + (ident.code || 'nothing') + ', expected ' + expectCode);
-  add(ident.page != null, false, 'Page number',
-    ident.page != null ? 'read page ' + ident.page : 'could not be read');
-  add(marked.length === 0, marked.length > 0 && marked.length <= 2, 'Answer bubbles read empty',
-    marked.length === 0 ? pageDesc.mc.length + ' bubbles, none read as filled'
-      : marked.length + ' read as filled (Q' + marked.slice(0, 6).join(', Q') + ')');
-  add(aspectErr < 0.06, aspectErr < 0.12, 'Print proportions',
-    aspectErr < 0.06 ? 'within ' + Math.round(aspectErr * 100) + '% of expected'
-      : Math.round(aspectErr * 100) + '% off — hold the sheet flat and square, then retry');
-  add(fill > 0.45, fill > 0.3, 'Sheet fills the frame',
-    Math.round(fill * 100) + '% of frame width');
-  add(skew < 0.12, skew < 0.25, 'Held square to the camera',
-    Math.round(skew * 100) + '% tilt');
+  add(true, false, T('cal.found'), T('cal.found.d'));
+  add(ident.code === expectCode, false, T('cal.code'),
+    ident.code === expectCode ? T('cal.code.ok', { code: ident.code })
+      : T('cal.code.bad', { got: ident.code || T('cal.nothing'), want: expectCode }));
+  add(ident.page != null, false, T('cal.page'),
+    ident.page != null ? T('cal.page.ok', { n: ident.page }) : T('cal.page.bad'));
+  add(marked.length === 0, marked.length > 0 && marked.length <= 2, T('cal.bubbles'),
+    marked.length === 0 ? T('cal.bubbles.ok', { n: pageDesc.mc.length })
+      : T('cal.bubbles.bad', { n: marked.length, list: marked.slice(0, 6).join(', Q') }));
+  add(aspectErr < 0.06, aspectErr < 0.12, T('cal.proportions'),
+    aspectErr < 0.06 ? T('cal.proportions.ok', { pct: Math.round(aspectErr * 100) })
+      : T('cal.proportions.bad', { pct: Math.round(aspectErr * 100) }));
+  add(fill > 0.45, fill > 0.3, T('cal.fill'),
+    T('cal.fill.d', { pct: Math.round(fill * 100) }));
+  add(skew < 0.12, skew < 0.25, T('cal.square'),
+    T('cal.square.d', { pct: Math.round(skew * 100) }));
 
   var bad = rows.filter(function (r) { return !r.ok && !r.warn; });
   var warn = rows.filter(function (r) { return !r.ok && r.warn; });
 
   if (!bad.length) { flash('ok'); Q.Audio2.done(); } else { flash('bad'); Q.Audio2.bad(); }
-  setStatus(bad.length ? 'Printing check found problems' : 'Printing check passed',
+  setStatus(bad.length ? T('cal.statusBad') : T('cal.statusOk'),
     bad.length ? 'bad' : 'ok');
 
   var body = Q.el('div', {}, [
-    Q.el('h3', { text: bad.length ? 'Printing check — needs attention'
-                    : warn.length ? 'Printing check — good, with notes' : 'Printing check passed' })
+    Q.el('h3', { text: bad.length ? T('cal.h3.bad')
+                    : warn.length ? T('cal.h3.warn') : T('cal.h3.ok') })
   ]);
   var list = Q.el('div', { class: 'calilist' });
   rows.forEach(function (r) {
@@ -333,24 +333,22 @@ function reportCalibration(test, ident, ans, pageDesc, found, detW, detH) {
 
   var advice = [];
   if (ident.code !== expectCode) {
-    advice.push('The test code did not read back. Make sure you printed this sheet from THIS test, ' +
-      'and that the printer is not scaling unevenly.');
+    advice.push(T('cal.advice.code'));
   }
   if (marked.length) {
-    advice.push('Blank bubbles are reading as filled. Usually the copier is set too dark, ' +
-      'or you are photocopying a copy of a copy — go back to the original master.');
+    advice.push(T('cal.advice.dark'));
   }
   if (aspectErr >= 0.06) {
-    advice.push('Hold the sheet flat, square to the camera, and fill more of the frame, then run the check again.');
+    advice.push(T('cal.advice.hold'));
   }
   if (!advice.length) {
-    advice.push('Your printer, paper and lighting all check out. Photocopy this master for the class.');
+    advice.push(T('cal.advice.allGood'));
   }
   advice.forEach(function (a) { body.appendChild(Q.el('p', { class: 'hint', text: a })); });
   body.appendChild(Q.el('div', { class: 'row gap end' }, [
-    Q.el('button', { class: 'btn', text: 'Check another sheet',
+    Q.el('button', { class: 'btn', text: T('cal.another'),
       onclick: function () { h.close(); Scanner.startCalibration(); } }),
-    Q.el('button', { class: 'btn go', text: 'Done', onclick: function () { h.close(); } })
+    Q.el('button', { class: 'btn go', text: T('common.done'), onclick: function () { h.close(); } })
   ]));
   var h = Q.modal(body);
 }
@@ -358,8 +356,8 @@ function reportCalibration(test, ident, ans, pageDesc, found, detW, detH) {
 Scanner.startCalibration = function () {
   Scanner.calibrating = true;
   Scanner.pending = null;
-  setStatus('Hold up one freshly printed BLANK sheet…');
-  Q.toast('Print one blank sheet, then hold it up. Nothing will be recorded.', 'good', 6000);
+  setStatus(T('cal.holdUp'));
+  Q.toast(T('scan.calibHint'), 'good', 6000);
 };
 
 function hashAnswers(a) {
@@ -447,53 +445,53 @@ function announce(msg) {
 }
 
 function report(res, record, test) {
-  var pageTag = 'page ' + record.page;
+  var pageTag = T('scan.pageTag', { n: record.page });
   var speak = $('#optSpeak') && $('#optSpeak').checked;
 
   if (res.status === 'key') {
     flash('ok'); Q.Audio2.done();
-    bigMessage('ANSWER KEY', 'key captured from ' + pageTag, 1600);
-    setStatus('Answer key updated', 'ok');
-    announce('Answer key captured.');
-    addThumb(record.thumb, 'KEY');
+    bigMessage(T('scan.keyBig'), T('scan.keyFrom', { page: pageTag }), 1600);
+    setStatus(T('scan.keyUpdated'), 'ok');
+    announce(T('scan.keyAnnounce'));
+    addThumb(record.thumb, T('scan.keyTag'));
     return;
   }
   if (res.status === 'no-id') {
     flash('bad'); Q.Audio2.bad();
-    bigMessage('NAME NOT FOUND', 'Sheet saved — tag it in Review', 2400);
-    setStatus('NO NAME on this sheet — fix it in Review', 'bad');
-    announce('Problem. No name on this sheet. Saved for review.');
-    addThumb(record.thumb, 'UNKNOWN', true);
-    if (speak) Q.speak('Name missing');
+    bigMessage(T('scan.noNameBig'), T('scan.noNameSub'), 2400);
+    setStatus(T('scan.noNameStatus'), 'bad');
+    announce(T('scan.noNameAnnounce'));
+    addThumb(record.thumb, T('scan.unknownTag'), true);
+    if (speak) Q.speak(T('scan.speakNoName'));
     return;
   }
   if (res.status === 'unknown-id') {
     flash('bad'); Q.Audio2.bad();
-    bigMessage('ID ' + record.sid, 'not on this roster — tag it in Review', 2400);
-    setStatus('ID ' + record.sid + ' is not on the roster', 'bad');
-    announce('Problem. ID ' + record.sid + ' is not on the roster.');
+    bigMessage(T('scan.idBig', { sid: record.sid }), T('scan.idSub'), 2400);
+    setStatus(T('scan.idStatus', { sid: record.sid }), 'bad');
+    announce(T('scan.idAnnounce', { sid: record.sid }));
     addThumb(record.thumb, record.sid, true);
-    if (speak) Q.speak('Unknown student');
+    if (speak) Q.speak(T('scan.speakUnknown'));
     return;
   }
   if (res.status === 'replaced') {
     flash('dup'); Q.Audio2.dup();
-    bigMessage(res.name, 'rescanned ' + pageTag, 1400);
-    setStatus('Replaced ' + pageTag + ' for ' + res.name, 'ok');
-    announce('Rescanned ' + pageTag + ' for ' + res.name + '.');
+    bigMessage(res.name, T('scan.rescanned', { page: pageTag }), 1400);
+    setStatus(T('scan.replacedStatus', { page: pageTag, name: res.name }), 'ok');
+    announce(T('scan.replacedAnnounce', { page: pageTag, name: res.name }));
     addThumb(record.thumb, res.name.split(' ')[0]);
     return;
   }
 
   flash('ok');
   if (res.complete) Q.Audio2.done(); else if (record.page > 1) Q.Audio2.tick(); else Q.Audio2.ok();
-  var sub = res.complete ? 'complete — all pages in'
+  var sub = res.complete ? T('scan.complete')
           : (res.missingPages && res.missingPages.length
-              ? 'still need page ' + res.missingPages.join(', ')
-              : pageTag + ' accepted');
+              ? T('scan.stillNeed', { pages: res.missingPages.join(', ') })
+              : T('scan.accepted', { page: pageTag }));
   bigMessage(res.name, sub, 1300);
-  setStatus(res.name + ' — ' + sub, 'ok');
-  announce(res.name + ', ' + sub + '.');
+  setStatus(T('scan.okStatus', { name: res.name, sub: sub }), 'ok');
+  announce(T('scan.okAnnounce', { name: res.name, sub: sub }));
   addThumb(record.thumb, res.name.split(' ')[0]);
   if (speak) Q.speak(res.name);
 }
@@ -503,11 +501,11 @@ Scanner.importFiles = function (files, opts) {
   var quiet = !!(opts && opts.quiet);
   ensureCanvases();
   var test = Scanner.hooks.getTest && Scanner.hooks.getTest();
-  if (!test) { Q.toast('Pick a test first.', 'err'); return Promise.resolve(); }
+  if (!test) { Q.toast(T('toast.pickTest'), 'err'); return Promise.resolve(); }
   var pages = Scanner.hooks.getPages();
   var list = Array.prototype.slice.call(files);
   var okCount = 0, failCount = 0;
-  setStatus('Importing ' + list.length + ' image' + (list.length === 1 ? '' : 's') + '…');
+  setStatus(T('scan.importing', { n: list.length }));
 
   return list.reduce(function (chain, file) {
     return chain.then(function () {
@@ -523,7 +521,7 @@ Scanner.importFiles = function (files, opts) {
         S.usePaper(test);
         var gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
         var found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
-        if (!found) { failCount++; Q.toast('No sheet found in ' + file.name, 'err'); return; }
+        if (!found) { failCount++; Q.toast(T('scan.noSheetIn', { file: file.name }), 'err'); return; }
 
         var H = V.scaleH(found.H, capW / detW);
         var capImg = Scanner.capCtx.getImageData(0, 0, capW, capH);
@@ -531,12 +529,12 @@ Scanner.importFiles = function (files, opts) {
         var white = V.whiteLevel(capGray.g, capW, capH, H);
         var ident = V.decodeIdentity(capGray.g, capW, capH, H, white, S.idDigitsOf(test));
         if (ident.page == null || ident.page > pages.length) {
-          failCount++; Q.toast('Page number unreadable in ' + file.name, 'err'); return;
+          failCount++; Q.toast(T('scan.pageUnreadableIn', { file: file.name }), 'err'); return;
         }
         var form = Q.Scoring.formByCode(test, ident.code);
         if (!form) {
           failCount++;
-          Q.toast(file.name + ' is code ' + (ident.code || '?') + ', not part of this test', 'err');
+          Q.toast(T('scan.wrongCodeIn', { file: file.name, code: ident.code || '?' }), 'err');
           return;
         }
         var pageDesc = pages[ident.page - 1];
@@ -547,10 +545,10 @@ Scanner.importFiles = function (files, opts) {
       }).catch(function (e) { failCount++; console.error(e); });
     });
   }, Promise.resolve()).then(function () {
-    setStatus('Imported ' + okCount + ' of ' + list.length, failCount ? 'bad' : 'ok');
+    setStatus(T('scan.importedStatus', { n: okCount, total: list.length }), failCount ? 'bad' : 'ok');
     if (!quiet) {
-      Q.toast('Imported ' + okCount + ' sheet' + (okCount === 1 ? '' : 's') +
-              (failCount ? ' — ' + failCount + ' could not be read' : ''),
+      Q.toast(T('scan.imported', { n: okCount }) +
+              (failCount ? T('scan.importedFailed', { n: failCount }) : ''),
               failCount ? 'err' : 'good', 5000);
     }
     if (Scanner.hooks.refresh) Scanner.hooks.refresh();
@@ -562,7 +560,7 @@ Scanner.resetSession = function () {
   Scanner.recent = {};
   Scanner.pending = null;
   var strip = $('#scanStrip'); if (strip) strip.innerHTML = '';
-  var pill = $('#pillCount'); if (pill) pill.textContent = '0 sheets';
+  var pill = $('#pillCount'); if (pill) pill.textContent = T('scan.sheetCount', { n: 0 });
 };
 
 global.QG.Scanner = Scanner;

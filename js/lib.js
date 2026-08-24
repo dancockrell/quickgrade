@@ -123,7 +123,7 @@ var DB = (function () {
     } catch (e) {
       if (!warned) {
         warned = true;
-        toast('Local storage is full — recent changes may not survive a reload. Export a backup.', 'err', 9000);
+        toast(global.QG.T('lib.storageFull'), 'err', 9000);
       }
     }
     return Promise.resolve();
@@ -414,7 +414,7 @@ function copyToClipboard(text) {
 /** Open an HTML string in a new window and (optionally) trigger print. */
 function openPrintWindow(html, autoPrint) {
   var w = global.open('', '_blank');
-  if (!w) { toast('Pop-up blocked — allow pop-ups for this page to print.', 'err', 6000); return null; }
+  if (!w) { toast(global.QG.T('lib.popupBlocked'), 'err', 6000); return null; }
   w.document.open(); w.document.write(html); w.document.close();
   if (autoPrint) w.onload = function () { setTimeout(function () { w.focus(); w.print(); }, 350); };
   return w;

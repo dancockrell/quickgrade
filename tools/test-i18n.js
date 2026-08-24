@@ -2,7 +2,24 @@
  * round trip back to English. A missing key here is a string that would show
  * up as a raw dotted identifier in front of a class. */
 const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
 const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
+const ROOT = path.join(__dirname, '..');
+const SOURCES = ['app.js', 'scan.js', 'lib.js', 'scoring.js', 'mastery.js'];
+
+/* Every T('key') the code calls must exist in the English pack. Without this
+ * check a dropped pack entry ships as a raw dotted identifier on screen, and
+ * only the one code path that uses it would ever reveal the problem. */
+const KEY_CALL = /(?:^|[^A-Za-z0-9_$.])(?:QG\.T|T)\(\s*'([a-z][A-Za-z0-9.]*)'/g;
+function keysUsedInSource() {
+  const used = new Set();
+  for (const f of SOURCES) {
+    const src = fs.readFileSync(path.join(ROOT, 'js', f), 'utf8');
+    for (const m of src.matchAll(KEY_CALL)) used.add(m[1]);
+  }
+  return [...used];
+}
 
 (async () => {
   const browser = await chromium.launch();
@@ -26,7 +43,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const keys = Object.keys(p);
       out[code] = {
         count: keys.length,
-        missing: enKeys.filter(k => p[k] == null),
+        /* A language with no plural distinction supplies only .other; that
+         * is complete, not missing. */
+        missing: enKeys.filter(k => p[k] == null &&
+          p[k.replace(/[.](one|few|many|two|zero)$/, '.other')] == null),
         stray: keys.filter(k => I.packs.en[k] == null),
         empty: keys.filter(k => typeof p[k] !== 'string' || !p[k].trim()),
         /* {n} and friends must survive translation or the number vanishes. */
@@ -36,8 +56,8 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
           const got = (String(p[k]).match(/\{\w+\}/g) || []).sort().join(',');
           return want !== got;
         }),
-        /* A pack that still contains the English word for a UI noun in every
-         * single value has almost certainly been copied without translating. */
+        /* A pack copied without being translated would match English on
+         * nearly every line. */
         identical: enKeys.filter(k => p[k] === I.packs.en[k]).length
       };
     }
@@ -46,6 +66,20 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
   const codes = Object.keys(packs);
   ok('more than one language is available', codes.length > 1, codes.join(', '));
+
+  // -------------------------------------------- code vs English pack
+  const enPack = await page.evaluate(() => Object.keys(QG.I18N.packs.en));
+  const used = keysUsedInSource();
+  /* Guard against the check passing because the scan found nothing: a broken
+   * pattern would otherwise report success while testing zero keys. */
+  ok('the source scan actually found T() calls', used.length > 100, used.length + ' found');
+  const hasKey = k => enPack.includes(k) || enPack.includes(k + '.other');
+  const orphaned = used.filter(k => !hasKey(k));
+  ok('every key the code asks for exists in English', orphaned.length === 0,
+    orphaned.slice(0, 8).join(', ') || used.length + ' keys used');
+
+  // ------------------------------------------- switching, per language
+  const english = await page.evaluate(() => document.querySelector('#view-tests h1').textContent);
 
   for (const code of codes) {
     const p = packs[code];
@@ -61,12 +95,7 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       ok('[' + code + '] is actually translated', p.identical < p.count * 0.5,
         p.identical + ' of ' + p.count + ' identical to English');
     }
-  }
 
-  // ------------------------------------------- switching, per language
-  const english = await page.evaluate(() => document.querySelector('#view-tests h1').textContent);
-
-  for (const code of codes) {
     const r = await page.evaluate(async (c) => {
       QG.I18N.set(c);
       await new Promise(r => setTimeout(r, 250));
