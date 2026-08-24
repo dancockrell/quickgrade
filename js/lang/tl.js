@@ -513,7 +513,7 @@ I.packs.tl = {
   'tests.sheet.id6': '6-digit na ID ng distrito',
   'tests.sheet.idDigits': 'Paano magpapakilala ang mga mag-aaral',
   'tests.sheet.idLabel': 'Label sa ibabaw ng mga bilog ng numero',
-  'tests.sheet.idLabel.ph': 'NUMERO SA KLASE',
+  'sheet.classNumber': 'NUMERO SA KLASE',
   'tests.sheet.instr': 'Panuto sa papel',
   'tests.sheet.instr.ph': 'Gumamit ng lapis. Punuin nang buo ang mga bilog.',
   'tests.sheet.legal': 'US Legal (8.5 × 14 in)',
@@ -531,18 +531,18 @@ I.packs.tl = {
   'tests.w.hint': 'May nakalimbag na kahon ng sagot ang mga ito. Pagkatapos mag-scan, iwawasto ninyo ang mga ito nang isa-isang tanong para sa buong klase.',
   'tests.w.paste': 'I-paste ang aking mga tanong',
   'tests.words.class': 'Kahon ng klase',
-  'tests.words.class.ph': 'KLASE / PANAHON',
+  'sheet.class': 'KLASE / PANAHON',
   'tests.words.howto': 'Pamagat ng “paano punan ito”',
-  'tests.words.howto.ph': 'PAANO ITO PUNAN',
+  'sheet.howto': 'PAANO ITO PUNAN',
   'tests.words.name': 'Kahon ng pangalan',
-  'tests.words.name.ph': 'PANGALAN',
+  'sheet.name': 'PANGALAN',
   'tests.words.page': 'Linya ng pahina',
-  'tests.words.page.ph': 'PAHINA',
+  'sheet.page': 'PAHINA',
   'tests.words.samples': 'Halimbawa ng bilog, pinaghihiwalay ng',
-  'tests.words.samples.ph': 'tama|masyadong manipis|huwag ekisan',
+  'sheet.samples': 'tama|masyadong manipis|huwag ekisan',
   'tests.words.summary': 'Mga salita sa nakalimbag na papel — para sa ibang wika, o sa termino ng inyong paaralan',
   'tests.words.tips': 'Linya ng payo sa ilalim ng mga halimbawa',
-  'tests.words.tips.ph': 'Lapis o madilim na tinta · burahin nang buo ang pagbabago · panatilihing malinis ang apat na parisukat sa sulok',
+  'sheet.tips': 'Lapis o madilim na tinta · burahin nang buo ang pagbabago · panatilihing malinis ang apat na parisukat sa sulok',
 
   /* --- toasts --- */
   'toast.allGraded': 'Naiwasto na ang lahat ng nakasulat na tanong.',
@@ -732,6 +732,15 @@ I.packs.tl = {
   'wlist.rubricAdd': 'Markahan ayon sa pamantayan sa halip na isang numero',
   'wlist.rubricEdit': 'Baguhin ang rubric',
   'wlist.rubricN': 'Rubric · {n}',
-  'wlist.short': 'Maikling sagot'
+  'wlist.short': 'Maikling sagot',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'ID',
+  'sheet.test': 'PAGSUSULIT',
+  'sheet.version': 'BERSYON',
+  'sheet.pageWord': 'PAHINA',
+  'sheet.of': 'sa',
+  'sheet.studentId': 'ID NG MAG-AARAL',
+  'sheet.testCode': 'KODIGO (nakalimbag na)'
 };
 })(window.QG.I18N);

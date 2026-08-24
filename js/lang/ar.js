@@ -520,7 +520,7 @@ I.packs.ar = {
   'tests.sheet.id6': 'رقم تعريف من ٦ خانات',
   'tests.sheet.idDigits': 'كيف يعرّف الطلاب عن أنفسهم',
   'tests.sheet.idLabel': 'العنوان فوق خانات الرقم',
-  'tests.sheet.idLabel.ph': 'رقم الطالب في الصف',
+  'sheet.classNumber': 'رقم الطالب في الصف',
   'tests.sheet.instr': 'تعليمات الورقة',
   'tests.sheet.instr.ph': 'استخدم قلم رصاص. ظلّل الدوائر بالكامل.',
   'tests.sheet.legal': 'US Legal ‏(8.5 × 14 بوصة)',
@@ -538,18 +538,18 @@ I.packs.ar = {
   'tests.w.hint': 'تُطبع لها صناديق إجابة. بعد المسح تصححها سؤالاً سؤالاً لكل الصف.',
   'tests.w.paste': 'لصق أسئلتي',
   'tests.words.class': 'خانة الصف',
-  'tests.words.class.ph': 'الصف / الحصة',
+  'sheet.class': 'الصف / الحصة',
   'tests.words.howto': 'عنوان «كيفية التظليل»',
-  'tests.words.howto.ph': 'كيفية تظليل الورقة',
+  'sheet.howto': 'كيفية تظليل الورقة',
   'tests.words.name': 'خانة الاسم',
-  'tests.words.name.ph': 'الاسم',
+  'sheet.name': 'الاسم',
   'tests.words.page': 'سطر الصفحة',
-  'tests.words.page.ph': 'صفحة',
+  'sheet.page': 'صفحة',
   'tests.words.samples': 'أمثلة التظليل، مفصولة بـ',
-  'tests.words.samples.ph': 'صحيح|خفيف جداً|لا تضع علامة X',
+  'sheet.samples': 'صحيح|خفيف جداً|لا تضع علامة X',
   'tests.words.summary': 'الكلمات المطبوعة على الورقة — للغة أخرى أو لمصطلحات مدرستك',
   'tests.words.tips': 'سطر الإرشاد تحت الأمثلة',
-  'tests.words.tips.ph': 'قلم رصاص أو حبر داكن · امسح التعديلات تماماً · حافظ على نظافة المربعات الأربعة',
+  'sheet.tips': 'قلم رصاص أو حبر داكن · امسح التعديلات تماماً · حافظ على نظافة المربعات الأربعة',
 
   /* --- toasts --- */
   'toast.allGraded': 'صُحِّحت كل الأسئلة الكتابية.',
@@ -739,6 +739,15 @@ I.packs.ar = {
   'wlist.rubricAdd': 'قدّر وفق معايير بدل رقم واحد',
   'wlist.rubricEdit': 'تعديل السلّم',
   'wlist.rubricN': 'سلّم · {n}',
-  'wlist.short': 'إجابة قصيرة'
+  'wlist.short': 'إجابة قصيرة',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'الرقم',
+  'sheet.test': 'اختبار',
+  'sheet.version': 'نسخة',
+  'sheet.pageWord': 'صفحة',
+  'sheet.of': 'من',
+  'sheet.studentId': 'رقم الطالب',
+  'sheet.testCode': 'رمز الاختبار (مطبوع مسبقاً)'
 };
 })(window.QG.I18N);

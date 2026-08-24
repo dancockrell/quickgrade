@@ -343,11 +343,23 @@ function table(rows, opts) {
   return out + '</w:tbl>' + emptyP();
 }
 
-var DOCX_STYLES = DECL +
+/* Word keeps three font slots — Latin, East Asian and "complex script"
+ * (Arabic, Thai, Devanagari). Naming only the Latin one leaves Word to
+ * substitute for the rest, and its guesses are poor. `bidi` makes the
+ * paragraph itself right-to-left, which a Latin-only default never does. */
+function docxStyles() {
+  var f = global.QG.I18N.fonts().docx;
+  var rtl = global.QG.I18N.meta(global.QG.I18N.lang).dir === 'rtl';
+  return DECL +
 '<w:styles ' + W_NS + '>' +
 '<w:docDefaults><w:rPrDefault><w:rPr>' +
-  '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="21"/><w:szCs w:val="21"/>' +
+  '<w:rFonts w:ascii="' + xml(f.ascii) + '" w:hAnsi="' + xml(f.ascii) +
+    '" w:cs="' + xml(f.cs) + '" w:eastAsia="' + xml(f.eastAsia) + '"/>' +
+  (rtl ? '<w:rtl/>' : '') +
+  '<w:lang w:val="' + xml(global.QG.I18N.lang) + '" w:bidi="' + xml(global.QG.I18N.lang) + '"/>' +
+  '<w:sz w:val="21"/><w:szCs w:val="21"/>' +
 '</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>' +
+  (rtl ? '<w:bidi/>' : '') +
   '<w:spacing w:after="80" w:line="252" w:lineRule="auto"/>' +
 '</w:pPr></w:pPrDefault></w:docDefaults>' +
 '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
@@ -367,6 +379,7 @@ var DOCX_STYLES = DECL +
   }).join('') +
   '</w:tblBorders></w:tblPr></w:style>' +
 '</w:styles>';
+}
 
 /** buildDocx(bodyXml) — bodyXml is a concatenation of p()/table()/pageBreak(). */
 function buildDocx(bodyXml) {
@@ -393,7 +406,7 @@ function buildDocx(bodyXml) {
     { name: 'word/_rels/document.xml.rels', data: DECL + '<Relationships xmlns="' + RELS_NS + '">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
       '</Relationships>' },
-    { name: 'word/styles.xml', data: DOCX_STYLES },
+    { name: 'word/styles.xml', data: docxStyles() },
     { name: 'word/document.xml', data: doc }
   ];
   return new Blob([zip(files)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });

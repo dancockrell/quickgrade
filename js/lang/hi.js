@@ -513,7 +513,7 @@ I.packs.hi = {
   'tests.sheet.id6': '6 अंकों की ज़िला आईडी',
   'tests.sheet.idDigits': 'विद्यार्थी अपनी पहचान कैसे देंगे',
   'tests.sheet.idLabel': 'क्रमांक के गोलों के ऊपर का शीर्षक',
-  'tests.sheet.idLabel.ph': 'कक्षा क्रमांक',
+  'sheet.classNumber': 'कक्षा क्रमांक',
   'tests.sheet.instr': 'पत्रक पर निर्देश',
   'tests.sheet.instr.ph': 'पेंसिल का उपयोग करें। गोले पूरे भरें।',
   'tests.sheet.legal': 'US Legal (8.5 × 14 इंच)',
@@ -531,18 +531,18 @@ I.packs.hi = {
   'tests.w.hint': 'इनके लिए उत्तर-बक्से छपते हैं। स्कैन के बाद आप पूरी कक्षा के एक-एक प्रश्न को साथ-साथ जाँचते हैं।',
   'tests.w.paste': 'अपने प्रश्न चिपकाएँ',
   'tests.words.class': 'कक्षा का ख़ाना',
-  'tests.words.class.ph': 'कक्षा / कालांश',
+  'sheet.class': 'कक्षा / कालांश',
   'tests.words.howto': '“कैसे भरें” शीर्षक',
-  'tests.words.howto.ph': 'इसे कैसे भरें',
+  'sheet.howto': 'इसे कैसे भरें',
   'tests.words.name': 'नाम का ख़ाना',
-  'tests.words.name.ph': 'नाम',
+  'sheet.name': 'नाम',
   'tests.words.page': 'पृष्ठ पंक्ति',
-  'tests.words.page.ph': 'पृष्ठ',
+  'sheet.page': 'पृष्ठ',
   'tests.words.samples': 'गोले के उदाहरण, इससे अलग करें',
-  'tests.words.samples.ph': 'सही|बहुत हल्का|क्रॉस न लगाएँ',
+  'sheet.samples': 'सही|बहुत हल्का|क्रॉस न लगाएँ',
   'tests.words.summary': 'छपे हुए पत्रक के शब्द — दूसरी भाषा के लिए, या अपने विद्यालय के शब्दों के लिए',
   'tests.words.tips': 'उदाहरणों के नीचे सलाह की पंक्ति',
-  'tests.words.tips.ph': 'पेंसिल या गाढ़ी स्याही · बदलाव पूरी तरह मिटाएँ · चारों कोनों के वर्ग साफ़ रखें',
+  'sheet.tips': 'पेंसिल या गाढ़ी स्याही · बदलाव पूरी तरह मिटाएँ · चारों कोनों के वर्ग साफ़ रखें',
 
   /* --- toasts --- */
   'toast.allGraded': 'सभी लिखित प्रश्न जाँच लिए गए।',
@@ -732,6 +732,15 @@ I.packs.hi = {
   'wlist.rubricAdd': 'एक ही संख्या के बजाय मानदंडों से आँकें',
   'wlist.rubricEdit': 'रूब्रिक संपादित करें',
   'wlist.rubricN': 'रूब्रिक · {n}',
-  'wlist.short': 'लघु उत्तर'
+  'wlist.short': 'लघु उत्तर',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'क्रमांक',
+  'sheet.test': 'परीक्षा',
+  'sheet.version': 'संस्करण',
+  'sheet.pageWord': 'पृष्ठ',
+  'sheet.of': 'में से',
+  'sheet.studentId': 'विद्यार्थी आईडी',
+  'sheet.testCode': 'परीक्षा कोड (पहले से भरा)'
 };
 })(window.QG.I18N);

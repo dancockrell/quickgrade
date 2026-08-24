@@ -242,7 +242,7 @@ function classStudents() {
       var d = want.indexOf(a.cls || '') - want.indexOf(b.cls || '');
       if (d) return d;
     }
-    return Q.sortName(a.name).localeCompare(Q.sortName(b.name));
+    return Q.compareNames(a.name, b.name);
   });
 }
 /** True when this test is shared across more than one class. */
@@ -1352,7 +1352,7 @@ function renderRosterView() {
 function renderRosterTable() {
   var cls = currentClass();
   var list = State.students.filter(function (s) { return (s.cls || '') === cls; })
-    .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); });
+    .sort(function (a, b) { return Q.compareNames(a.name, b.name); });
   $('#rosterCount').textContent = list.length ? '(' + list.length + ')' : '';
   var box = $('#rosterTable');
   box.innerHTML = '';
@@ -2147,7 +2147,7 @@ function verifyNames() {
   var grid = el('div', { class: 'namegrid' });
   var seen = {}, n = 0;
   State.scans.slice()
-    .sort(function (a, b) { return Q.sortName(studentName(a.sid)).localeCompare(Q.sortName(studentName(b.sid))); })
+    .sort(function (a, b) { return Q.compareNames(studentName(a.sid), studentName(b.sid)); })
     .forEach(function (sc) {
       if (!sc.nameCrop || seen[sc.sid || sc.id]) return;
       seen[sc.sid || sc.id] = 1; n++;
@@ -2207,7 +2207,7 @@ function viewStudentSheets(x) {
   if (!mine.length) body.appendChild(el('p', { class: 'hint', text: T('view.nothingScanned') }));
   mine.forEach(function (sc) {
     body.appendChild(el('p', { class: 'hint', text: T('view.pageScannedAt', { n: sc.page,
-      time: new Date(sc.ts).toLocaleTimeString() }) }));
+      time: Q.prettyTime(sc.ts) }) }));
     var img = el('img', { class: 'namecrop', src: sc.thumb });
     if (sc.pageImg) Q.DB.get('blobs', sc.pageImg).then(function (b) { if (b) img.src = b.data; });
     body.appendChild(img);
@@ -2876,7 +2876,7 @@ function printTopSheets() {
   var rows = r.rows.filter(function (x) { return x.scanned; });
   if (!rows.length) { Q.toast(T('toast.noScannedStudents'), 'err'); return; }
   var css = '@page{size:letter;margin:.6in}' +
-    'body{font:12px/1.45 Calibri,Arial,sans-serif;color:#111;margin:0}' +
+    'body{font:12px/1.55 ' + Q.I18N.fonts().print + ';color:#111;margin:0}' +
     '.sh{page-break-after:always}.sh:last-child{page-break-after:auto}' +
     'h1{font-size:21px;margin:0 0 2px}.sub{color:#5b6577;font-size:11px;margin-bottom:10px}' +
     'h2{font-size:13px;color:#2f5597;margin:16px 0 5px;border-bottom:1px solid #d8dee9;padding-bottom:2px}' +
@@ -3338,7 +3338,7 @@ function wireUI() {
     var cls = currentClass();
     var rows = [['Name', 'Student ID', 'Class', 'Email']].concat(
       State.students.filter(function (s) { return s.cls === cls; })
-        .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); })
+        .sort(function (a, b) { return Q.compareNames(a.name, b.name); })
         .map(function (s) { return [s.name, s.sid, s.cls, s.email || '']; }));
     Q.downloadText(X.toCsv(rows), 'roster_' + (cls || 'class').replace(/\W+/g, '_') + '.csv', 'text/csv');
   });

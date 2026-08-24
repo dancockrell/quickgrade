@@ -251,6 +251,10 @@ function digits(nStr, count) {
   while (s.length < count) s = '0' + s;
   return s.slice(-count).split('').map(Number);
 }
+/* Looked up at call time, not at module load: the teacher can switch
+ * language between printing one sheet and the next. */
+function T(k, v) { return global.QG.T(k, v); }
+
 function E(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -268,7 +272,7 @@ function bubble(x, y, letter, filled) {
 var SHEET_CSS = [
 '@page{size:%PW%in %PH%in;margin:0}',
 '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
-'html,body{margin:0;padding:0;background:#8a8f99;font-family:Arial,Helvetica,sans-serif;color:#000}',
+'html,body{margin:0;padding:0;background:#8a8f99;font-family:%FONT%;color:#000}',
 '.page{position:relative;width:%PW%in;height:%PH%in;background:#fff;overflow:hidden;',
 '  margin:14px auto;box-shadow:0 4px 18px rgba(0,0,0,.35)}',
 '@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}',
@@ -289,7 +293,7 @@ var SHEET_CSS = [
 '  padding-right:.05in;font-weight:600}',
 '.box{position:absolute;border:1.1px solid #444;border-radius:.06in;background:#fff}',
 '.boxlbl{position:absolute;font-size:7.6pt;color:#333;font-weight:700;letter-spacing:.04em}',
-'.hdr{position:absolute;font-family:Arial;color:#000}',
+'.hdr{position:absolute;font-family:%FONT%;color:#000}',
 '.vmark{position:absolute;border:1.6px solid #111;border-radius:.08in;display:flex;',
 '  align-items:center;justify-content:center;font-weight:800;font-size:19pt;color:#111}',
 '.rule{position:absolute;border-top:1px solid #999}',
@@ -336,18 +340,19 @@ function renderPage(test, pages, pageIdx, who) {
         '</span>', 'overflow:hidden');
   h += absDiv('hdr', L.idHeadX, L.idHeadY, 2.40, 0.34,
         '<div style="font-size:7pt;text-align:right;line-height:1.35;color:#222">' +
-        'ID <b>' + E(who.prefill && who.sid ? digits(who.sid, idDigitsOf(test)).join('')
+        E(T('sheet.id')) + ' <b>' + E(who.prefill && who.sid ? digits(who.sid, idDigitsOf(test)).join('')
                      : new Array(idDigitsOf(test) + 1).join('__ ')) + '</b><br>' +
-        'TEST <b>' + E(who.formCode || test.code) + '</b>' +
-        (who.formId ? ' &nbsp; VERSION <b>' + E(who.formId) + '</b>' : '') +
-        ' &nbsp; PAGE <b>' + (pageIdx + 1) + ' of ' + n + '</b></div>');
+        E(T('sheet.test')) + ' <b>' + E(who.formCode || test.code) + '</b>' +
+        (who.formId ? ' &nbsp; ' + E(T('sheet.version')) + ' <b>' + E(who.formId) + '</b>' : '') +
+        ' &nbsp; ' + E(T('sheet.pageWord')) + ' <b>' + (pageIdx + 1) + '</b> ' +
+        E(T('sheet.of')) + ' <b>' + n + '</b></div>');
 
   /* name + class write-in boxes (cropped and stored for every scan) */
   h += absDiv('box', L.nameBox.x, L.nameBox.y, L.nameBox.w, L.nameBox.h, '');
   var lbl = (test.options && test.options.labels) || {};
-  h += absDiv('boxlbl', L.nameBox.x + 0.07, L.nameBox.y + 0.035, 2.6, 0.13, E(lbl.name || 'NAME'));
+  h += absDiv('boxlbl', L.nameBox.x + 0.07, L.nameBox.y + 0.035, 2.6, 0.13, E(lbl.name || T('sheet.name')));
   h += absDiv('box', L.classBox.x, L.classBox.y, L.classBox.w, L.classBox.h, '');
-  h += absDiv('boxlbl', L.classBox.x + 0.07, L.classBox.y + 0.03, 2.6, 0.13, E(lbl.cls || 'CLASS / PERIOD'));
+  h += absDiv('boxlbl', L.classBox.x + 0.07, L.classBox.y + 0.03, 2.6, 0.13, E(lbl.cls || T('sheet.class')));
   if (who.name) {
     h += absDiv('hdr', L.nameBox.x + 0.10, L.nameBox.y + 0.20, L.nameBox.w - 0.2, 0.26,
       '<span style="font-size:13pt;font-weight:700">' + E(who.name) + '</span>', 'overflow:hidden');
@@ -362,9 +367,9 @@ function renderPage(test, pages, pageIdx, who) {
   var gy = L.classBox.y + L.classBox.h + 0.20;
   if (L.contentTop - gy > 0.72) {
     h += absDiv('guide', L.nameBox.x, gy, L.nameBox.w, L.contentTop - gy - 0.16, '');
-    h += absDiv('boxlbl', L.nameBox.x + 0.14, gy + 0.09, 3.2, 0.13, E(lbl.howto || 'HOW TO FILL THIS IN'));
+    h += absDiv('boxlbl', L.nameBox.x + 0.14, gy + 0.09, 3.2, 0.13, E(lbl.howto || T('sheet.howto')));
     var gx = L.nameBox.x + 0.16, gyy = gy + 0.42;
-    var words = (lbl.samples || 'correct|too light|do not cross').split('|');
+    var words = (lbl.samples || T('sheet.samples')).split('|');
     var samples = [['fill', words[0] || ''], ['tick', words[1] || ''], ['cross', words[2] || '']];
     samples.forEach(function (s, i) {
       var cx = gx + i * 0.95;
@@ -376,8 +381,7 @@ function renderPage(test, pages, pageIdx, who) {
         '<span style="font-size:6.4pt;color:#555">' + s[1] + '</span>');
     });
     h += absDiv('lbl', L.nameBox.x + 0.16, gy + 0.66, L.nameBox.w - 0.3, 0.14,
-      '<span style="font-size:6.4pt;color:#666">' + E(lbl.tips ||
-      'Pencil or dark pen · erase changes fully · keep the four corner squares clean') + '</span>');
+      '<span style="font-size:6.4pt;color:#666">' + E(lbl.tips || T('sheet.tips')) + '</span>');
   }
 
   /* identity bubble grids */
@@ -386,7 +390,7 @@ function renderPage(test, pages, pageIdx, who) {
   var sid = digits(who.prefill && who.sid ? who.sid : '', nId);
   h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
       '<b style="font-size:7pt;letter-spacing:.05em">' + E(test.options && test.options.idLabel ||
-      lbl.id || (nId <= 3 ? 'CLASS NUMBER' : 'STUDENT ID')) + '</b>');
+      lbl.id || (nId <= 3 ? T('sheet.classNumber') : T('sheet.studentId'))) + '</b>');
   for (var r = 0; r < nId; r++) {
     h += absDiv('lbl', L.idLabelX, L.idY0 + r * L.idPitchY - 0.07, 0.55, 0.14, '#' + (r + 1));
     for (var d = 0; d < 10; d++) {
@@ -396,14 +400,14 @@ function renderPage(test, pages, pageIdx, who) {
   }
   var code = digits(who.formCode || test.code, L.codeDigits);
   h += absDiv('lbl', L.idLabelX - 0.02, cY - 0.20, 2.8, 0.14,
-      '<b style="font-size:6.6pt;letter-spacing:.05em">' + E(lbl.code || 'TEST CODE (pre-filled)') + '</b>');
+      '<b style="font-size:6.6pt;letter-spacing:.05em">' + E(lbl.code || T('sheet.testCode')) + '</b>');
   for (var r2 = 0; r2 < L.codeDigits; r2++) {
     h += absDiv('lbl', L.idLabelX, cY + r2 * L.idPitchY - 0.07, 0.55, 0.14, '#' + (r2 + 1));
     for (var d2 = 0; d2 < 10; d2++) {
       h += bubble(L.idX0 + d2 * L.idPitchX, cY + r2 * L.idPitchY, String(d2), code[r2] === d2);
     }
   }
-  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.62, 0.14, E(lbl.page || 'PAGE'));
+  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.62, 0.14, E(lbl.page || T('sheet.pageWord')));
   for (var d3 = 0; d3 < L.pageMax; d3++) {
     h += bubble(L.idX0 + d3 * L.idPitchX, pY, String(d3 + 1), d3 === pageIdx);
   }
@@ -464,7 +468,8 @@ function renderSheets(test, people, opts) {
     }
   });
   var count = (people && people.length ? people.length : 1) * pages.length;
-  var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h);
+  var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h)
+                     .replace(/%FONT%/g, global.QG.I18N.fonts().print);
   return '<!doctype html><html><head><meta charset="utf-8"><title>' +
     E(opts.title || (test.title + ' — answer sheets')) + '</title><style>' + css + '</style></head><body>' +
     '<div class="toolbar noprint"><button onclick="window.print()">Print ' + count + ' page' +

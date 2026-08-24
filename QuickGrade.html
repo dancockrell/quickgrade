@@ -30,7 +30,14 @@
   --sh2:0 4px 12px rgba(16,22,34,.08), 0 1px 3px rgba(16,22,34,.06);
   --sh3:0 16px 44px rgba(16,22,34,.18);
   --hdr:58px;
-  --ff:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* Resolved per character: the browser walks the stack until something has
+     the glyph, so one list serves every script. Noto covers Linux/Android;
+     the rest ship with Windows and macOS. */
+  --ff:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+      "Noto Sans","Noto Sans Thai","Leelawadee UI","Noto Sans Devanagari","Nirmala UI",
+      "Noto Sans Arabic",Tahoma,"Noto Sans KR","Malgun Gothic","Noto Sans SC",
+      "Microsoft YaHei",sans-serif;
+  --lh:1.5;
   --fm:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){
@@ -56,7 +63,7 @@ html,body{height:100%}
 [hidden]{display:none !important}
 body{
   margin:0;background:var(--bg);color:var(--text);font-family:var(--ff);
-  font-size:15px;line-height:1.5;overflow:hidden;
+  font-size:15px;line-height:var(--lh);overflow:hidden;
   display:flex;flex-direction:column;
   -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
 }
@@ -832,7 +839,7 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
             <option value="6" data-i18n="tests.sheet.id6">6-digit district ID</option>
           </select></label>
         <label data-i18n="tests.sheet.idLabel">Label above the ID bubbles
-          <input id="f_idLabel" data-i18n-ph="tests.sheet.idLabel.ph" placeholder="CLASS NUMBER"></label>
+          <input id="f_idLabel" data-i18n-ph="sheet.classNumber" placeholder="CLASS NUMBER"></label>
         <label data-i18n="tests.sheet.paper">Paper size
           <select id="f_paper">
             <option value="letter" selected data-i18n="tests.sheet.letter">US Letter (8.5 &times; 11 in)</option>
@@ -850,17 +857,17 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
         <summary data-i18n="tests.words.summary">Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
         <div class="advbody">
       <div class="grid3">
-        <label data-i18n="tests.words.name">Name box <input id="f_lblName" data-i18n-ph="tests.words.name.ph" placeholder="NAME"></label>
-        <label data-i18n="tests.words.class">Class box <input id="f_lblClass" data-i18n-ph="tests.words.class.ph" placeholder="CLASS / PERIOD"></label>
-        <label data-i18n="tests.words.page">Page row <input id="f_lblPage" data-i18n-ph="tests.words.page.ph" placeholder="PAGE"></label>
+        <label data-i18n="tests.words.name">Name box <input id="f_lblName" data-i18n-ph="sheet.name" placeholder="NAME"></label>
+        <label data-i18n="tests.words.class">Class box <input id="f_lblClass" data-i18n-ph="sheet.class" placeholder="CLASS / PERIOD"></label>
+        <label data-i18n="tests.words.page">Page row <input id="f_lblPage" data-i18n-ph="sheet.page" placeholder="PAGE"></label>
       </div>
       <div class="grid2">
-        <label data-i18n="tests.words.howto">&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" data-i18n-ph="tests.words.howto.ph" placeholder="HOW TO FILL THIS IN"></label>
+        <label data-i18n="tests.words.howto">&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" data-i18n-ph="sheet.howto" placeholder="HOW TO FILL THIS IN"></label>
         <label data-i18n="tests.words.samples">Bubble examples, separated by <code>|</code>
-          <input id="f_lblSamples" data-i18n-ph="tests.words.samples.ph" placeholder="correct|too light|do not cross"></label>
+          <input id="f_lblSamples" data-i18n-ph="sheet.samples" placeholder="correct|too light|do not cross"></label>
       </div>
       <label data-i18n="tests.words.tips">Advice line under the examples
-        <input id="f_lblTips" data-i18n-ph="tests.words.tips.ph" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
+        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
         </div>
       </details>
       <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
@@ -1123,13 +1130,41 @@ function todayISO() {
   var d = new Date();
   return d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2);
 }
+/* Locale-aware helpers.
+ *
+ * Bare localeCompare() and toLocale*() use whatever the browser is set to,
+ * which is not necessarily the language the teacher chose. Korean, Thai and
+ * Russian all order names differently from the Latin default, and a class
+ * list sorted by the wrong rules looks broken to the person reading it.
+ *
+ * Intl.Collator is built once per language rather than per comparison; the
+ * naive form rebuilds it on every call and sorting a roster is O(n log n)
+ * comparisons. */
+var _collator = null, _collatorFor = null;
+function locale() {
+  try { return global.QG.I18N.lang; } catch (e) { return undefined; }
+}
+function collator() {
+  var l = locale();
+  if (_collator && _collatorFor === l) return _collator;
+  _collatorFor = l;
+  try { _collator = new Intl.Collator(l, { sensitivity: 'base', numeric: true }); }
+  catch (e) { _collator = { compare: function (a, b) { return String(a).localeCompare(String(b)); } }; }
+  return _collator;
+}
+function compareNames(a, b) { return collator().compare(sortName(a), sortName(b)); }
+function prettyTime(ts) {
+  try { return new Date(ts).toLocaleTimeString(locale()); }
+  catch (e) { return new Date(ts).toLocaleTimeString(); }
+}
+
 function prettyDate(iso) {
   if (!iso) return '';
   var p = String(iso).split('-');
   if (p.length !== 3) return iso;
   var d = new Date(+p[0], +p[1] - 1, +p[2]);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  return d.toLocaleDateString(locale(), { year: 'numeric', month: 'long', day: 'numeric' });
 }
 /** Last, First — for stable roster sorting. */
 function sortName(name) {
@@ -1512,6 +1547,7 @@ global.QG = global.QG || {};
 Object.assign(global.QG, {
   $: $, $$: $$, el: el, on: on, esc: esc, pad: pad, uid: uid, clamp: clamp, round2: round2,
   todayISO: todayISO, prettyDate: prettyDate, sortName: sortName,
+  prettyTime: prettyTime, compareNames: compareNames, locale: locale,
   DB: DB, Prefs: Prefs, Audio2: Audio2, speak: speak,
   toast: toast, modal: modal, confirmBox: confirmBox, promptBox: promptBox,
   downloadBlob: downloadBlob, downloadText: downloadText, readFileText: readFileText,
@@ -1656,6 +1692,42 @@ function set(code, opts) {
   listeners.forEach(function (f) { try { f(code); } catch (e) {} });
 }
 
+/* Fonts.
+ *
+ * A font stack is resolved per character, not per element: the browser walks
+ * it until something has the glyph. So one broad stack serves every script
+ * and there is no need to swap fonts when the language changes. The Noto
+ * names cover Linux and Android; the rest are what Windows and macOS ship.
+ *
+ * Thai and Devanagari stack marks above and below the line, so they need more
+ * leading than Latin or the diacritics clip inside fixed-height controls. */
+var FONT_STACK = 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,' +
+  '"Helvetica Neue",Arial,"Noto Sans","Noto Sans Thai","Leelawadee UI",' +
+  '"Noto Sans Devanagari","Nirmala UI","Noto Sans Arabic",Tahoma,' +
+  '"Noto Sans KR","Malgun Gothic","Noto Sans SC","Microsoft YaHei",sans-serif';
+
+var PRINT_STACK = 'Calibri,Arial,"Noto Sans","Noto Sans Thai","Leelawadee UI",' +
+  '"Noto Sans Devanagari","Nirmala UI","Noto Sans Arabic",Tahoma,' +
+  '"Noto Sans KR","Malgun Gothic",sans-serif';
+
+/* Word needs three separate font slots — Latin, East Asian and "complex
+ * script" (Arabic, Thai, Devanagari). Naming only the Latin one leaves Word
+ * to substitute for the rest, usually badly. */
+var DOCX_FONTS = {
+  ar: { ascii: 'Calibri', cs: 'Arial',           eastAsia: 'Calibri' },
+  th: { ascii: 'Calibri', cs: 'Leelawadee UI',   eastAsia: 'Calibri' },
+  hi: { ascii: 'Calibri', cs: 'Nirmala UI',      eastAsia: 'Calibri' },
+  ko: { ascii: 'Calibri', cs: 'Calibri',         eastAsia: 'Malgun Gothic' },
+  zh: { ascii: 'Calibri', cs: 'Calibri',         eastAsia: 'Microsoft YaHei' }
+};
+function fonts() {
+  return {
+    css: FONT_STACK,
+    print: PRINT_STACK,
+    docx: DOCX_FONTS[lang] || { ascii: 'Calibri', cs: 'Calibri', eastAsia: 'Calibri' }
+  };
+}
+
 function onChange(fn) { listeners.push(fn); }
 
 /* The picker lists only languages we actually have a pack for, and lists
@@ -1698,7 +1770,7 @@ function boot() {
 global.QG.I18N = {
   LANGS: LANGS, packs: packs,
   t: t, apply: apply, set: set, boot: boot, detect: detect, mountPicker: mountPicker,
-  onChange: onChange, has: has, meta: meta,
+  onChange: onChange, has: has, meta: meta, fonts: fonts,
   get lang() { return lang; },
   /* Which keys the current pack is missing — used by the test suite so an
    * untranslated string is a build failure rather than a surprise in class. */
@@ -2181,6 +2253,22 @@ I.packs.en = {
   'send.sending': 'Sending {n} rows…',
   'send.warning': 'QuickGrade will POST the same rows you see in the preview, as JSON. Ask whoever runs the receiving end for the address — do not paste one you were sent by someone you do not know.',
 
+  /* --- sheet --- */
+  'sheet.class': 'CLASS / PERIOD',
+  'sheet.classNumber': 'CLASS NUMBER',
+  'sheet.howto': 'HOW TO FILL THIS IN',
+  'sheet.id': 'ID',
+  'sheet.name': 'NAME',
+  'sheet.of': 'of',
+  'sheet.page': 'PAGE',
+  'sheet.pageWord': 'PAGE',
+  'sheet.samples': 'correct|too light|do not cross',
+  'sheet.studentId': 'STUDENT ID',
+  'sheet.test': 'TEST',
+  'sheet.testCode': 'TEST CODE (pre-filled)',
+  'sheet.tips': 'Pencil or dark pen · erase changes fully · keep the four corner squares clean',
+  'sheet.version': 'VERSION',
+
   /* --- storage --- */
   'storage.freeConfirm': 'Remove {n} scanned images, about {size}?\n\nEvery score, answer, written mark and comment is kept. You will no longer be able to look at the scanned paper for this test.',
   'storage.freeUp': 'Free up the space',
@@ -2238,7 +2326,6 @@ I.packs.en = {
   'tests.sheet.id6': '6-digit district ID',
   'tests.sheet.idDigits': 'How students identify themselves',
   'tests.sheet.idLabel': 'Label above the ID bubbles',
-  'tests.sheet.idLabel.ph': 'CLASS NUMBER',
   'tests.sheet.instr': 'Sheet instructions',
   'tests.sheet.instr.ph': 'Use pencil. Fill bubbles completely.',
   'tests.sheet.legal': 'US Legal (8.5 × 14 in)',
@@ -2256,18 +2343,12 @@ I.packs.en = {
   'tests.w.hint': 'These get printed answer boxes. After scanning you grade them one question at a time across the whole class.',
   'tests.w.paste': 'Paste my questions',
   'tests.words.class': 'Class box',
-  'tests.words.class.ph': 'CLASS / PERIOD',
   'tests.words.howto': '“How to fill this in” heading',
-  'tests.words.howto.ph': 'HOW TO FILL THIS IN',
   'tests.words.name': 'Name box',
-  'tests.words.name.ph': 'NAME',
   'tests.words.page': 'Page row',
-  'tests.words.page.ph': 'PAGE',
   'tests.words.samples': 'Bubble examples, separated by',
-  'tests.words.samples.ph': 'correct|too light|do not cross',
   'tests.words.summary': 'Wording on the printed sheet — for another language, or your school’s terms',
   'tests.words.tips': 'Advice line under the examples',
-  'tests.words.tips.ph': 'Pencil or dark pen · erase changes fully · keep the four corner squares clean',
 
   /* --- toast --- */
   'toast.allGraded': 'All written questions graded.',
@@ -2985,7 +3066,7 @@ I.packs.ar = {
   'tests.sheet.id6': 'رقم تعريف من ٦ خانات',
   'tests.sheet.idDigits': 'كيف يعرّف الطلاب عن أنفسهم',
   'tests.sheet.idLabel': 'العنوان فوق خانات الرقم',
-  'tests.sheet.idLabel.ph': 'رقم الطالب في الصف',
+  'sheet.classNumber': 'رقم الطالب في الصف',
   'tests.sheet.instr': 'تعليمات الورقة',
   'tests.sheet.instr.ph': 'استخدم قلم رصاص. ظلّل الدوائر بالكامل.',
   'tests.sheet.legal': 'US Legal ‏(8.5 × 14 بوصة)',
@@ -3003,18 +3084,18 @@ I.packs.ar = {
   'tests.w.hint': 'تُطبع لها صناديق إجابة. بعد المسح تصححها سؤالاً سؤالاً لكل الصف.',
   'tests.w.paste': 'لصق أسئلتي',
   'tests.words.class': 'خانة الصف',
-  'tests.words.class.ph': 'الصف / الحصة',
+  'sheet.class': 'الصف / الحصة',
   'tests.words.howto': 'عنوان «كيفية التظليل»',
-  'tests.words.howto.ph': 'كيفية تظليل الورقة',
+  'sheet.howto': 'كيفية تظليل الورقة',
   'tests.words.name': 'خانة الاسم',
-  'tests.words.name.ph': 'الاسم',
+  'sheet.name': 'الاسم',
   'tests.words.page': 'سطر الصفحة',
-  'tests.words.page.ph': 'صفحة',
+  'sheet.page': 'صفحة',
   'tests.words.samples': 'أمثلة التظليل، مفصولة بـ',
-  'tests.words.samples.ph': 'صحيح|خفيف جداً|لا تضع علامة X',
+  'sheet.samples': 'صحيح|خفيف جداً|لا تضع علامة X',
   'tests.words.summary': 'الكلمات المطبوعة على الورقة — للغة أخرى أو لمصطلحات مدرستك',
   'tests.words.tips': 'سطر الإرشاد تحت الأمثلة',
-  'tests.words.tips.ph': 'قلم رصاص أو حبر داكن · امسح التعديلات تماماً · حافظ على نظافة المربعات الأربعة',
+  'sheet.tips': 'قلم رصاص أو حبر داكن · امسح التعديلات تماماً · حافظ على نظافة المربعات الأربعة',
 
   /* --- toasts --- */
   'toast.allGraded': 'صُحِّحت كل الأسئلة الكتابية.',
@@ -3204,7 +3285,16 @@ I.packs.ar = {
   'wlist.rubricAdd': 'قدّر وفق معايير بدل رقم واحد',
   'wlist.rubricEdit': 'تعديل السلّم',
   'wlist.rubricN': 'سلّم · {n}',
-  'wlist.short': 'إجابة قصيرة'
+  'wlist.short': 'إجابة قصيرة',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'الرقم',
+  'sheet.test': 'اختبار',
+  'sheet.version': 'نسخة',
+  'sheet.pageWord': 'صفحة',
+  'sheet.of': 'من',
+  'sheet.studentId': 'رقم الطالب',
+  'sheet.testCode': 'رمز الاختبار (مطبوع مسبقاً)'
 };
 })(window.QG.I18N);
 
@@ -3724,7 +3814,7 @@ I.packs.hi = {
   'tests.sheet.id6': '6 अंकों की ज़िला आईडी',
   'tests.sheet.idDigits': 'विद्यार्थी अपनी पहचान कैसे देंगे',
   'tests.sheet.idLabel': 'क्रमांक के गोलों के ऊपर का शीर्षक',
-  'tests.sheet.idLabel.ph': 'कक्षा क्रमांक',
+  'sheet.classNumber': 'कक्षा क्रमांक',
   'tests.sheet.instr': 'पत्रक पर निर्देश',
   'tests.sheet.instr.ph': 'पेंसिल का उपयोग करें। गोले पूरे भरें।',
   'tests.sheet.legal': 'US Legal (8.5 × 14 इंच)',
@@ -3742,18 +3832,18 @@ I.packs.hi = {
   'tests.w.hint': 'इनके लिए उत्तर-बक्से छपते हैं। स्कैन के बाद आप पूरी कक्षा के एक-एक प्रश्न को साथ-साथ जाँचते हैं।',
   'tests.w.paste': 'अपने प्रश्न चिपकाएँ',
   'tests.words.class': 'कक्षा का ख़ाना',
-  'tests.words.class.ph': 'कक्षा / कालांश',
+  'sheet.class': 'कक्षा / कालांश',
   'tests.words.howto': '“कैसे भरें” शीर्षक',
-  'tests.words.howto.ph': 'इसे कैसे भरें',
+  'sheet.howto': 'इसे कैसे भरें',
   'tests.words.name': 'नाम का ख़ाना',
-  'tests.words.name.ph': 'नाम',
+  'sheet.name': 'नाम',
   'tests.words.page': 'पृष्ठ पंक्ति',
-  'tests.words.page.ph': 'पृष्ठ',
+  'sheet.page': 'पृष्ठ',
   'tests.words.samples': 'गोले के उदाहरण, इससे अलग करें',
-  'tests.words.samples.ph': 'सही|बहुत हल्का|क्रॉस न लगाएँ',
+  'sheet.samples': 'सही|बहुत हल्का|क्रॉस न लगाएँ',
   'tests.words.summary': 'छपे हुए पत्रक के शब्द — दूसरी भाषा के लिए, या अपने विद्यालय के शब्दों के लिए',
   'tests.words.tips': 'उदाहरणों के नीचे सलाह की पंक्ति',
-  'tests.words.tips.ph': 'पेंसिल या गाढ़ी स्याही · बदलाव पूरी तरह मिटाएँ · चारों कोनों के वर्ग साफ़ रखें',
+  'sheet.tips': 'पेंसिल या गाढ़ी स्याही · बदलाव पूरी तरह मिटाएँ · चारों कोनों के वर्ग साफ़ रखें',
 
   /* --- toasts --- */
   'toast.allGraded': 'सभी लिखित प्रश्न जाँच लिए गए।',
@@ -3943,7 +4033,16 @@ I.packs.hi = {
   'wlist.rubricAdd': 'एक ही संख्या के बजाय मानदंडों से आँकें',
   'wlist.rubricEdit': 'रूब्रिक संपादित करें',
   'wlist.rubricN': 'रूब्रिक · {n}',
-  'wlist.short': 'लघु उत्तर'
+  'wlist.short': 'लघु उत्तर',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'क्रमांक',
+  'sheet.test': 'परीक्षा',
+  'sheet.version': 'संस्करण',
+  'sheet.pageWord': 'पृष्ठ',
+  'sheet.of': 'में से',
+  'sheet.studentId': 'विद्यार्थी आईडी',
+  'sheet.testCode': 'परीक्षा कोड (पहले से भरा)'
 };
 })(window.QG.I18N);
 
@@ -4463,7 +4562,7 @@ I.packs.tl = {
   'tests.sheet.id6': '6-digit na ID ng distrito',
   'tests.sheet.idDigits': 'Paano magpapakilala ang mga mag-aaral',
   'tests.sheet.idLabel': 'Label sa ibabaw ng mga bilog ng numero',
-  'tests.sheet.idLabel.ph': 'NUMERO SA KLASE',
+  'sheet.classNumber': 'NUMERO SA KLASE',
   'tests.sheet.instr': 'Panuto sa papel',
   'tests.sheet.instr.ph': 'Gumamit ng lapis. Punuin nang buo ang mga bilog.',
   'tests.sheet.legal': 'US Legal (8.5 × 14 in)',
@@ -4481,18 +4580,18 @@ I.packs.tl = {
   'tests.w.hint': 'May nakalimbag na kahon ng sagot ang mga ito. Pagkatapos mag-scan, iwawasto ninyo ang mga ito nang isa-isang tanong para sa buong klase.',
   'tests.w.paste': 'I-paste ang aking mga tanong',
   'tests.words.class': 'Kahon ng klase',
-  'tests.words.class.ph': 'KLASE / PANAHON',
+  'sheet.class': 'KLASE / PANAHON',
   'tests.words.howto': 'Pamagat ng “paano punan ito”',
-  'tests.words.howto.ph': 'PAANO ITO PUNAN',
+  'sheet.howto': 'PAANO ITO PUNAN',
   'tests.words.name': 'Kahon ng pangalan',
-  'tests.words.name.ph': 'PANGALAN',
+  'sheet.name': 'PANGALAN',
   'tests.words.page': 'Linya ng pahina',
-  'tests.words.page.ph': 'PAHINA',
+  'sheet.page': 'PAHINA',
   'tests.words.samples': 'Halimbawa ng bilog, pinaghihiwalay ng',
-  'tests.words.samples.ph': 'tama|masyadong manipis|huwag ekisan',
+  'sheet.samples': 'tama|masyadong manipis|huwag ekisan',
   'tests.words.summary': 'Mga salita sa nakalimbag na papel — para sa ibang wika, o sa termino ng inyong paaralan',
   'tests.words.tips': 'Linya ng payo sa ilalim ng mga halimbawa',
-  'tests.words.tips.ph': 'Lapis o madilim na tinta · burahin nang buo ang pagbabago · panatilihing malinis ang apat na parisukat sa sulok',
+  'sheet.tips': 'Lapis o madilim na tinta · burahin nang buo ang pagbabago · panatilihing malinis ang apat na parisukat sa sulok',
 
   /* --- toasts --- */
   'toast.allGraded': 'Naiwasto na ang lahat ng nakasulat na tanong.',
@@ -4682,7 +4781,16 @@ I.packs.tl = {
   'wlist.rubricAdd': 'Markahan ayon sa pamantayan sa halip na isang numero',
   'wlist.rubricEdit': 'Baguhin ang rubric',
   'wlist.rubricN': 'Rubric · {n}',
-  'wlist.short': 'Maikling sagot'
+  'wlist.short': 'Maikling sagot',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': 'ID',
+  'sheet.test': 'PAGSUSULIT',
+  'sheet.version': 'BERSYON',
+  'sheet.pageWord': 'PAHINA',
+  'sheet.of': 'sa',
+  'sheet.studentId': 'ID NG MAG-AARAL',
+  'sheet.testCode': 'KODIGO (nakalimbag na)'
 };
 })(window.QG.I18N);
 
@@ -5238,7 +5346,7 @@ I.packs.ru = {
   'tests.sheet.id6': 'Идентификатор, 6 цифр',
   'tests.sheet.idDigits': 'Как ученики себя обозначают',
   'tests.sheet.idLabel': 'Подпись над кружками номера',
-  'tests.sheet.idLabel.ph': 'НОМЕР В КЛАССЕ',
+  'sheet.classNumber': 'НОМЕР В КЛАССЕ',
   'tests.sheet.instr': 'Указания на бланке',
   'tests.sheet.instr.ph': 'Пишите карандашом. Закрашивайте кружки полностью.',
   'tests.sheet.legal': 'US Legal (8,5 × 14 дюйма)',
@@ -5256,18 +5364,18 @@ I.packs.ru = {
   'tests.w.hint': 'Для них печатаются поля для ответа. После сканирования вы проверяете их по одному вопросу сразу для всего класса.',
   'tests.w.paste': 'Вставить мои вопросы',
   'tests.words.class': 'Поле класса',
-  'tests.words.class.ph': 'КЛАСС / УРОК',
+  'sheet.class': 'КЛАСС / УРОК',
   'tests.words.howto': 'Заголовок «как заполнять»',
-  'tests.words.howto.ph': 'КАК ЗАПОЛНЯТЬ',
+  'sheet.howto': 'КАК ЗАПОЛНЯТЬ',
   'tests.words.name': 'Поле имени',
-  'tests.words.name.ph': 'ИМЯ',
+  'sheet.name': 'ИМЯ',
   'tests.words.page': 'Строка страницы',
-  'tests.words.page.ph': 'СТРАНИЦА',
+  'sheet.page': 'СТРАНИЦА',
   'tests.words.samples': 'Примеры заполнения, разделённые знаком',
-  'tests.words.samples.ph': 'правильно|слишком бледно|не ставьте крестик',
+  'sheet.samples': 'правильно|слишком бледно|не ставьте крестик',
   'tests.words.summary': 'Надписи на печатном бланке — для другого языка или принятых в вашей школе слов',
   'tests.words.tips': 'Строка совета под примерами',
-  'tests.words.tips.ph': 'Карандаш или тёмная ручка · полностью стирайте исправления · не пачкайте четыре угловых квадрата',
+  'sheet.tips': 'Карандаш или тёмная ручка · полностью стирайте исправления · не пачкайте четыре угловых квадрата',
 
   /* --- toasts --- */
   'toast.allGraded': 'Все письменные вопросы проверены.',
@@ -5485,7 +5593,16 @@ I.packs.ru = {
   'wlist.rubricAdd': 'Оценивать по критериям, а не одним числом',
   'wlist.rubricEdit': 'Изменить критерии',
   'wlist.rubricN': 'Критерии · {n}',
-  'wlist.short': 'Краткий ответ'
+  'wlist.short': 'Краткий ответ',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': '№',
+  'sheet.test': 'РАБОТА',
+  'sheet.version': 'ВАРИАНТ',
+  'sheet.pageWord': 'СТР.',
+  'sheet.of': 'из',
+  'sheet.studentId': 'НОМЕР УЧЕНИКА',
+  'sheet.testCode': 'КОД РАБОТЫ (уже отмечен)'
 };
 })(window.QG.I18N);
 
@@ -5835,11 +5952,23 @@ function table(rows, opts) {
   return out + '</w:tbl>' + emptyP();
 }
 
-var DOCX_STYLES = DECL +
+/* Word keeps three font slots — Latin, East Asian and "complex script"
+ * (Arabic, Thai, Devanagari). Naming only the Latin one leaves Word to
+ * substitute for the rest, and its guesses are poor. `bidi` makes the
+ * paragraph itself right-to-left, which a Latin-only default never does. */
+function docxStyles() {
+  var f = global.QG.I18N.fonts().docx;
+  var rtl = global.QG.I18N.meta(global.QG.I18N.lang).dir === 'rtl';
+  return DECL +
 '<w:styles ' + W_NS + '>' +
 '<w:docDefaults><w:rPrDefault><w:rPr>' +
-  '<w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="21"/><w:szCs w:val="21"/>' +
+  '<w:rFonts w:ascii="' + xml(f.ascii) + '" w:hAnsi="' + xml(f.ascii) +
+    '" w:cs="' + xml(f.cs) + '" w:eastAsia="' + xml(f.eastAsia) + '"/>' +
+  (rtl ? '<w:rtl/>' : '') +
+  '<w:lang w:val="' + xml(global.QG.I18N.lang) + '" w:bidi="' + xml(global.QG.I18N.lang) + '"/>' +
+  '<w:sz w:val="21"/><w:szCs w:val="21"/>' +
 '</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr>' +
+  (rtl ? '<w:bidi/>' : '') +
   '<w:spacing w:after="80" w:line="252" w:lineRule="auto"/>' +
 '</w:pPr></w:pPrDefault></w:docDefaults>' +
 '<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>' +
@@ -5859,6 +5988,7 @@ var DOCX_STYLES = DECL +
   }).join('') +
   '</w:tblBorders></w:tblPr></w:style>' +
 '</w:styles>';
+}
 
 /** buildDocx(bodyXml) — bodyXml is a concatenation of p()/table()/pageBreak(). */
 function buildDocx(bodyXml) {
@@ -5885,7 +6015,7 @@ function buildDocx(bodyXml) {
     { name: 'word/_rels/document.xml.rels', data: DECL + '<Relationships xmlns="' + RELS_NS + '">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' +
       '</Relationships>' },
-    { name: 'word/styles.xml', data: DOCX_STYLES },
+    { name: 'word/styles.xml', data: docxStyles() },
     { name: 'word/document.xml', data: doc }
   ];
   return new Blob([zip(files)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
@@ -7026,6 +7156,10 @@ function digits(nStr, count) {
   while (s.length < count) s = '0' + s;
   return s.slice(-count).split('').map(Number);
 }
+/* Looked up at call time, not at module load: the teacher can switch
+ * language between printing one sheet and the next. */
+function T(k, v) { return global.QG.T(k, v); }
+
 function E(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -7043,7 +7177,7 @@ function bubble(x, y, letter, filled) {
 var SHEET_CSS = [
 '@page{size:%PW%in %PH%in;margin:0}',
 '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}',
-'html,body{margin:0;padding:0;background:#8a8f99;font-family:Arial,Helvetica,sans-serif;color:#000}',
+'html,body{margin:0;padding:0;background:#8a8f99;font-family:%FONT%;color:#000}',
 '.page{position:relative;width:%PW%in;height:%PH%in;background:#fff;overflow:hidden;',
 '  margin:14px auto;box-shadow:0 4px 18px rgba(0,0,0,.35)}',
 '@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}',
@@ -7064,7 +7198,7 @@ var SHEET_CSS = [
 '  padding-right:.05in;font-weight:600}',
 '.box{position:absolute;border:1.1px solid #444;border-radius:.06in;background:#fff}',
 '.boxlbl{position:absolute;font-size:7.6pt;color:#333;font-weight:700;letter-spacing:.04em}',
-'.hdr{position:absolute;font-family:Arial;color:#000}',
+'.hdr{position:absolute;font-family:%FONT%;color:#000}',
 '.vmark{position:absolute;border:1.6px solid #111;border-radius:.08in;display:flex;',
 '  align-items:center;justify-content:center;font-weight:800;font-size:19pt;color:#111}',
 '.rule{position:absolute;border-top:1px solid #999}',
@@ -7111,18 +7245,19 @@ function renderPage(test, pages, pageIdx, who) {
         '</span>', 'overflow:hidden');
   h += absDiv('hdr', L.idHeadX, L.idHeadY, 2.40, 0.34,
         '<div style="font-size:7pt;text-align:right;line-height:1.35;color:#222">' +
-        'ID <b>' + E(who.prefill && who.sid ? digits(who.sid, idDigitsOf(test)).join('')
+        E(T('sheet.id')) + ' <b>' + E(who.prefill && who.sid ? digits(who.sid, idDigitsOf(test)).join('')
                      : new Array(idDigitsOf(test) + 1).join('__ ')) + '</b><br>' +
-        'TEST <b>' + E(who.formCode || test.code) + '</b>' +
-        (who.formId ? ' &nbsp; VERSION <b>' + E(who.formId) + '</b>' : '') +
-        ' &nbsp; PAGE <b>' + (pageIdx + 1) + ' of ' + n + '</b></div>');
+        E(T('sheet.test')) + ' <b>' + E(who.formCode || test.code) + '</b>' +
+        (who.formId ? ' &nbsp; ' + E(T('sheet.version')) + ' <b>' + E(who.formId) + '</b>' : '') +
+        ' &nbsp; ' + E(T('sheet.pageWord')) + ' <b>' + (pageIdx + 1) + '</b> ' +
+        E(T('sheet.of')) + ' <b>' + n + '</b></div>');
 
   /* name + class write-in boxes (cropped and stored for every scan) */
   h += absDiv('box', L.nameBox.x, L.nameBox.y, L.nameBox.w, L.nameBox.h, '');
   var lbl = (test.options && test.options.labels) || {};
-  h += absDiv('boxlbl', L.nameBox.x + 0.07, L.nameBox.y + 0.035, 2.6, 0.13, E(lbl.name || 'NAME'));
+  h += absDiv('boxlbl', L.nameBox.x + 0.07, L.nameBox.y + 0.035, 2.6, 0.13, E(lbl.name || T('sheet.name')));
   h += absDiv('box', L.classBox.x, L.classBox.y, L.classBox.w, L.classBox.h, '');
-  h += absDiv('boxlbl', L.classBox.x + 0.07, L.classBox.y + 0.03, 2.6, 0.13, E(lbl.cls || 'CLASS / PERIOD'));
+  h += absDiv('boxlbl', L.classBox.x + 0.07, L.classBox.y + 0.03, 2.6, 0.13, E(lbl.cls || T('sheet.class')));
   if (who.name) {
     h += absDiv('hdr', L.nameBox.x + 0.10, L.nameBox.y + 0.20, L.nameBox.w - 0.2, 0.26,
       '<span style="font-size:13pt;font-weight:700">' + E(who.name) + '</span>', 'overflow:hidden');
@@ -7137,9 +7272,9 @@ function renderPage(test, pages, pageIdx, who) {
   var gy = L.classBox.y + L.classBox.h + 0.20;
   if (L.contentTop - gy > 0.72) {
     h += absDiv('guide', L.nameBox.x, gy, L.nameBox.w, L.contentTop - gy - 0.16, '');
-    h += absDiv('boxlbl', L.nameBox.x + 0.14, gy + 0.09, 3.2, 0.13, E(lbl.howto || 'HOW TO FILL THIS IN'));
+    h += absDiv('boxlbl', L.nameBox.x + 0.14, gy + 0.09, 3.2, 0.13, E(lbl.howto || T('sheet.howto')));
     var gx = L.nameBox.x + 0.16, gyy = gy + 0.42;
-    var words = (lbl.samples || 'correct|too light|do not cross').split('|');
+    var words = (lbl.samples || T('sheet.samples')).split('|');
     var samples = [['fill', words[0] || ''], ['tick', words[1] || ''], ['cross', words[2] || '']];
     samples.forEach(function (s, i) {
       var cx = gx + i * 0.95;
@@ -7151,8 +7286,7 @@ function renderPage(test, pages, pageIdx, who) {
         '<span style="font-size:6.4pt;color:#555">' + s[1] + '</span>');
     });
     h += absDiv('lbl', L.nameBox.x + 0.16, gy + 0.66, L.nameBox.w - 0.3, 0.14,
-      '<span style="font-size:6.4pt;color:#666">' + E(lbl.tips ||
-      'Pencil or dark pen · erase changes fully · keep the four corner squares clean') + '</span>');
+      '<span style="font-size:6.4pt;color:#666">' + E(lbl.tips || T('sheet.tips')) + '</span>');
   }
 
   /* identity bubble grids */
@@ -7161,7 +7295,7 @@ function renderPage(test, pages, pageIdx, who) {
   var sid = digits(who.prefill && who.sid ? who.sid : '', nId);
   h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
       '<b style="font-size:7pt;letter-spacing:.05em">' + E(test.options && test.options.idLabel ||
-      lbl.id || (nId <= 3 ? 'CLASS NUMBER' : 'STUDENT ID')) + '</b>');
+      lbl.id || (nId <= 3 ? T('sheet.classNumber') : T('sheet.studentId'))) + '</b>');
   for (var r = 0; r < nId; r++) {
     h += absDiv('lbl', L.idLabelX, L.idY0 + r * L.idPitchY - 0.07, 0.55, 0.14, '#' + (r + 1));
     for (var d = 0; d < 10; d++) {
@@ -7171,14 +7305,14 @@ function renderPage(test, pages, pageIdx, who) {
   }
   var code = digits(who.formCode || test.code, L.codeDigits);
   h += absDiv('lbl', L.idLabelX - 0.02, cY - 0.20, 2.8, 0.14,
-      '<b style="font-size:6.6pt;letter-spacing:.05em">' + E(lbl.code || 'TEST CODE (pre-filled)') + '</b>');
+      '<b style="font-size:6.6pt;letter-spacing:.05em">' + E(lbl.code || T('sheet.testCode')) + '</b>');
   for (var r2 = 0; r2 < L.codeDigits; r2++) {
     h += absDiv('lbl', L.idLabelX, cY + r2 * L.idPitchY - 0.07, 0.55, 0.14, '#' + (r2 + 1));
     for (var d2 = 0; d2 < 10; d2++) {
       h += bubble(L.idX0 + d2 * L.idPitchX, cY + r2 * L.idPitchY, String(d2), code[r2] === d2);
     }
   }
-  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.62, 0.14, E(lbl.page || 'PAGE'));
+  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.62, 0.14, E(lbl.page || T('sheet.pageWord')));
   for (var d3 = 0; d3 < L.pageMax; d3++) {
     h += bubble(L.idX0 + d3 * L.idPitchX, pY, String(d3 + 1), d3 === pageIdx);
   }
@@ -7239,7 +7373,8 @@ function renderSheets(test, people, opts) {
     }
   });
   var count = (people && people.length ? people.length : 1) * pages.length;
-  var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h);
+  var css = SHEET_CSS.replace(/%PW%/g, L.page.w).replace(/%PH%/g, L.page.h)
+                     .replace(/%FONT%/g, global.QG.I18N.fonts().print);
   return '<!doctype html><html><head><meta charset="utf-8"><!-- QuickGrade single-file build. Source lives alongside this file;
      rebuild with: python build.py -->
 <title>' +
@@ -8835,7 +8970,7 @@ function classStudents() {
       var d = want.indexOf(a.cls || '') - want.indexOf(b.cls || '');
       if (d) return d;
     }
-    return Q.sortName(a.name).localeCompare(Q.sortName(b.name));
+    return Q.compareNames(a.name, b.name);
   });
 }
 /** True when this test is shared across more than one class. */
@@ -9945,7 +10080,7 @@ function renderRosterView() {
 function renderRosterTable() {
   var cls = currentClass();
   var list = State.students.filter(function (s) { return (s.cls || '') === cls; })
-    .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); });
+    .sort(function (a, b) { return Q.compareNames(a.name, b.name); });
   $('#rosterCount').textContent = list.length ? '(' + list.length + ')' : '';
   var box = $('#rosterTable');
   box.innerHTML = '';
@@ -10740,7 +10875,7 @@ function verifyNames() {
   var grid = el('div', { class: 'namegrid' });
   var seen = {}, n = 0;
   State.scans.slice()
-    .sort(function (a, b) { return Q.sortName(studentName(a.sid)).localeCompare(Q.sortName(studentName(b.sid))); })
+    .sort(function (a, b) { return Q.compareNames(studentName(a.sid), studentName(b.sid)); })
     .forEach(function (sc) {
       if (!sc.nameCrop || seen[sc.sid || sc.id]) return;
       seen[sc.sid || sc.id] = 1; n++;
@@ -10800,7 +10935,7 @@ function viewStudentSheets(x) {
   if (!mine.length) body.appendChild(el('p', { class: 'hint', text: T('view.nothingScanned') }));
   mine.forEach(function (sc) {
     body.appendChild(el('p', { class: 'hint', text: T('view.pageScannedAt', { n: sc.page,
-      time: new Date(sc.ts).toLocaleTimeString() }) }));
+      time: Q.prettyTime(sc.ts) }) }));
     var img = el('img', { class: 'namecrop', src: sc.thumb });
     if (sc.pageImg) Q.DB.get('blobs', sc.pageImg).then(function (b) { if (b) img.src = b.data; });
     body.appendChild(img);
@@ -11469,7 +11604,7 @@ function printTopSheets() {
   var rows = r.rows.filter(function (x) { return x.scanned; });
   if (!rows.length) { Q.toast(T('toast.noScannedStudents'), 'err'); return; }
   var css = '@page{size:letter;margin:.6in}' +
-    'body{font:12px/1.45 Calibri,Arial,sans-serif;color:#111;margin:0}' +
+    'body{font:12px/1.55 ' + Q.I18N.fonts().print + ';color:#111;margin:0}' +
     '.sh{page-break-after:always}.sh:last-child{page-break-after:auto}' +
     'h1{font-size:21px;margin:0 0 2px}.sub{color:#5b6577;font-size:11px;margin-bottom:10px}' +
     'h2{font-size:13px;color:#2f5597;margin:16px 0 5px;border-bottom:1px solid #d8dee9;padding-bottom:2px}' +
@@ -11931,7 +12066,7 @@ function wireUI() {
     var cls = currentClass();
     var rows = [['Name', 'Student ID', 'Class', 'Email']].concat(
       State.students.filter(function (s) { return s.cls === cls; })
-        .sort(function (a, b) { return Q.sortName(a.name).localeCompare(Q.sortName(b.name)); })
+        .sort(function (a, b) { return Q.compareNames(a.name, b.name); })
         .map(function (s) { return [s.name, s.sid, s.cls, s.email || '']; }));
     Q.downloadText(X.toCsv(rows), 'roster_' + (cls || 'class').replace(/\W+/g, '_') + '.csv', 'text/csv');
   });

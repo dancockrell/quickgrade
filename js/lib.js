@@ -35,13 +35,41 @@ function todayISO() {
   var d = new Date();
   return d.getFullYear() + '-' + pad(d.getMonth() + 1, 2) + '-' + pad(d.getDate(), 2);
 }
+/* Locale-aware helpers.
+ *
+ * Bare localeCompare() and toLocale*() use whatever the browser is set to,
+ * which is not necessarily the language the teacher chose. Korean, Thai and
+ * Russian all order names differently from the Latin default, and a class
+ * list sorted by the wrong rules looks broken to the person reading it.
+ *
+ * Intl.Collator is built once per language rather than per comparison; the
+ * naive form rebuilds it on every call and sorting a roster is O(n log n)
+ * comparisons. */
+var _collator = null, _collatorFor = null;
+function locale() {
+  try { return global.QG.I18N.lang; } catch (e) { return undefined; }
+}
+function collator() {
+  var l = locale();
+  if (_collator && _collatorFor === l) return _collator;
+  _collatorFor = l;
+  try { _collator = new Intl.Collator(l, { sensitivity: 'base', numeric: true }); }
+  catch (e) { _collator = { compare: function (a, b) { return String(a).localeCompare(String(b)); } }; }
+  return _collator;
+}
+function compareNames(a, b) { return collator().compare(sortName(a), sortName(b)); }
+function prettyTime(ts) {
+  try { return new Date(ts).toLocaleTimeString(locale()); }
+  catch (e) { return new Date(ts).toLocaleTimeString(); }
+}
+
 function prettyDate(iso) {
   if (!iso) return '';
   var p = String(iso).split('-');
   if (p.length !== 3) return iso;
   var d = new Date(+p[0], +p[1] - 1, +p[2]);
   if (isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+  return d.toLocaleDateString(locale(), { year: 'numeric', month: 'long', day: 'numeric' });
 }
 /** Last, First — for stable roster sorting. */
 function sortName(name) {
@@ -424,6 +452,7 @@ global.QG = global.QG || {};
 Object.assign(global.QG, {
   $: $, $$: $$, el: el, on: on, esc: esc, pad: pad, uid: uid, clamp: clamp, round2: round2,
   todayISO: todayISO, prettyDate: prettyDate, sortName: sortName,
+  prettyTime: prettyTime, compareNames: compareNames, locale: locale,
   DB: DB, Prefs: Prefs, Audio2: Audio2, speak: speak,
   toast: toast, modal: modal, confirmBox: confirmBox, promptBox: promptBox,
   downloadBlob: downloadBlob, downloadText: downloadText, readFileText: readFileText,

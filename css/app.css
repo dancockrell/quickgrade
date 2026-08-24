@@ -15,7 +15,14 @@
   --sh2:0 4px 12px rgba(16,22,34,.08), 0 1px 3px rgba(16,22,34,.06);
   --sh3:0 16px 44px rgba(16,22,34,.18);
   --hdr:58px;
-  --ff:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  /* Resolved per character: the browser walks the stack until something has
+     the glyph, so one list serves every script. Noto covers Linux/Android;
+     the rest ship with Windows and macOS. */
+  --ff:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,
+      "Noto Sans","Noto Sans Thai","Leelawadee UI","Noto Sans Devanagari","Nirmala UI",
+      "Noto Sans Arabic",Tahoma,"Noto Sans KR","Malgun Gothic","Noto Sans SC",
+      "Microsoft YaHei",sans-serif;
+  --lh:1.5;
   --fm:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){
@@ -41,7 +48,7 @@ html,body{height:100%}
 [hidden]{display:none !important}
 body{
   margin:0;background:var(--bg);color:var(--text);font-family:var(--ff);
-  font-size:15px;line-height:1.5;overflow:hidden;
+  font-size:15px;line-height:var(--lh);overflow:hidden;
   display:flex;flex-direction:column;
   -webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased;
 }

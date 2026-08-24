@@ -549,7 +549,7 @@ I.packs.ru = {
   'tests.sheet.id6': 'Идентификатор, 6 цифр',
   'tests.sheet.idDigits': 'Как ученики себя обозначают',
   'tests.sheet.idLabel': 'Подпись над кружками номера',
-  'tests.sheet.idLabel.ph': 'НОМЕР В КЛАССЕ',
+  'sheet.classNumber': 'НОМЕР В КЛАССЕ',
   'tests.sheet.instr': 'Указания на бланке',
   'tests.sheet.instr.ph': 'Пишите карандашом. Закрашивайте кружки полностью.',
   'tests.sheet.legal': 'US Legal (8,5 × 14 дюйма)',
@@ -567,18 +567,18 @@ I.packs.ru = {
   'tests.w.hint': 'Для них печатаются поля для ответа. После сканирования вы проверяете их по одному вопросу сразу для всего класса.',
   'tests.w.paste': 'Вставить мои вопросы',
   'tests.words.class': 'Поле класса',
-  'tests.words.class.ph': 'КЛАСС / УРОК',
+  'sheet.class': 'КЛАСС / УРОК',
   'tests.words.howto': 'Заголовок «как заполнять»',
-  'tests.words.howto.ph': 'КАК ЗАПОЛНЯТЬ',
+  'sheet.howto': 'КАК ЗАПОЛНЯТЬ',
   'tests.words.name': 'Поле имени',
-  'tests.words.name.ph': 'ИМЯ',
+  'sheet.name': 'ИМЯ',
   'tests.words.page': 'Строка страницы',
-  'tests.words.page.ph': 'СТРАНИЦА',
+  'sheet.page': 'СТРАНИЦА',
   'tests.words.samples': 'Примеры заполнения, разделённые знаком',
-  'tests.words.samples.ph': 'правильно|слишком бледно|не ставьте крестик',
+  'sheet.samples': 'правильно|слишком бледно|не ставьте крестик',
   'tests.words.summary': 'Надписи на печатном бланке — для другого языка или принятых в вашей школе слов',
   'tests.words.tips': 'Строка совета под примерами',
-  'tests.words.tips.ph': 'Карандаш или тёмная ручка · полностью стирайте исправления · не пачкайте четыре угловых квадрата',
+  'sheet.tips': 'Карандаш или тёмная ручка · полностью стирайте исправления · не пачкайте четыре угловых квадрата',
 
   /* --- toasts --- */
   'toast.allGraded': 'Все письменные вопросы проверены.',
@@ -796,6 +796,15 @@ I.packs.ru = {
   'wlist.rubricAdd': 'Оценивать по критериям, а не одним числом',
   'wlist.rubricEdit': 'Изменить критерии',
   'wlist.rubricN': 'Критерии · {n}',
-  'wlist.short': 'Краткий ответ'
+  'wlist.short': 'Краткий ответ',
+
+  /* --- words printed on the answer sheet --- */
+  'sheet.id': '№',
+  'sheet.test': 'РАБОТА',
+  'sheet.version': 'ВАРИАНТ',
+  'sheet.pageWord': 'СТР.',
+  'sheet.of': 'из',
+  'sheet.studentId': 'НОМЕР УЧЕНИКА',
+  'sheet.testCode': 'КОД РАБОТЫ (уже отмечен)'
 };
 })(window.QG.I18N);

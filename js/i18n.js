@@ -134,6 +134,42 @@ function set(code, opts) {
   listeners.forEach(function (f) { try { f(code); } catch (e) {} });
 }
 
+/* Fonts.
+ *
+ * A font stack is resolved per character, not per element: the browser walks
+ * it until something has the glyph. So one broad stack serves every script
+ * and there is no need to swap fonts when the language changes. The Noto
+ * names cover Linux and Android; the rest are what Windows and macOS ship.
+ *
+ * Thai and Devanagari stack marks above and below the line, so they need more
+ * leading than Latin or the diacritics clip inside fixed-height controls. */
+var FONT_STACK = 'ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,' +
+  '"Helvetica Neue",Arial,"Noto Sans","Noto Sans Thai","Leelawadee UI",' +
+  '"Noto Sans Devanagari","Nirmala UI","Noto Sans Arabic",Tahoma,' +
+  '"Noto Sans KR","Malgun Gothic","Noto Sans SC","Microsoft YaHei",sans-serif';
+
+var PRINT_STACK = 'Calibri,Arial,"Noto Sans","Noto Sans Thai","Leelawadee UI",' +
+  '"Noto Sans Devanagari","Nirmala UI","Noto Sans Arabic",Tahoma,' +
+  '"Noto Sans KR","Malgun Gothic",sans-serif';
+
+/* Word needs three separate font slots — Latin, East Asian and "complex
+ * script" (Arabic, Thai, Devanagari). Naming only the Latin one leaves Word
+ * to substitute for the rest, usually badly. */
+var DOCX_FONTS = {
+  ar: { ascii: 'Calibri', cs: 'Arial',           eastAsia: 'Calibri' },
+  th: { ascii: 'Calibri', cs: 'Leelawadee UI',   eastAsia: 'Calibri' },
+  hi: { ascii: 'Calibri', cs: 'Nirmala UI',      eastAsia: 'Calibri' },
+  ko: { ascii: 'Calibri', cs: 'Calibri',         eastAsia: 'Malgun Gothic' },
+  zh: { ascii: 'Calibri', cs: 'Calibri',         eastAsia: 'Microsoft YaHei' }
+};
+function fonts() {
+  return {
+    css: FONT_STACK,
+    print: PRINT_STACK,
+    docx: DOCX_FONTS[lang] || { ascii: 'Calibri', cs: 'Calibri', eastAsia: 'Calibri' }
+  };
+}
+
 function onChange(fn) { listeners.push(fn); }
 
 /* The picker lists only languages we actually have a pack for, and lists
@@ -176,7 +212,7 @@ function boot() {
 global.QG.I18N = {
   LANGS: LANGS, packs: packs,
   t: t, apply: apply, set: set, boot: boot, detect: detect, mountPicker: mountPicker,
-  onChange: onChange, has: has, meta: meta,
+  onChange: onChange, has: has, meta: meta, fonts: fonts,
   get lang() { return lang; },
   /* Which keys the current pack is missing — used by the test suite so an
    * untranslated string is a build failure rather than a surprise in class. */
