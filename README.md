@@ -1,8 +1,24 @@
 # QuickGrade
 
-Scan paper tests with a webcam or phone camera, grade them, and export to
-Excel / Sheets / Word / Docs. Runs entirely on your computer — no account, no
-internet, no student data leaving the machine.
+**A paper-test grader for teachers who do not have one.**
+
+Scan tests with any camera — a laptop webcam, a phone, or photos you have already
+taken. It grades the multiple choice, collects the written answers for you to mark
+quickly, and exports to Excel, Sheets, Word or Docs.
+
+Marking sheets by machine has existed for decades. Access to it has not: the tools
+that do this are sold per teacher or per school, need a live internet connection,
+and put student records on someone else's servers. Most teachers in the world have
+never had one.
+
+QuickGrade needs no account, no subscription, no server and no internet connection
+after it loads. It runs on a five-year-old laptop, a phone, US Letter or A4, and
+every word printed on the sheet can be changed to another language.
+
+**No student's name or score ever leaves the device it was scanned on.** That is
+not a policy you have to trust — there is no server for the data to go to. See
+[What happens to student data](#what-happens-to-student-data), written so you can
+show it to whoever has to approve it.
 
 ---
 
@@ -389,6 +405,30 @@ a border, and don't write over the corner squares or fold across them.
 
 ---
 
+## What happens to student data
+
+Written for the person who has to sign off on it, and short enough to read.
+
+- **Nothing is transmitted anywhere.** QuickGrade is a web page with no back end.
+  It has no login, no analytics, no error reporting and no update check. There is
+  no address it could send data to.
+- **Everything stays in the browser** on the teacher's own device, in that
+  browser's local storage: the roster, the scanned images, the scores.
+- **It keeps working with the network switched off.** That is the simplest way to
+  confirm the first two points — turn off the wifi and use it normally.
+- **The teacher chooses when anything leaves.** Exported files land in the
+  Downloads folder like any other file. Sending one anywhere is a separate,
+  deliberate act.
+- **Deleting is real.** Removing a test removes its scans and images. Clearing the
+  browser's site data removes everything.
+- **The source is public.** Any of the above can be checked rather than believed —
+  the whole reader is about six thousand lines of plain JavaScript.
+
+The trade-off, stated plainly: because there is no server, there is also no
+central gradebook, no automatic sync between teachers, and no way to recover data
+if a device is lost or its browser data is cleared. **Export backup** is the
+answer to that, and the app reminds you if it has been a while.
+
 ## For the person who has to approve it
 
 - **No account, no backend, no telemetry.** The app is static files. Nothing is
@@ -494,3 +534,14 @@ mix them.
 
 **Numbers look off.** Check the answer key is complete — the key is row 2 of the
 gradebook export, so it's easy to eyeball.
+
+---
+
+## Licence
+
+MIT — see [LICENSE](LICENSE). Use it, change it, translate it, put it on your
+school's website, build something else out of it. Attribution is the only
+condition.
+
+If you adapt it for your country, your school system or your language, that is
+exactly what it is for.
