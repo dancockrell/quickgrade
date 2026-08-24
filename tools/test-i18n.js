@@ -47,14 +47,22 @@ function keysUsedInSource() {
          * is complete, not missing. */
         missing: enKeys.filter(k => p[k] == null &&
           p[k.replace(/[.](one|few|many|two|zero)$/, '.other')] == null),
-        stray: keys.filter(k => I.packs.en[k] == null),
+        /* A pack may add plural categories English does not have — Russian
+         * needs .few and .many where English only distinguishes one/other.
+         * That is a correct translation, not a stray key. */
+        stray: keys.filter(k => I.packs.en[k] == null &&
+          I.packs.en[k.replace(/[.](one|two|few|many|zero|other)$/, '.other')] == null),
         empty: keys.filter(k => typeof p[k] !== 'string' || !p[k].trim()),
-        /* {n} and friends must survive translation or the number vanishes. */
+        /* {name}, {size} and the rest must survive translation or the value
+         * vanishes from the sentence. The one exception is {n} in a singular
+         * form: "delete the sheet" is a better translation than "delete 1
+         * sheet" in most languages, and the count is implied by the grammar. */
         badVars: enKeys.filter(k => {
           if (p[k] == null) return false;
-          const want = (String(I.packs.en[k]).match(/\{\w+\}/g) || []).sort().join(',');
-          const got = (String(p[k]).match(/\{\w+\}/g) || []).sort().join(',');
-          return want !== got;
+          const singular = /[.](one|zero)$/.test(k);
+          const strip = s => (String(s).match(/\{\w+\}/g) || [])
+            .filter(v => !(singular && v === '{n}')).sort().join(',');
+          return strip(I.packs.en[k]) !== strip(p[k]);
         }),
         /* A pack copied without being translated would match English on
          * nearly every line. */
