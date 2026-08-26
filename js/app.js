@@ -763,7 +763,7 @@ function renderKeyGrid() {
     var opts = el('div', { class: 'opts' });
     for (var k = 0; k < ch; k++) (function (k) {
       opts.appendChild(el('button', {
-        class: 'opt' + (editing.mc.key[i] === k ? ' on' : ''), text: S.LETTERS[k],
+        class: 'opt' + (editing.mc.key[i] === k ? ' on' : ''), text: S.choiceLabelsOf(editing)[k],
         'data-q': i, 'data-k': k,
         onclick: function () {
           editing.mc.key[i] = (editing.mc.key[i] === k) ? null : k;
@@ -781,7 +781,11 @@ function renderKeyGrid() {
     var btn = e.target.closest ? e.target.closest('.opt') : null;
     if (!btn) return;
     var qi = +btn.dataset.q;
-    var idx = S.LETTERS.indexOf(e.key.toUpperCase());
+    /* Accept whatever this paper prints in the bubble, and the plain
+     * letters too, so a teacher used to A-D is not locked out. */
+    var lbls = String(S.choiceLabelsOf(editing));
+    var idx = lbls.indexOf(e.key.toUpperCase());
+    if (idx < 0) idx = S.LETTERS.indexOf(e.key.toUpperCase());
     if (idx >= 0 && idx < editing.mc.choices) {
       e.preventDefault();
       editing.mc.key[qi] = idx;
@@ -842,7 +846,7 @@ function pasteKeyDialog(onApply) {
       preview.appendChild(el('div', { class: 'keyitem' }, [
         el('span', { class: 'qn', text: (i + 1) + '.' }),
         el('span', { class: a == null ? 'bad' : 'ok',
-          style: 'font-weight:700', text: a == null ? '—' : S.LETTERS[a] })
+          style: 'font-weight:700', text: a == null ? '—' : S.choiceLabelsOf(editing)[a] })
       ]));
     });
     applyBtn.disabled = false;
@@ -1861,15 +1865,15 @@ function renderChecks() {
     row.appendChild(el('div', { class: 'cwhy' }, [
       el('span', { class: 'warnc', text: c.info.why }),
       el('span', { class: 'dim', text: T('checks.readAs', {
-        read: c.info.read >= 0 ? S.LETTERS[c.info.read] : T('common.blank'),
-        key: t.mc.key[c.q] != null ? S.LETTERS[t.mc.key[c.q]] : '?' }) })
+        read: c.info.read >= 0 ? S.choiceLabelsOf(t)[c.info.read] : T('common.blank'),
+        key: t.mc.key[c.q] != null ? S.choiceLabelsOf(t)[t.mc.key[c.q]] : '?' }) })
     ]));
 
     var opts = el('div', { class: 'copts' });
     for (var k = 0; k < t.mc.choices; k++) (function (k) {
       opts.appendChild(el('button', {
-        class: 'opt' + (c.info.read === k ? ' on' : ''), text: S.LETTERS[k],
-        title: T('checks.record', { letter: S.LETTERS[k] }),
+        class: 'opt' + (c.info.read === k ? ' on' : ''), text: S.choiceLabelsOf(t)[k],
+        title: T('checks.record', { letter: S.choiceLabelsOf(t)[k] }),
         onclick: function () { setOverride(c, k); }
       }));
     })(0 + k);
@@ -1909,7 +1913,7 @@ function setOverride(c, choice) {
   Q.DB.put('scans', c.scan).then(function () {
     recompute(); renderReview();
     Q.toast(T('toast.recorded', { q: c.q + 1, name: c.name,
-      answer: choice >= 0 ? S.LETTERS[choice] : T('common.blank') }), 'good');
+      answer: choice >= 0 ? S.choiceLabelsOf(State.test)[choice] : T('common.blank') }), 'good');
   });
 }
 function confirmCheck(c) {
@@ -1950,11 +1954,11 @@ function renderQuestionTable() {
     ]);
     tb.appendChild(el('tr', { class: modified ? 'qmod' : '' }, [
       el('td', { class: 'mono', text: String(q + 1) }),
-      el('td', { text: t.mc.key[q] == null ? '?' : S.LETTERS[t.mc.key[q]] }),
+      el('td', { text: t.mc.key[q] == null ? '?' : S.choiceLabelsOf(t)[t.mc.key[q]] }),
       el('td', {}, [bar]),
       el('td', { class: 'mono', text: it.n ? pct + '%' : '—' }),
       el('td', { class: 'dim', text: (it.dist || []).map(function (d, i) {
-        return S.LETTERS[i] + ':' + d;
+        return S.choiceLabelsOf(t)[i] + ':' + d;
       }).join('  ') }),
       el('td', { class: modified ? 'warnc' : 'dim',
         text: modified ? SC.ruleSummary(t, q) : (flag === 'hard' ? T('qtab.hard')
@@ -1991,8 +1995,8 @@ function fixQuestionDialog(q) {
       var isKey = t.mc.key[q] === k;
       var on = isKey || (rule.accept || []).indexOf(k) >= 0;
       accept.appendChild(el('button', {
-        class: 'opt' + (on ? ' on' : ''), text: S.LETTERS[k],
-        title: isKey ? T('fix.isKey') : T('fix.alsoAccept', { letter: S.LETTERS[k] }),
+        class: 'opt' + (on ? ' on' : ''), text: S.choiceLabelsOf(t)[k],
+        title: isKey ? T('fix.isKey') : T('fix.alsoAccept', { letter: S.choiceLabelsOf(t)[k] }),
         disabled: isKey,
         onclick: function () {
           rule.accept = rule.accept || [];
@@ -2004,7 +2008,7 @@ function fixQuestionDialog(q) {
     })(k);
     accept.appendChild(el('span', { class: 'hint', style: 'margin:0',
       text: t.mc.key[q] == null ? T('fix.noKey')
-        : T('fix.keyIs', { letter: S.LETTERS[t.mc.key[q]] }) }));
+        : T('fix.keyIs', { letter: S.choiceLabelsOf(t)[t.mc.key[q]] }) }));
   }
   drawAccept();
   body.appendChild(el('label', { text: T('fix.acceptLabel') }));
@@ -2595,7 +2599,7 @@ function gradebookRows() {
     ];
     for (var i2 = 0; i2 < t.mc.count; i2++) {
       var a = x.answers[i2];
-      row.push(a === -3 ? '' : x.states[i2] === 'multi' ? '**' : a < 0 ? '-' : S.LETTERS[a]);
+      row.push(a === -3 ? '' : x.states[i2] === 'multi' ? '**' : a < 0 ? '-' : S.choiceLabelsOf(t)[a]);
     }
     (t.written || []).forEach(function (w, wi) {
       var rec = (x.wRecords || {})[wi];
@@ -2609,7 +2613,7 @@ function gradebookRows() {
 function keyRow() {
   var t = State.test;
   var row = ['ANSWER KEY', '', '', '', '', '', '', '', '', '', '', ''];
-  for (var i = 0; i < t.mc.count; i++) row.push(t.mc.key[i] == null ? '?' : S.LETTERS[t.mc.key[i]]);
+  for (var i = 0; i < t.mc.count; i++) row.push(t.mc.key[i] == null ? '?' : S.choiceLabelsOf(t)[t.mc.key[i]]);
   (t.written || []).forEach(function (w) { row.push(w.max || 0); });
   return row;
 }
@@ -2655,12 +2659,12 @@ function exportItemAnalysisXlsx() {
   var t = State.test, r = State.results;
   var head = ['Question', 'Correct answer', 'Class % correct', 'Answered', 'Got it right',
               'Blank', 'Double-marked'];
-  for (var k = 0; k < t.mc.choices; k++) head.push('Chose ' + S.LETTERS[k]);
+  for (var k = 0; k < t.mc.choices; k++) head.push('Chose ' + S.choiceLabelsOf(t)[k]);
   head.push('Flag');
   var rows = [head.map(function (h) { return { v: h, s: X.XS.HEADER }; })];
   r.itemPct.forEach(function (it, i) {
     var flag = it.n === 0 ? '' : it.pct < 0.35 ? 'Hard — reteach?' : it.pct > 0.97 ? 'Everyone got it' : '';
-    var row = [i + 1, t.mc.key[i] == null ? '?' : S.LETTERS[t.mc.key[i]],
+    var row = [i + 1, t.mc.key[i] == null ? '?' : S.choiceLabelsOf(t)[t.mc.key[i]],
       { v: it.pct, s: X.XS.PCT }, it.n, it.correct, it.blank, it.multi];
     it.dist.forEach(function (d) { row.push(d); });
     row.push(flag);
@@ -2675,7 +2679,7 @@ function exportItemAnalysisXlsx() {
     var row = [x.name, x.sid];
     for (var i = 0; i < t.mc.count; i++) {
       var a = x.answers[i];
-      row.push(a === -3 ? '' : x.states[i] === 'multi' ? '**' : a < 0 ? '-' : S.LETTERS[a]);
+      row.push(a === -3 ? '' : x.states[i] === 'multi' ? '**' : a < 0 ? '-' : S.choiceLabelsOf(t)[a]);
     }
     responses.push(row);
   });
@@ -2796,11 +2800,11 @@ function topSheetBody(x, opts) {
       var isRight = key != null && a === key;
       if (ts.onlyWrong && isRight) continue;
       if (a === -3 && ts.onlyWrong) continue;
-      var yours = a === -3 ? '—' : x.states[qi] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.LETTERS[a];
+      var yours = a === -3 ? '—' : x.states[qi] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.choiceLabelsOf(t)[a];
       var row = [{ text: String(qi + 1), align: 'center' }];
       if (ts.showQuestionText) row.push({ text: (t.mc.text || [])[qi] || '', size: 9 });
       row.push({ text: yours, align: 'center', b: !isRight, color: isRight ? '1A7F4B' : 'B3261E' });
-      row.push({ text: key == null ? '?' : S.LETTERS[key], align: 'center' });
+      row.push({ text: key == null ? '?' : S.choiceLabelsOf(t)[key], align: 'center' });
       row.push({ text: a === -3 ? T('ts.notScanned') : isRight ? T('ts.correct') : T('ts.incorrect'), align: 'center',
                  color: isRight ? '1A7F4B' : 'B3261E' });
       row.push({ text: String(isRight ? t.mc.points : 0), align: 'center' });
@@ -2962,11 +2966,11 @@ function printTopSheets() {
       for (var i = 0; i < t.mc.count; i++) {
         var a = x.answers[i], key = t.mc.key[i], right = key != null && a === key;
         if (ts.onlyWrong && (right || a === -3)) continue;
-        var yours = a === -3 ? '—' : x.states[i] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.LETTERS[a];
+        var yours = a === -3 ? '—' : x.states[i] === 'multi' ? T('ts.twoMarks') : a < 0 ? T('common.blank') : S.choiceLabelsOf(t)[a];
         h += '<tr><td class="c">' + (i + 1) + '</td>' +
           (ts.showQuestionText ? '<td>' + X.xml((t.mc.text || [])[i] || '') + '</td>' : '') +
           '<td class="c ' + (right ? 'ok' : 'no') + '">' + yours + '</td>' +
-          '<td class="c">' + (key == null ? '?' : S.LETTERS[key]) + '</td>' +
+          '<td class="c">' + (key == null ? '?' : S.choiceLabelsOf(t)[key]) + '</td>' +
           '<td class="c ' + (right ? 'ok' : 'no') + '">' +
             X.xml(a === -3 ? T('ts.notScanned') : right ? T('ts.correct') : T('ts.incorrect')) + '</td>' +
           '<td class="c">' + (right ? t.mc.points : 0) + '</td>' +

@@ -100,6 +100,25 @@ function rect(x, y, w, h) { return { u0: u(x), v0: v(y), u1: u(x + w), v1: v(y +
 
 var LETTERS = 'ABCDEFGHIJ';
 
+/* What a student sees inside each bubble.
+ *
+ * Thai school papers number the choices 1 2 3 4 and tell the student to
+ * shade a number; British and American papers letter them A B C D. Getting
+ * this wrong is not cosmetic: the paper says "shade 3" and the sheet offers
+ * A B C D, and a twelve-year-old under exam conditions has to translate.
+ *
+ * The scanner reads a bubble by its position in the row and never looks at
+ * the glyph, so this is display only and cannot change how anything marks.
+ * Indexing works the same for a string or an array, so a test may set
+ * options.choiceLabels to '1234' or to ['ก','ข','ค','ง'].
+ */
+function choiceLabelsOf(test) {
+  var c = test && test.options && test.options.choiceLabels;
+  if (typeof c === 'string' && c.length) return c;
+  if (Array.isArray(c) && c.length) return c;
+  return LETTERS;
+}
+
 function rowsPerCol() {
   return Math.floor((L.contentBottom - L.contentTop) / L.rowPitch) + 1;
 }
@@ -419,7 +438,7 @@ function renderPage(test, pages, pageIdx, who) {
       var cx = item.x + L.labelW + k * L.rowPitch + L.rowPitch / 2;
       var keyArr = who.formKey || test.mc.key;
       var filled = who.keyMode && keyArr[item.q] === k;
-      h += bubble(cx, item.y, LETTERS[k], filled);
+      h += bubble(cx, item.y, choiceLabelsOf(test)[k], filled);
     }
   });
 
@@ -484,7 +503,8 @@ function renderSheets(test, people, opts) {
 
 global.QG = global.QG || {};
 global.QG.Sheet = {
-  L: L, LETTERS: LETTERS, u: u, v: v, uv: uv, rect: rect,
+  L: L, LETTERS: LETTERS, choiceLabelsOf: choiceLabelsOf,
+  u: u, v: v, uv: uv, rect: rect,
   idGrid: idGrid, codeGrid: codeGrid, pageRow: pageRow,
   idDigitsOf: idDigitsOf, ID_DIGIT_CHOICES: ID_DIGIT_CHOICES, codeY0: codeY0, pageY: pageY,
   PAPERS: PAPERS, setPaper: setPaper, paperOf: paperOf, usePaper: usePaper,
