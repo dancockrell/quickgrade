@@ -8981,8 +8981,17 @@ var L = {
   /* gaps from the last row of one block to the first row of the next */
   codeGap: 0.26, pageGap: 0.228,
 
-  contentTop: 3.48, contentBottom: 10.02,
+  contentTop: 3.48, contentTopBase: 3.48, contentBottom: 10.02,
+  /* Vertical distance between question rows. */
   rowPitch: 0.255,
+  /* Horizontal distance between bubbles in a row. These were one constant,
+   * which meant taller rows could not be had without also spreading the
+   * bubbles sideways. They default to the same number, so every sheet ever
+   * printed lays out identically. */
+  bubblePitch: 0.255,
+  /* Row height when the questions are printed on the sheet itself: enough
+   * for a question and its options beside the bubbles. */
+  rowPitchText: 0.62,
   colGap: 0.22, labelW: 0.36, colLeft: 0.60,
   bubbleR: 0.088,        // printed outline radius
   sampleR: 0.052,        // radius actually sampled (stays inside the ring)
@@ -9028,7 +9037,30 @@ function paperOf(test) {
   return PAPERS[n] ? n : 'letter';
 }
 /** Every geometry entry point calls this so renderer and scanner never drift. */
-function usePaper(test) { return setPaper(paperOf(test)); }
+/* Print the questions on the answer sheet itself.
+ *
+ * The default sheet is deliberately question-free so one master can be
+ * photocopied for any test. That is right when the teacher already has a
+ * question paper. It is wrong when they do not, because it leaves a student
+ * reading one sheet and marking another, and it puts instructions like
+ * "fill in the circle" on a page that has no circles.
+ *
+ * With this on, rows get tall enough to carry the question and its options
+ * beside the bubbles, and the grid drops to a single column. Bubble spacing
+ * is untouched, so the reader sees exactly the geometry it always did.
+ */
+function questionsOnSheet(test) {
+  return !!(test && test.options && test.options.questionsOnSheet &&
+            test.mc && (test.mc.text || []).length);
+}
+function usePaper(test) {
+  setPaper(paperOf(test));
+  L.rowPitch = questionsOnSheet(test) ? L.rowPitchText : L.bubblePitch;
+  /* A question's wording is drawn above the centre of its row, so the first
+   * row needs headroom or it climbs into whatever sits above the grid. */
+  L.contentTop = L.contentTopBase + (questionsOnSheet(test) ? L.rowPitchText * 0.5 : 0);
+  return L;
+}
 
 function u(x) { return (x - L.fid.x0) / L.W; }
 function v(y) { return (y - L.fid.y0) / L.H; }
@@ -9059,7 +9091,7 @@ function choiceLabelsOf(test) {
 function rowsPerCol() {
   return Math.floor((L.contentBottom - L.contentTop) / L.rowPitch) + 1;
 }
-function colWidth(choices) { return L.labelW + choices * L.rowPitch; }
+function colWidth(choices) { return L.labelW + choices * L.bubblePitch; }
 function colsPerPage(choices) {
   var cw = colWidth(choices) + L.colGap;
   return Math.max(1, Math.floor((L.W + L.colGap) / cw));
@@ -9122,9 +9154,10 @@ function layoutTest(test) {
   var choices = test.mc.choices || 5;
   var nMc = test.mc.count || 0;
   var written = test.written || [];
-  var perPage = mcPerPage(choices);
-  var rows = rowsPerCol(), cols = colsPerPage(choices);
+  var perPage = questionsOnSheet(test) ? rowsPerCol() : mcPerPage(choices);
+  var rows = rowsPerCol(), cols = questionsOnSheet(test) ? 1 : colsPerPage(choices);
   var cw = colWidth(choices);
+  var qOnSheet = questionsOnSheet(test);
   var pages = [];
   var q = 0;
 
@@ -9141,13 +9174,15 @@ function layoutTest(test) {
       var y = L.contentTop + r * L.rowPitch;
       var ch = [];
       for (var k = 0; k < choices; k++) {
-        ch.push(uv(x0 + L.labelW + k * L.rowPitch + L.rowPitch / 2, y));
+        ch.push(uv(x0 + L.labelW + k * L.bubblePitch + L.bubblePitch / 2, y));
       }
       mc.push({
         q: q + i, row: r, col: c, x: x0, y: y, choices: ch,
         /* the strip of paper this question occupies — cropped and shown to the
          * teacher whenever the read was not clean */
-        rect: rect(x0, y - L.rowPitch * 0.62, cw, L.rowPitch * 1.24)
+        rect: rect(x0, y - L.bubblePitch * 0.62,
+                   qOnSheet ? L.W - (x0 - L.colLeft) : cw,
+                   qOnSheet ? L.rowPitch : L.bubblePitch * 1.24)
       });
     }
     pages.push({ pageNo: pages.length + 1, mc: mc, written: [] });
@@ -9260,6 +9295,10 @@ var SHEET_CSS = [
      * blank rectangle, and students write crooked or not at all. Dark enough
      * to survive a third-generation copy, light enough to sit under pencil. */
     '.writeline{position:absolute;border-top:1px dotted #777}',
+    '.qtext{position:absolute;color:#111}',
+    '.qstem{font-size:8.4pt;line-height:1.16}',
+    '.qopts{display:grid;grid-template-columns:1fr 1fr;gap:.01in .10in;margin-top:.02in;font-size:7.6pt;line-height:1.15}',
+    '.qopts span{min-width:0}',
 '.toolbar{position:sticky;top:0;background:#111;color:#fff;padding:10px 14px;z-index:9;display:flex;gap:10px;align-items:center}',
 '.toolbar button{background:#22c07a;color:#04240f;border:0;border-radius:7px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}',
 '.toolbar span{font-size:12px;opacity:.85}'
@@ -9328,7 +9367,11 @@ function renderPage(test, pages, pageIdx, who) {
    * so the page reads as designed rather than half-empty. */
   var gy = L.classBox.y + L.classBox.h + 0.20;
   if (L.contentTop - gy > 0.72) {
-    h += absDiv('guide', L.nameBox.x, gy, L.nameBox.w, L.contentTop - gy - 0.16, '');
+    /* A question printed on the sheet starts above the centre of its row,
+     * so the guide has to stop higher than the grid line or it lands on the
+     * first question. */
+    var guideEnd = questionsOnSheet(test) ? L.rowPitch * 0.45 + 0.06 : 0.16;
+    h += absDiv('guide', L.nameBox.x, gy, L.nameBox.w, L.contentTop - gy - guideEnd, '');
     h += absDiv('boxlbl', L.nameBox.x + 0.14, gy + 0.09, 3.2, 0.13, E(lbl.howto || T('sheet.howto')));
     var gx = L.nameBox.x + 0.16, gyy = gy + 0.42;
     var words = (lbl.samples || T('sheet.samples')).split('|');
@@ -9369,16 +9412,39 @@ function renderPage(test, pages, pageIdx, who) {
       h += bubble(L.idX0 + d2 * L.idPitchX, cY + r2 * L.idPitchY, String(d2), code[r2] === d2);
     }
   }
-  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.62, 0.14, E(lbl.page || T('sheet.pageWord')));
+  /* 0.50in, not 0.62: the wider box reached under the first page bubble.
+   * The word itself is about 0.30in, so nothing is lost. */
+  h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.50, 0.14, E(lbl.page || T('sheet.pageWord')));
   for (var d3 = 0; d3 < L.pageMax; d3++) {
     h += bubble(L.idX0 + d3 * L.idPitchX, pY, String(d3 + 1), d3 === pageIdx);
   }
 
   /* multiple-choice grid */
+  var qOnSheetNow = questionsOnSheet(test);
+  var qWords = (test.mc && test.mc.text) || [];
+  var qOpts = (test.mc && test.mc.options) || [];
   pg.mc.forEach(function (item) {
+    /* With the questions on the sheet, the wording sits to the right of the
+     * bubbles so a student reads and answers in one place, instead of holding
+     * an answer in their head while they hunt for the row on a different
+     * piece of paper. The bubbles do not move; only the space around them
+     * grew, so the reader sees the geometry it always did. */
+    if (qOnSheetNow) {
+      var tx = item.x + L.labelW + choices * L.bubblePitch + 0.12;
+      var tw = L.fid.x1 - L.quiet - tx;
+      var opts = qOpts[item.q] || [];
+      var body = '<div class="qstem">' + E(qWords[item.q] || '') + '</div>';
+      if (opts.length) {
+        body += '<div class="qopts">' + opts.map(function (o, k) {
+          return '<span><b>' + E(choiceLabelsOf(test)[k]) + '.</b> ' + E(o) + '</span>';
+        }).join('') + '</div>';
+      }
+      h += absDiv('qtext', tx, item.y - L.rowPitch * 0.42, tw, L.rowPitch * 0.90,
+                  body, 'overflow:hidden');
+    }
     h += absDiv('qn', item.x, item.y - L.rowPitch / 2, L.labelW - 0.04, L.rowPitch, String(item.q + 1));
     for (var k = 0; k < choices; k++) {
-      var cx = item.x + L.labelW + k * L.rowPitch + L.rowPitch / 2;
+      var cx = item.x + L.labelW + k * L.bubblePitch + L.bubblePitch / 2;
       var keyArr = who.formKey || test.mc.key;
       var filled = who.keyMode && keyArr[item.q] === k;
       h += bubble(cx, item.y, choiceLabelsOf(test)[k], filled);
@@ -10857,7 +10923,7 @@ function newTest() {
   return {
     id: Q.uid('t'), title: '', className: '', classes: [], date: Q.todayISO(),
     code: String(Math.floor(Math.random() * 900) + 100),
-    mc: { count: 20, choices: 5, key: [], points: 1, text: [], topic: [], rules: {} },
+    mc: { count: 20, choices: 5, key: [], points: 1, text: [], options: [], topic: [], rules: {} },
     curve: { kind: 'none', value: 0 },
     written: [], options: defaultOptions(), createdAt: Date.now()
   };
@@ -10876,6 +10942,8 @@ function normalizeTest(t) {
   t.mc.key = t.mc.key || [];
   t.mc.points = t.mc.points == null ? 1 : t.mc.points;
   t.mc.text = t.mc.text || [];
+  /* Option wording, only needed when the questions print on the sheet. */
+  t.mc.options = t.mc.options || [];
   t.mc.topic = t.mc.topic || [];
   t.mc.rules = t.mc.rules || {};
   t.forms = Array.isArray(t.forms) ? t.forms : [];

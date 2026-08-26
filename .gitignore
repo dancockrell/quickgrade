@@ -15,3 +15,4 @@ venv/
 
 # Android SDK and emulator live outside the repo; nothing here should be tracked
 tools/.out/
+tools/.look/

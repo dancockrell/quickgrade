@@ -55,7 +55,7 @@ function newTest() {
   return {
     id: Q.uid('t'), title: '', className: '', classes: [], date: Q.todayISO(),
     code: String(Math.floor(Math.random() * 900) + 100),
-    mc: { count: 20, choices: 5, key: [], points: 1, text: [], topic: [], rules: {} },
+    mc: { count: 20, choices: 5, key: [], points: 1, text: [], options: [], topic: [], rules: {} },
     curve: { kind: 'none', value: 0 },
     written: [], options: defaultOptions(), createdAt: Date.now()
   };
@@ -74,6 +74,8 @@ function normalizeTest(t) {
   t.mc.key = t.mc.key || [];
   t.mc.points = t.mc.points == null ? 1 : t.mc.points;
   t.mc.text = t.mc.text || [];
+  /* Option wording, only needed when the questions print on the sheet. */
+  t.mc.options = t.mc.options || [];
   t.mc.topic = t.mc.topic || [];
   t.mc.rules = t.mc.rules || {};
   t.forms = Array.isArray(t.forms) ? t.forms : [];
