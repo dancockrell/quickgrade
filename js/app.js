@@ -16,29 +16,32 @@ var State = {
 
 var DEFAULT_SCALE = [[90, 'A'], [80, 'B'], [70, 'C'], [60, 'D'], [0, 'F']];
 
+/* `t` is a key, not a label: this array is built at load time, before a
+ * language has been chosen, so the caller resolves the wording when it draws
+ * the checkbox. */
 var TOPSHEET_OPTS = [
-  { k: 'showScoreBand',   d: true,  t: 'Score summary band' },
-  { k: 'showPercent',     d: true,  t: 'Percent' },
-  { k: 'showLetter',      d: true,  t: 'Letter grade' },
-  { k: 'showMc',          d: true,  t: 'Multiple-choice detail table' },
-  { k: 'onlyWrong',       d: false, t: 'Only list questions missed' },
-  { k: 'showQuestionText',d: false, t: 'Include question text (if entered)' },
-  { k: 'showTopic',       d: false, t: 'Include topic / standard column' },
-  { k: 'showClassPct',    d: false, t: 'Show % of class that got it right' },
-  { k: 'showMastery',     d: false, t: 'What this student has and hasn’t got' },
-  { k: 'showWritten',     d: true,  t: 'Written-answer scores' },
-  { k: 'showWrittenNotes',d: true,  t: 'Written-answer teacher notes' },
-  { k: 'showMissedList',  d: false, t: 'Compact "missed" list at top' },
-  { k: 'commentBox',      d: true,  t: 'Blank teacher comment box' },
-  { k: 'commentLines',    d: false, t: 'Ruled lines inside comment box' },
-  { k: 'sigTeacher',      d: false, t: 'Teacher signature line' },
-  { k: 'sigParent',       d: false, t: 'Parent signature line' },
-  { k: 'sigStudent',      d: false, t: 'Student corrections / retake line' },
-  { k: 'showStudentId',   d: true,  t: 'Print student ID' },
-  { k: 'showDate',        d: true,  t: 'Print test date' },
-  { k: 'showClassAvg',    d: false, t: 'Class average for comparison' },
-  { k: 'showRank',        d: false, t: 'Rank in class' },
-  { k: 'pageBreakEach',   d: true,  t: 'One page per student' }
+  { k: 'showScoreBand',   d: true,  t: 'ts.opt.scoreBand' },
+  { k: 'showPercent',     d: true,  t: 'ts.opt.percent' },
+  { k: 'showLetter',      d: true,  t: 'ts.opt.letter' },
+  { k: 'showMc',          d: true,  t: 'ts.opt.mcTable' },
+  { k: 'onlyWrong',       d: false, t: 'ts.opt.onlyWrong' },
+  { k: 'showQuestionText',d: false, t: 'ts.opt.questionText' },
+  { k: 'showTopic',       d: false, t: 'ts.opt.topic' },
+  { k: 'showClassPct',    d: false, t: 'ts.opt.classPct' },
+  { k: 'showMastery',     d: false, t: 'ts.opt.mastery' },
+  { k: 'showWritten',     d: true,  t: 'ts.opt.written' },
+  { k: 'showWrittenNotes',d: true,  t: 'ts.opt.writtenNotes' },
+  { k: 'showMissedList',  d: false, t: 'ts.opt.missedList' },
+  { k: 'commentBox',      d: true,  t: 'ts.opt.commentBox' },
+  { k: 'commentLines',    d: false, t: 'ts.opt.commentLines' },
+  { k: 'sigTeacher',      d: false, t: 'ts.opt.sigTeacher' },
+  { k: 'sigParent',       d: false, t: 'ts.opt.sigParent' },
+  { k: 'sigStudent',      d: false, t: 'ts.opt.sigStudent' },
+  { k: 'showStudentId',   d: true,  t: 'ts.opt.studentId' },
+  { k: 'showDate',        d: true,  t: 'ts.opt.date' },
+  { k: 'showClassAvg',    d: false, t: 'ts.opt.classAvg' },
+  { k: 'showRank',        d: false, t: 'ts.opt.rank' },
+  { k: 'pageBreakEach',   d: true,  t: 'ts.opt.pageBreak' }
 ];
 
 function defaultOptions() {
@@ -95,13 +98,10 @@ function storageBanner() {
   var mode = Q.DB.mode();
   if (mode === 'idb') return;
   var box = $('#storageWarn');
-  var msg = mode === 'local'
-    ? 'Running in limited mode because this page was opened straight from a file. Scores and rosters save, but scanned images are lost on reload — and the camera will not open.'
-    : 'Nothing can be saved in this browser. Work will be lost when you close the tab.';
+  var msg = mode === 'local' ? T('storage.limited') : T('storage.none');
   box.innerHTML = '';
-  box.appendChild(el('span', { html: '<b>Heads up:</b> ' + Q.esc(msg) +
-    ' Close this and run <b>Start QuickGrade.bat</b> instead.' }));
-  box.appendChild(el('button', { text: '×', title: 'Dismiss',
+  box.appendChild(el('span', { html: T('storage.headsUp', { msg: Q.esc(msg) }) }));
+  box.appendChild(el('button', { text: '×', title: T('storage.dismiss'),
     onclick: function () { box.hidden = true; } }));
   box.hidden = false;
 }
@@ -125,9 +125,7 @@ function backupNudge() {
   var last = Q.Prefs.get('lastBackup', 0);
   var days = (Date.now() - last) / 86400000;
   if (last && days < 7) return;
-  Q.toast(last
-    ? 'Last backup was ' + Math.floor(days) + ' days ago. Tests ▸ Export backup keeps a copy off this browser.'
-    : 'Reminder: this data lives only in this browser. Tests ▸ Export backup makes a portable copy.',
+  Q.toast(last ? T('backup.stale', { n: Math.floor(days) }) : T('backup.never'),
     'err', 9000);
 }
 
@@ -226,7 +224,7 @@ function route(name) {
 /* ============================================================ results */
 function studentName(sid) {
   var s = State.byId[S.normId(sid)];
-  return s ? s.name : (sid ? 'ID ' + sid : 'Unknown');
+  return s ? s.name : (sid ? T('ts.idPrefix', { sid: sid }) : T('review.unknown'));
 }
 function classStudents() {
   var t = State.test;
@@ -408,17 +406,20 @@ function renderTests() {
   State.tests.forEach(function (t) {
     var isSel = State.test && State.test.id === t.id;
     var card = el('div', { class: 'card' + (isSel ? ' sel' : '') }, [
-      el('h4', { text: t.title || 'Untitled test' }),
-      el('div', { class: 'meta', text: (t.className || 'No class') + ' · ' + (t.date || '') }),
-      el('div', { class: 'meta', text: t.mc.count + ' MC · ' + (t.written || []).length +
-        ' written · code ' + t.code + ' · ' + S.layoutTest(t).length + ' page(s)' +
+      el('h4', { text: t.title || T('tests.untitledTest') }),
+      el('div', { class: 'meta', text: (t.className || T('tests.noClass')) +
+        (t.date ? ' · ' + Q.prettyDate(t.date) : '') }),
+      el('div', { class: 'meta', text: T('tests.cardMeta', { mc: t.mc.count,
+        written: (t.written || []).length, code: t.code }) + ' · ' +
+        T('tests.cardPages', { n: S.layoutTest(t).length }) +
         (S.paperOf(t) !== 'letter' ? ' · ' + S.paperOf(t).toUpperCase() : '') }),
       el('div', { class: 'cardbtns' }, [
-        el('button', { class: 'btn sm' + (isSel ? '' : ' go'), text: isSel ? 'Selected' : 'Select',
+        el('button', { class: 'btn sm' + (isSel ? '' : ' go'),
+          text: isSel ? T('tests.selected') : T('tests.select'),
           onclick: function (e) { e.stopPropagation(); selectTest(t).then(function () { renderTests(); renderRosterView(); }); } }),
-        el('button', { class: 'btn sm', text: 'Edit',
+        el('button', { class: 'btn sm', text: T('tests.edit'),
           onclick: function (e) { e.stopPropagation(); selectTest(t).then(function () { renderTests(); openEditor(t); }); } }),
-        el('button', { class: 'btn sm', text: 'Duplicate',
+        el('button', { class: 'btn sm', text: T('tests.duplicate'),
           onclick: function (e) { e.stopPropagation(); duplicateTest(t); } })
       ])
     ]);
@@ -1274,7 +1275,7 @@ function renderTopsheetOpts(box, t) {
           t.options.topsheet[o.k] = e.target.checked;
           if (t === State.test) saveTest();
         } }),
-      o.t
+      T(o.t)
     ]));
   });
   box.appendChild(el('label', { class: 'optfoot' }, [
@@ -1712,9 +1713,27 @@ function renderReview() {
       row.appendChild(el('span', { class: 'dim',
         text: T('unres.page', { n: sc.page }) +
           (sc.sid ? T('unres.idUnknown', { sid: sc.sid }) : T('unres.noId')) }));
-      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('unres.assignTo'))].concat(
-        classStudents().map(function (s) { return el('option', { value: s.sid }, s.name + ' · ' + s.sid); })
-      ));
+      /* A sheet that could not be matched almost always belongs to someone
+       * with nothing scanned at all, so offer those first instead of making
+       * the teacher hunt an alphabetical list of thirty names. */
+      var scanned = {};
+      (r.rows || []).forEach(function (x) { if (x.scanned) scanned[S.normId(x.sid)] = 1; });
+      var missing = [], rest = [];
+      classStudents().forEach(function (st) {
+        (scanned[S.normId(st.sid)] ? rest : missing).push(st);
+      });
+      function opts(list) {
+        return list.map(function (st) {
+          return el('option', { value: st.sid }, st.name + ' · ' + st.sid);
+        });
+      }
+      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('unres.assignTo'))]);
+      if (missing.length && rest.length) {
+        sel.appendChild(el('optgroup', { label: T('unres.groupMissing') }, opts(missing)));
+        sel.appendChild(el('optgroup', { label: T('unres.groupScanned') }, opts(rest)));
+      } else {
+        opts(missing.concat(rest)).forEach(function (o) { sel.appendChild(o); });
+      }
       row.appendChild(sel);
       row.appendChild(el('button', {
         class: 'btn sm go', text: T('unres.assign'),
@@ -2368,6 +2387,10 @@ function showGradeItem() {
   renderQuickComments();
 }
 
+/* One token, compared by identity, so the label can be translated without
+ * the equality check silently failing. */
+var ADD_COMMENT = '\u0000add';
+
 /** The keys really available right now. With a rubric the digits pick a
  *  level, not a point value, so the plain-points hint would be wrong. */
 function renderGradeKeys(rubric) {
@@ -2381,11 +2404,11 @@ function renderQuickComments() {
   qc.innerHTML = '';
   (Q.Prefs.get('quickComments', [T('qc.good'), T('qc.showWork'), T('qc.incomplete'),
       T('qc.offTopic'), T('qc.nearly')])
-    .concat(['+ add'])).forEach(function (c) {
+    .concat([ADD_COMMENT])).forEach(function (c) {
       qc.appendChild(el('button', {
-        class: 'qc', text: c,
+        class: 'qc', text: c === ADD_COMMENT ? T('qc.addChip') : c,
         onclick: function () {
-          if (c === '+ add') {
+          if (c === ADD_COMMENT) {
             Q.promptBox(T('qc.add')).then(function (v) {
               if (!v) return;
               var list = Q.Prefs.get('quickComments', []);

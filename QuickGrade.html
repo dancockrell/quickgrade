@@ -2622,7 +2622,48 @@ I.packs.en = {
   'scan.idle.h2': 'Hold a sheet up to the camera',
   'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner squares. One beep per sheet.',
   'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
-  'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip'
+  'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip',
+  'ts.opt.scoreBand': 'Score summary band',
+  'ts.opt.percent': 'Percent',
+  'ts.opt.letter': 'Letter grade',
+  'ts.opt.mcTable': 'Multiple-choice detail table',
+  'ts.opt.onlyWrong': 'Only list questions missed',
+  'ts.opt.questionText': 'Include question text (if entered)',
+  'ts.opt.topic': 'Include topic / standard column',
+  'ts.opt.classPct': 'Show % of class that got it right',
+  'ts.opt.mastery': 'What this student has and hasn’t got',
+  'ts.opt.written': 'Written-answer scores',
+  'ts.opt.writtenNotes': 'Written-answer teacher notes',
+  'ts.opt.missedList': 'Compact “missed” list at top',
+  'ts.opt.commentBox': 'Blank teacher comment box',
+  'ts.opt.commentLines': 'Ruled lines inside comment box',
+  'ts.opt.sigTeacher': 'Teacher signature line',
+  'ts.opt.sigParent': 'Parent signature line',
+  'ts.opt.sigStudent': 'Student corrections / retake line',
+  'ts.opt.studentId': 'Print student ID',
+  'ts.opt.date': 'Print test date',
+  'ts.opt.classAvg': 'Class average for comparison',
+  'ts.opt.rank': 'Rank in class',
+  'ts.opt.pageBreak': 'One page per student',
+  'storage.limited': 'Running in limited mode because this page was opened straight from a file. Scores and rosters save, but scanned images are lost on reload — and the camera will not open.',
+  'storage.none': 'Nothing can be saved in this browser. Work will be lost when you close the tab.',
+  'storage.headsUp': '<b>Heads up:</b> {msg} Close this and run <b>Start QuickGrade.bat</b> instead.',
+  'storage.dismiss': 'Dismiss',
+  'backup.stale': 'Last backup was {n} days ago. Tests ▸ Export backup keeps a copy off this browser.',
+  'backup.never': 'Reminder: this data lives only in this browser. Tests ▸ Export backup makes a portable copy.',
+  'review.unknown': 'Unknown',
+  'tests.untitledTest': 'Untitled test',
+  'tests.noClass': 'No class',
+  'tests.cardMeta': '{mc} MC · {written} written · code {code}',
+  'tests.cardPages.one': '{n} page',
+  'tests.cardPages.other': '{n} pages',
+  'tests.selected': 'Selected',
+  'tests.select': 'Select',
+  'tests.edit': 'Edit',
+  'tests.duplicate': 'Duplicate',
+  'qc.addChip': '+ add',
+  'unres.groupMissing': 'Nothing scanned yet — most likely',
+  'unres.groupScanned': 'Already has a sheet'
 };
 })(window.QG.I18N);
 
@@ -3391,7 +3432,48 @@ I.packs.ar = {
   'scan.idle.h2': 'ارفع الورقة أمام الكاميرا',
   'scan.idle.p': 'املأ الإطار بالورقة، وأبقِها مستوية، ويقرأها QuickGrade فور أن يرى المربعات الأربعة في الزوايا. صافرة واحدة لكل ورقة.',
   'scan.idle.foot': 'لا كاميرا في هذا الجهاز؟ صوّر الأوراق بهاتف واستورد الصور بدلاً من ذلك.',
-  'grade.keys.rubric': 'المفاتيح: <kbd>1</kbd>–<kbd>9</kbd> مستوى المعيار التالي · <kbd>Enter</kbd> الطالب التالي · <kbd>←</kbd> رجوع · <kbd>S</kbd> تخطٍ'
+  'grade.keys.rubric': 'المفاتيح: <kbd>1</kbd>–<kbd>9</kbd> مستوى المعيار التالي · <kbd>Enter</kbd> الطالب التالي · <kbd>←</kbd> رجوع · <kbd>S</kbd> تخطٍ',
+  'ts.opt.scoreBand': 'شريط ملخص الدرجة',
+  'ts.opt.percent': 'النسبة المئوية',
+  'ts.opt.letter': 'التقدير بالحرف',
+  'ts.opt.mcTable': 'جدول تفصيلي للاختيار من متعدد',
+  'ts.opt.onlyWrong': 'اذكر الأسئلة الخاطئة فقط',
+  'ts.opt.questionText': 'أدرج نص السؤال (إن أُدخل)',
+  'ts.opt.topic': 'أدرج عمود الموضوع / المعيار',
+  'ts.opt.classPct': 'أظهر نسبة الصف التي أجابت صحيحاً',
+  'ts.opt.mastery': 'ما أتقنه هذا الطالب وما لم يتقنه',
+  'ts.opt.written': 'درجات الإجابات الكتابية',
+  'ts.opt.writtenNotes': 'ملاحظات المعلم على الإجابات الكتابية',
+  'ts.opt.missedList': 'قائمة مختصرة بالأخطاء في الأعلى',
+  'ts.opt.commentBox': 'صندوق فارغ لتعليق المعلم',
+  'ts.opt.commentLines': 'أسطر مسطّرة داخل صندوق التعليق',
+  'ts.opt.sigTeacher': 'سطر توقيع المعلم',
+  'ts.opt.sigParent': 'سطر توقيع ولي الأمر',
+  'ts.opt.sigStudent': 'سطر تصحيحات الطالب / إعادة الاختبار',
+  'ts.opt.studentId': 'اطبع رقم الطالب',
+  'ts.opt.date': 'اطبع تاريخ الاختبار',
+  'ts.opt.classAvg': 'متوسط الصف للمقارنة',
+  'ts.opt.rank': 'الترتيب في الصف',
+  'ts.opt.pageBreak': 'صفحة لكل طالب',
+  'storage.limited': 'يعمل بوضع محدود لأن هذه الصفحة فُتحت مباشرة من ملف. تُحفظ الدرجات وقوائم الطلاب، لكن الصور الممسوحة تضيع عند إعادة التحميل — ولن تفتح الكاميرا.',
+  'storage.none': 'لا يمكن حفظ أي شيء في هذا المتصفح. سيضيع العمل عند إغلاق التبويب.',
+  'storage.headsUp': '<b>تنبيه:</b> {msg} أغلق هذه الصفحة وشغّل <b>Start QuickGrade.bat</b> بدلاً منها.',
+  'storage.dismiss': 'إخفاء',
+  'backup.stale': 'آخر نسخة احتياطية كانت قبل {n} يوماً. الاختبارات ◂ تصدير نسخة احتياطية يحفظ نسخة خارج هذا المتصفح.',
+  'backup.never': 'تذكير: هذه البيانات موجودة في هذا المتصفح فقط. الاختبارات ◂ تصدير نسخة احتياطية ينشئ نسخة محمولة.',
+  'review.unknown': 'غير معروف',
+  'tests.untitledTest': 'اختبار بلا عنوان',
+  'tests.noClass': 'بلا صف',
+  'tests.cardMeta': '{mc} اختيار من متعدد · {written} كتابي · رمز {code}',
+  'tests.cardPages.one': '{n} صفحة',
+  'tests.cardPages.other': '{n} صفحة',
+  'tests.selected': 'محدَّد',
+  'tests.select': 'اختر',
+  'tests.edit': 'تعديل',
+  'tests.duplicate': 'نسخ',
+  'qc.addChip': '+ إضافة',
+  'unres.groupMissing': 'لم يُمسح لهم شيء بعد — الأرجح',
+  'unres.groupScanned': 'لديهم ورقة بالفعل'
 };
 })(window.QG.I18N);
 
@@ -4153,7 +4235,48 @@ I.packs.hi = {
   'scan.idle.h2': 'कैमरे के सामने एक पत्रक पकड़िए',
   'scan.idle.p': 'फ़्रेम भरिए, पत्रक समतल रखिए, और चारों कोनों के वर्ग दिखते ही QuickGrade उसे पढ़ लेता है। हर पत्रक पर एक बीप।',
   'scan.idle.foot': 'इस डिवाइस में कैमरा नहीं है? पत्रकों की फ़ोटो फ़ोन से लीजिए और तस्वीरें आयात कर लीजिए।',
-  'grade.keys.rubric': 'कुंजियाँ: <kbd>1</kbd>–<kbd>9</kbd> अगले मानदंड का स्तर · <kbd>Enter</kbd> अगला विद्यार्थी · <kbd>←</kbd> पीछे · <kbd>S</kbd> छोड़ें'
+  'grade.keys.rubric': 'कुंजियाँ: <kbd>1</kbd>–<kbd>9</kbd> अगले मानदंड का स्तर · <kbd>Enter</kbd> अगला विद्यार्थी · <kbd>←</kbd> पीछे · <kbd>S</kbd> छोड़ें',
+  'ts.opt.scoreBand': 'अंक सारांश पट्टी',
+  'ts.opt.percent': 'प्रतिशत',
+  'ts.opt.letter': 'अक्षर ग्रेड',
+  'ts.opt.mcTable': 'बहुविकल्पीय विवरण तालिका',
+  'ts.opt.onlyWrong': 'केवल छूटे हुए प्रश्न दिखाएँ',
+  'ts.opt.questionText': 'प्रश्न का पाठ शामिल करें (यदि दर्ज हो)',
+  'ts.opt.topic': 'विषय / मानक कॉलम शामिल करें',
+  'ts.opt.classPct': 'कक्षा के कितने प्रतिशत सही थे, दिखाएँ',
+  'ts.opt.mastery': 'इस विद्यार्थी ने क्या समझा और क्या नहीं',
+  'ts.opt.written': 'लिखित उत्तरों के अंक',
+  'ts.opt.writtenNotes': 'लिखित उत्तरों पर शिक्षक की टिप्पणियाँ',
+  'ts.opt.missedList': 'ऊपर छूटे प्रश्नों की संक्षिप्त सूची',
+  'ts.opt.commentBox': 'शिक्षक टिप्पणी के लिए ख़ाली बक्सा',
+  'ts.opt.commentLines': 'टिप्पणी बक्से में रेखाएँ',
+  'ts.opt.sigTeacher': 'शिक्षक हस्ताक्षर पंक्ति',
+  'ts.opt.sigParent': 'अभिभावक हस्ताक्षर पंक्ति',
+  'ts.opt.sigStudent': 'विद्यार्थी सुधार / पुनः परीक्षा पंक्ति',
+  'ts.opt.studentId': 'विद्यार्थी क्रमांक छापें',
+  'ts.opt.date': 'परीक्षा की तारीख़ छापें',
+  'ts.opt.classAvg': 'तुलना के लिए कक्षा का औसत',
+  'ts.opt.rank': 'कक्षा में स्थान',
+  'ts.opt.pageBreak': 'हर विद्यार्थी के लिए अलग पन्ना',
+  'storage.limited': 'यह पृष्ठ सीधे फ़ाइल से खोला गया है, इसलिए सीमित मोड में चल रहा है। अंक और विद्यार्थी सूची सहेजी जाती है, पर स्कैन किए चित्र रीलोड पर चले जाते हैं — और कैमरा नहीं खुलेगा।',
+  'storage.none': 'इस ब्राउज़र में कुछ भी सहेजा नहीं जा सकता। टैब बंद करते ही काम चला जाएगा।',
+  'storage.headsUp': '<b>ध्यान दें:</b> {msg} इसे बंद कीजिए और उसकी जगह <b>Start QuickGrade.bat</b> चलाइए।',
+  'storage.dismiss': 'हटाएँ',
+  'backup.stale': 'पिछला बैकअप {n} दिन पहले हुआ था। परीक्षाएँ ▸ बैकअप निर्यात इस ब्राउज़र से बाहर एक प्रति रखता है।',
+  'backup.never': 'याद दिलाना: यह डेटा केवल इसी ब्राउज़र में है। परीक्षाएँ ▸ बैकअप निर्यात एक पोर्टेबल प्रति बनाता है।',
+  'review.unknown': 'अज्ञात',
+  'tests.untitledTest': 'बिना शीर्षक परीक्षा',
+  'tests.noClass': 'कोई कक्षा नहीं',
+  'tests.cardMeta': '{mc} बहुविकल्पीय · {written} लिखित · कोड {code}',
+  'tests.cardPages.one': '{n} पृष्ठ',
+  'tests.cardPages.other': '{n} पृष्ठ',
+  'tests.selected': 'चयनित',
+  'tests.select': 'चुनें',
+  'tests.edit': 'संपादित करें',
+  'tests.duplicate': 'प्रतिलिपि',
+  'qc.addChip': '+ जोड़ें',
+  'unres.groupMissing': 'अभी कुछ स्कैन नहीं हुआ — सबसे संभावित',
+  'unres.groupScanned': 'इनका पत्रक पहले से है'
 };
 })(window.QG.I18N);
 
@@ -4915,7 +5038,48 @@ I.packs.tl = {
   'scan.idle.h2': 'Iharap ang papel sa kamera',
   'scan.idle.p': 'Punuin ang frame, ipatong nang patag, at babasahin ito ng QuickGrade sa oras na makita ang apat na parisukat sa sulok. Isang beep bawat papel.',
   'scan.idle.foot': 'Walang kamera ang device na ito? Kunan ng litrato ang mga papel gamit ang telepono at i-import ang mga larawan.',
-  'grade.keys.rubric': 'Mga key: <kbd>1</kbd>–<kbd>9</kbd> antas para sa susunod na pamantayan · <kbd>Enter</kbd> susunod na mag-aaral · <kbd>←</kbd> balik · <kbd>S</kbd> laktawan'
+  'grade.keys.rubric': 'Mga key: <kbd>1</kbd>–<kbd>9</kbd> antas para sa susunod na pamantayan · <kbd>Enter</kbd> susunod na mag-aaral · <kbd>←</kbd> balik · <kbd>S</kbd> laktawan',
+  'ts.opt.scoreBand': 'Banda ng buod ng iskor',
+  'ts.opt.percent': 'Porsyento',
+  'ts.opt.letter': 'Letrang grado',
+  'ts.opt.mcTable': 'Detalyadong talaan ng maramihang pagpipilian',
+  'ts.opt.onlyWrong': 'Ilista lang ang mga tanong na namali',
+  'ts.opt.questionText': 'Isama ang teksto ng tanong (kung inilagay)',
+  'ts.opt.topic': 'Isama ang column ng paksa / pamantayan',
+  'ts.opt.classPct': 'Ipakita ang % ng klaseng tama',
+  'ts.opt.mastery': 'Ano ang natutuhan at hindi ng mag-aaral na ito',
+  'ts.opt.written': 'Iskor sa mga nakasulat na sagot',
+  'ts.opt.writtenNotes': 'Puna ng guro sa mga nakasulat na sagot',
+  'ts.opt.missedList': 'Maikling listahan ng namali sa itaas',
+  'ts.opt.commentBox': 'Blangkong kahon para sa puna ng guro',
+  'ts.opt.commentLines': 'May guhit sa loob ng kahon ng puna',
+  'ts.opt.sigTeacher': 'Linya ng lagda ng guro',
+  'ts.opt.sigParent': 'Linya ng lagda ng magulang',
+  'ts.opt.sigStudent': 'Linya ng pagwawasto / muling pagsusulit',
+  'ts.opt.studentId': 'I-print ang ID ng mag-aaral',
+  'ts.opt.date': 'I-print ang petsa ng pagsusulit',
+  'ts.opt.classAvg': 'Average ng klase para sa paghahambing',
+  'ts.opt.rank': 'Ranggo sa klase',
+  'ts.opt.pageBreak': 'Isang pahina bawat mag-aaral',
+  'storage.limited': 'Tumatakbo sa limitadong mode dahil direktang binuksan ang pahinang ito mula sa isang file. Nase-save ang mga iskor at listahan, pero nawawala ang mga na-scan na larawan kapag nag-reload — at hindi bubukas ang kamera.',
+  'storage.none': 'Walang maise-save sa browser na ito. Mawawala ang trabaho kapag isinara ang tab.',
+  'storage.headsUp': '<b>Paalala:</b> {msg} Isara ito at patakbuhin ang <b>Start QuickGrade.bat</b> sa halip.',
+  'storage.dismiss': 'Alisin',
+  'backup.stale': 'Ang huling backup ay {n} araw na ang nakalipas. Mga pagsusulit ▸ I-export ang backup ay nag-iingat ng kopya sa labas ng browser na ito.',
+  'backup.never': 'Paalala: ang datos na ito ay nasa browser na ito lamang. Mga pagsusulit ▸ I-export ang backup ay gumagawa ng kopyang madadala.',
+  'review.unknown': 'Hindi kilala',
+  'tests.untitledTest': 'Walang pamagat na pagsusulit',
+  'tests.noClass': 'Walang klase',
+  'tests.cardMeta': '{mc} pagpipilian · {written} nakasulat · kodigo {code}',
+  'tests.cardPages.one': '{n} pahina',
+  'tests.cardPages.other': '{n} pahina',
+  'tests.selected': 'Napili',
+  'tests.select': 'Piliin',
+  'tests.edit': 'Baguhin',
+  'tests.duplicate': 'Kopyahin',
+  'qc.addChip': '+ dagdag',
+  'unres.groupMissing': 'Wala pang na-scan — malamang ito',
+  'unres.groupScanned': 'May papel na'
 };
 })(window.QG.I18N);
 
@@ -5743,7 +5907,50 @@ I.packs.ru = {
   'scan.idle.h2': 'Поднесите бланк к камере',
   'scan.idle.p': 'Заполните им кадр, держите ровно — QuickGrade прочитает его, как только увидит четыре угловых квадрата. Один сигнал на бланк.',
   'scan.idle.foot': 'На этом устройстве нет камеры? Сфотографируйте бланки телефоном и импортируйте снимки.',
-  'grade.keys.rubric': 'Клавиши: <kbd>1</kbd>–<kbd>9</kbd> уровень следующего критерия · <kbd>Enter</kbd> следующий ученик · <kbd>←</kbd> назад · <kbd>S</kbd> пропустить'
+  'grade.keys.rubric': 'Клавиши: <kbd>1</kbd>–<kbd>9</kbd> уровень следующего критерия · <kbd>Enter</kbd> следующий ученик · <kbd>←</kbd> назад · <kbd>S</kbd> пропустить',
+  'ts.opt.scoreBand': 'Сводная строка с баллом',
+  'ts.opt.percent': 'Проценты',
+  'ts.opt.letter': 'Буквенная оценка',
+  'ts.opt.mcTable': 'Подробная таблица по выбору ответа',
+  'ts.opt.onlyWrong': 'Показывать только вопросы с ошибками',
+  'ts.opt.questionText': 'Включить текст вопроса (если он введён)',
+  'ts.opt.topic': 'Включить столбец темы / стандарта',
+  'ts.opt.classPct': 'Показать, какой процент класса ответил верно',
+  'ts.opt.mastery': 'Что этот ученик усвоил, а что нет',
+  'ts.opt.written': 'Баллы за письменные ответы',
+  'ts.opt.writtenNotes': 'Комментарии учителя к письменным ответам',
+  'ts.opt.missedList': 'Краткий список ошибок вверху',
+  'ts.opt.commentBox': 'Пустое поле для комментария учителя',
+  'ts.opt.commentLines': 'Линейки внутри поля комментария',
+  'ts.opt.sigTeacher': 'Строка подписи учителя',
+  'ts.opt.sigParent': 'Строка подписи родителя',
+  'ts.opt.sigStudent': 'Строка работы над ошибками / пересдачи',
+  'ts.opt.studentId': 'Печатать номер ученика',
+  'ts.opt.date': 'Печатать дату работы',
+  'ts.opt.classAvg': 'Средний балл класса для сравнения',
+  'ts.opt.rank': 'Место в классе',
+  'ts.opt.pageBreak': 'Отдельная страница на ученика',
+  'storage.limited': 'Работает в ограниченном режиме, потому что страница открыта прямо из файла. Баллы и списки сохраняются, но отсканированные изображения теряются при перезагрузке — и камера не откроется.',
+  'storage.none': 'В этом браузере ничего нельзя сохранить. Работа пропадёт при закрытии вкладки.',
+  'storage.headsUp': '<b>Внимание:</b> {msg} Закройте это и запустите <b>Start QuickGrade.bat</b>.',
+  'storage.dismiss': 'Скрыть',
+  'backup.stale': 'Последняя резервная копия была {n} дн. назад. Работы ▸ Экспорт копии сохраняет её вне этого браузера.',
+  'backup.never': 'Напоминание: эти данные есть только в этом браузере. Работы ▸ Экспорт копии создаёт переносимую копию.',
+  'review.unknown': 'Неизвестно',
+  'tests.untitledTest': 'Работа без названия',
+  'tests.noClass': 'Без класса',
+  'tests.cardMeta': '{mc} с выбором · {written} письм. · код {code}',
+  'tests.cardPages.one': '{n} страница',
+  'tests.cardPages.few': '{n} страницы',
+  'tests.cardPages.many': '{n} страниц',
+  'tests.cardPages.other': '{n} страниц',
+  'tests.selected': 'Выбрана',
+  'tests.select': 'Выбрать',
+  'tests.edit': 'Изменить',
+  'tests.duplicate': 'Копия',
+  'qc.addChip': '+ добавить',
+  'unres.groupMissing': 'Ничего не отсканировано — вероятнее всего',
+  'unres.groupScanned': 'Бланк уже есть'
 };
 })(window.QG.I18N);
 
@@ -6480,7 +6687,47 @@ I.packs.th = {
   'scan.idle.h2': 'ยกกระดาษขึ้นให้กล้องเห็น',
   'scan.idle.p': 'ให้เต็มกรอบ วางให้เรียบ แล้ว QuickGrade จะอ่านทันทีที่เห็นสี่เหลี่ยมมุมครบทั้งสี่มุม หนึ่งเสียงต่อหนึ่งแผ่น',
   'scan.idle.foot': 'เครื่องนี้ไม่มีกล้องใช่ไหม ถ่ายรูปกระดาษด้วยโทรศัพท์แล้วนำเข้ารูปภาพแทนได้',
-  'grade.keys.rubric': 'ปุ่มลัด: <kbd>1</kbd>–<kbd>9</kbd> ระดับของเกณฑ์ถัดไป · <kbd>Enter</kbd> นักเรียนคนถัดไป · <kbd>←</kbd> ย้อนกลับ · <kbd>S</kbd> ข้าม'
+  'grade.keys.rubric': 'ปุ่มลัด: <kbd>1</kbd>–<kbd>9</kbd> ระดับของเกณฑ์ถัดไป · <kbd>Enter</kbd> นักเรียนคนถัดไป · <kbd>←</kbd> ย้อนกลับ · <kbd>S</kbd> ข้าม',
+  'ts.opt.scoreBand': 'แถบสรุปคะแนน',
+  'ts.opt.percent': 'ร้อยละ',
+  'ts.opt.letter': 'เกรดตัวอักษร',
+  'ts.opt.mcTable': 'ตารางรายละเอียดข้อปรนัย',
+  'ts.opt.onlyWrong': 'แสดงเฉพาะข้อที่ตอบผิด',
+  'ts.opt.questionText': 'ใส่ข้อความของคำถาม (ถ้ากรอกไว้)',
+  'ts.opt.topic': 'ใส่คอลัมน์หัวข้อ / มาตรฐาน',
+  'ts.opt.classPct': 'แสดงร้อยละของห้องที่ตอบถูก',
+  'ts.opt.mastery': 'สิ่งที่นักเรียนคนนี้เข้าใจและยังไม่เข้าใจ',
+  'ts.opt.written': 'คะแนนข้อเขียน',
+  'ts.opt.writtenNotes': 'ความเห็นครูต่อข้อเขียน',
+  'ts.opt.missedList': 'รายการข้อที่ผิดแบบย่อไว้ด้านบน',
+  'ts.opt.commentBox': 'กรอบว่างสำหรับความเห็นครู',
+  'ts.opt.commentLines': 'เส้นบรรทัดในกรอบความเห็น',
+  'ts.opt.sigTeacher': 'บรรทัดลงชื่อครู',
+  'ts.opt.sigParent': 'บรรทัดลงชื่อผู้ปกครอง',
+  'ts.opt.sigStudent': 'บรรทัดแก้ไข / สอบซ่อมของนักเรียน',
+  'ts.opt.studentId': 'พิมพ์เลขประจำตัวนักเรียน',
+  'ts.opt.date': 'พิมพ์วันที่สอบ',
+  'ts.opt.classAvg': 'ค่าเฉลี่ยของห้องไว้เทียบ',
+  'ts.opt.rank': 'ลำดับในห้อง',
+  'ts.opt.pageBreak': 'หนึ่งหน้าต่อนักเรียนหนึ่งคน',
+  'storage.limited': 'ทำงานในโหมดจำกัด เพราะเปิดหน้านี้จากไฟล์โดยตรง คะแนนและรายชื่อบันทึกได้ แต่ภาพที่สแกนจะหายเมื่อโหลดใหม่ — และกล้องจะเปิดไม่ได้',
+  'storage.none': 'บันทึกอะไรในเบราว์เซอร์นี้ไม่ได้เลย งานจะหายเมื่อปิดแท็บ',
+  'storage.headsUp': '<b>โปรดทราบ:</b> {msg} ปิดหน้านี้แล้วเรียกใช้ <b>Start QuickGrade.bat</b> แทน',
+  'storage.dismiss': 'ปิด',
+  'backup.stale': 'สำรองข้อมูลครั้งล่าสุดเมื่อ {n} วันที่แล้ว ข้อสอบ ▸ ส่งออกไฟล์สำรอง จะเก็บสำเนาไว้นอกเบราว์เซอร์นี้',
+  'backup.never': 'เตือนความจำ: ข้อมูลนี้อยู่ในเบราว์เซอร์นี้เท่านั้น ข้อสอบ ▸ ส่งออกไฟล์สำรอง จะสร้างสำเนาที่พกพาได้',
+  'review.unknown': 'ไม่ทราบ',
+  'tests.untitledTest': 'ข้อสอบไม่มีชื่อ',
+  'tests.noClass': 'ไม่มีห้อง',
+  'tests.cardMeta': 'ปรนัย {mc} · เขียน {written} · รหัส {code}',
+  'tests.cardPages.other': '{n} หน้า',
+  'tests.selected': 'เลือกอยู่',
+  'tests.select': 'เลือก',
+  'tests.edit': 'แก้ไข',
+  'tests.duplicate': 'ทำสำเนา',
+  'qc.addChip': '+ เพิ่ม',
+  'unres.groupMissing': 'ยังไม่มีอะไรถูกสแกน — น่าจะเป็นคนนี้',
+  'unres.groupScanned': 'มีกระดาษแล้ว'
 };
 })(window.QG.I18N);
 
@@ -7217,7 +7464,47 @@ I.packs.ko = {
   'scan.idle.h2': '용지를 카메라에 비춰 주세요',
   'scan.idle.p': '화면을 채우고 평평하게 잡으면, 네 모서리 사각형이 보이는 즉시 QuickGrade가 읽습니다. 한 장에 한 번 소리가 납니다.',
   'scan.idle.foot': '이 기기에 카메라가 없나요? 휴대폰으로 용지를 찍어 사진을 가져오셔도 됩니다.',
-  'grade.keys.rubric': '단축키: <kbd>1</kbd>–<kbd>9</kbd> 다음 평가 요소의 수준 · <kbd>Enter</kbd> 다음 학생 · <kbd>←</kbd> 이전 · <kbd>S</kbd> 건너뛰기'
+  'grade.keys.rubric': '단축키: <kbd>1</kbd>–<kbd>9</kbd> 다음 평가 요소의 수준 · <kbd>Enter</kbd> 다음 학생 · <kbd>←</kbd> 이전 · <kbd>S</kbd> 건너뛰기',
+  'ts.opt.scoreBand': '점수 요약 띠',
+  'ts.opt.percent': '백분율',
+  'ts.opt.letter': '등급',
+  'ts.opt.mcTable': '객관식 상세 표',
+  'ts.opt.onlyWrong': '틀린 문항만 표시',
+  'ts.opt.questionText': '문항 지문 포함 (입력한 경우)',
+  'ts.opt.topic': '주제 / 성취기준 열 포함',
+  'ts.opt.classPct': '학급 정답률 표시',
+  'ts.opt.mastery': '이 학생이 이해한 것과 이해하지 못한 것',
+  'ts.opt.written': '서술형 점수',
+  'ts.opt.writtenNotes': '서술형에 대한 교사 의견',
+  'ts.opt.missedList': '틀린 문항 목록을 위쪽에 간략히',
+  'ts.opt.commentBox': '교사 의견을 쓸 빈칸',
+  'ts.opt.commentLines': '의견란 안에 줄 긋기',
+  'ts.opt.sigTeacher': '교사 서명란',
+  'ts.opt.sigParent': '학부모 서명란',
+  'ts.opt.sigStudent': '학생 오답 정리 / 재시험란',
+  'ts.opt.studentId': '학생 번호 인쇄',
+  'ts.opt.date': '시험 날짜 인쇄',
+  'ts.opt.classAvg': '비교용 학급 평균',
+  'ts.opt.rank': '학급 석차',
+  'ts.opt.pageBreak': '학생당 한 쪽',
+  'storage.limited': '이 페이지를 파일에서 바로 열어 제한 모드로 실행 중입니다. 점수와 명단은 저장되지만 스캔 이미지는 새로 고치면 사라지고, 카메라도 열리지 않습니다.',
+  'storage.none': '이 브라우저에서는 아무것도 저장할 수 없습니다. 탭을 닫으면 작업이 사라집니다.',
+  'storage.headsUp': '<b>알림:</b> {msg} 이 창을 닫고 <b>Start QuickGrade.bat</b>을 실행하세요.',
+  'storage.dismiss': '닫기',
+  'backup.stale': '마지막 백업은 {n}일 전입니다. 시험 ▸ 백업 내보내기로 이 브라우저 밖에 사본을 남기세요.',
+  'backup.never': '알림: 이 자료는 이 브라우저에만 있습니다. 시험 ▸ 백업 내보내기로 옮길 수 있는 사본을 만드세요.',
+  'review.unknown': '확인되지 않음',
+  'tests.untitledTest': '이름 없는 시험',
+  'tests.noClass': '반 없음',
+  'tests.cardMeta': '객관식 {mc} · 서술형 {written} · 코드 {code}',
+  'tests.cardPages.other': '{n}쪽',
+  'tests.selected': '선택됨',
+  'tests.select': '선택',
+  'tests.edit': '편집',
+  'tests.duplicate': '복제',
+  'qc.addChip': '+ 추가',
+  'unres.groupMissing': '아직 스캔된 것 없음 — 가능성 높음',
+  'unres.groupScanned': '이미 용지가 있음'
 };
 })(window.QG.I18N);
 
@@ -10414,29 +10701,32 @@ var State = {
 
 var DEFAULT_SCALE = [[90, 'A'], [80, 'B'], [70, 'C'], [60, 'D'], [0, 'F']];
 
+/* `t` is a key, not a label: this array is built at load time, before a
+ * language has been chosen, so the caller resolves the wording when it draws
+ * the checkbox. */
 var TOPSHEET_OPTS = [
-  { k: 'showScoreBand',   d: true,  t: 'Score summary band' },
-  { k: 'showPercent',     d: true,  t: 'Percent' },
-  { k: 'showLetter',      d: true,  t: 'Letter grade' },
-  { k: 'showMc',          d: true,  t: 'Multiple-choice detail table' },
-  { k: 'onlyWrong',       d: false, t: 'Only list questions missed' },
-  { k: 'showQuestionText',d: false, t: 'Include question text (if entered)' },
-  { k: 'showTopic',       d: false, t: 'Include topic / standard column' },
-  { k: 'showClassPct',    d: false, t: 'Show % of class that got it right' },
-  { k: 'showMastery',     d: false, t: 'What this student has and hasn’t got' },
-  { k: 'showWritten',     d: true,  t: 'Written-answer scores' },
-  { k: 'showWrittenNotes',d: true,  t: 'Written-answer teacher notes' },
-  { k: 'showMissedList',  d: false, t: 'Compact "missed" list at top' },
-  { k: 'commentBox',      d: true,  t: 'Blank teacher comment box' },
-  { k: 'commentLines',    d: false, t: 'Ruled lines inside comment box' },
-  { k: 'sigTeacher',      d: false, t: 'Teacher signature line' },
-  { k: 'sigParent',       d: false, t: 'Parent signature line' },
-  { k: 'sigStudent',      d: false, t: 'Student corrections / retake line' },
-  { k: 'showStudentId',   d: true,  t: 'Print student ID' },
-  { k: 'showDate',        d: true,  t: 'Print test date' },
-  { k: 'showClassAvg',    d: false, t: 'Class average for comparison' },
-  { k: 'showRank',        d: false, t: 'Rank in class' },
-  { k: 'pageBreakEach',   d: true,  t: 'One page per student' }
+  { k: 'showScoreBand',   d: true,  t: 'ts.opt.scoreBand' },
+  { k: 'showPercent',     d: true,  t: 'ts.opt.percent' },
+  { k: 'showLetter',      d: true,  t: 'ts.opt.letter' },
+  { k: 'showMc',          d: true,  t: 'ts.opt.mcTable' },
+  { k: 'onlyWrong',       d: false, t: 'ts.opt.onlyWrong' },
+  { k: 'showQuestionText',d: false, t: 'ts.opt.questionText' },
+  { k: 'showTopic',       d: false, t: 'ts.opt.topic' },
+  { k: 'showClassPct',    d: false, t: 'ts.opt.classPct' },
+  { k: 'showMastery',     d: false, t: 'ts.opt.mastery' },
+  { k: 'showWritten',     d: true,  t: 'ts.opt.written' },
+  { k: 'showWrittenNotes',d: true,  t: 'ts.opt.writtenNotes' },
+  { k: 'showMissedList',  d: false, t: 'ts.opt.missedList' },
+  { k: 'commentBox',      d: true,  t: 'ts.opt.commentBox' },
+  { k: 'commentLines',    d: false, t: 'ts.opt.commentLines' },
+  { k: 'sigTeacher',      d: false, t: 'ts.opt.sigTeacher' },
+  { k: 'sigParent',       d: false, t: 'ts.opt.sigParent' },
+  { k: 'sigStudent',      d: false, t: 'ts.opt.sigStudent' },
+  { k: 'showStudentId',   d: true,  t: 'ts.opt.studentId' },
+  { k: 'showDate',        d: true,  t: 'ts.opt.date' },
+  { k: 'showClassAvg',    d: false, t: 'ts.opt.classAvg' },
+  { k: 'showRank',        d: false, t: 'ts.opt.rank' },
+  { k: 'pageBreakEach',   d: true,  t: 'ts.opt.pageBreak' }
 ];
 
 function defaultOptions() {
@@ -10493,13 +10783,10 @@ function storageBanner() {
   var mode = Q.DB.mode();
   if (mode === 'idb') return;
   var box = $('#storageWarn');
-  var msg = mode === 'local'
-    ? 'Running in limited mode because this page was opened straight from a file. Scores and rosters save, but scanned images are lost on reload — and the camera will not open.'
-    : 'Nothing can be saved in this browser. Work will be lost when you close the tab.';
+  var msg = mode === 'local' ? T('storage.limited') : T('storage.none');
   box.innerHTML = '';
-  box.appendChild(el('span', { html: '<b>Heads up:</b> ' + Q.esc(msg) +
-    ' Close this and run <b>Start QuickGrade.bat</b> instead.' }));
-  box.appendChild(el('button', { text: '×', title: 'Dismiss',
+  box.appendChild(el('span', { html: T('storage.headsUp', { msg: Q.esc(msg) }) }));
+  box.appendChild(el('button', { text: '×', title: T('storage.dismiss'),
     onclick: function () { box.hidden = true; } }));
   box.hidden = false;
 }
@@ -10523,9 +10810,7 @@ function backupNudge() {
   var last = Q.Prefs.get('lastBackup', 0);
   var days = (Date.now() - last) / 86400000;
   if (last && days < 7) return;
-  Q.toast(last
-    ? 'Last backup was ' + Math.floor(days) + ' days ago. Tests ▸ Export backup keeps a copy off this browser.'
-    : 'Reminder: this data lives only in this browser. Tests ▸ Export backup makes a portable copy.',
+  Q.toast(last ? T('backup.stale', { n: Math.floor(days) }) : T('backup.never'),
     'err', 9000);
 }
 
@@ -10624,7 +10909,7 @@ function route(name) {
 /* ============================================================ results */
 function studentName(sid) {
   var s = State.byId[S.normId(sid)];
-  return s ? s.name : (sid ? 'ID ' + sid : 'Unknown');
+  return s ? s.name : (sid ? T('ts.idPrefix', { sid: sid }) : T('review.unknown'));
 }
 function classStudents() {
   var t = State.test;
@@ -10806,17 +11091,20 @@ function renderTests() {
   State.tests.forEach(function (t) {
     var isSel = State.test && State.test.id === t.id;
     var card = el('div', { class: 'card' + (isSel ? ' sel' : '') }, [
-      el('h4', { text: t.title || 'Untitled test' }),
-      el('div', { class: 'meta', text: (t.className || 'No class') + ' · ' + (t.date || '') }),
-      el('div', { class: 'meta', text: t.mc.count + ' MC · ' + (t.written || []).length +
-        ' written · code ' + t.code + ' · ' + S.layoutTest(t).length + ' page(s)' +
+      el('h4', { text: t.title || T('tests.untitledTest') }),
+      el('div', { class: 'meta', text: (t.className || T('tests.noClass')) +
+        (t.date ? ' · ' + Q.prettyDate(t.date) : '') }),
+      el('div', { class: 'meta', text: T('tests.cardMeta', { mc: t.mc.count,
+        written: (t.written || []).length, code: t.code }) + ' · ' +
+        T('tests.cardPages', { n: S.layoutTest(t).length }) +
         (S.paperOf(t) !== 'letter' ? ' · ' + S.paperOf(t).toUpperCase() : '') }),
       el('div', { class: 'cardbtns' }, [
-        el('button', { class: 'btn sm' + (isSel ? '' : ' go'), text: isSel ? 'Selected' : 'Select',
+        el('button', { class: 'btn sm' + (isSel ? '' : ' go'),
+          text: isSel ? T('tests.selected') : T('tests.select'),
           onclick: function (e) { e.stopPropagation(); selectTest(t).then(function () { renderTests(); renderRosterView(); }); } }),
-        el('button', { class: 'btn sm', text: 'Edit',
+        el('button', { class: 'btn sm', text: T('tests.edit'),
           onclick: function (e) { e.stopPropagation(); selectTest(t).then(function () { renderTests(); openEditor(t); }); } }),
-        el('button', { class: 'btn sm', text: 'Duplicate',
+        el('button', { class: 'btn sm', text: T('tests.duplicate'),
           onclick: function (e) { e.stopPropagation(); duplicateTest(t); } })
       ])
     ]);
@@ -11672,7 +11960,7 @@ function renderTopsheetOpts(box, t) {
           t.options.topsheet[o.k] = e.target.checked;
           if (t === State.test) saveTest();
         } }),
-      o.t
+      T(o.t)
     ]));
   });
   box.appendChild(el('label', { class: 'optfoot' }, [
@@ -12110,9 +12398,27 @@ function renderReview() {
       row.appendChild(el('span', { class: 'dim',
         text: T('unres.page', { n: sc.page }) +
           (sc.sid ? T('unres.idUnknown', { sid: sc.sid }) : T('unres.noId')) }));
-      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('unres.assignTo'))].concat(
-        classStudents().map(function (s) { return el('option', { value: s.sid }, s.name + ' · ' + s.sid); })
-      ));
+      /* A sheet that could not be matched almost always belongs to someone
+       * with nothing scanned at all, so offer those first instead of making
+       * the teacher hunt an alphabetical list of thirty names. */
+      var scanned = {};
+      (r.rows || []).forEach(function (x) { if (x.scanned) scanned[S.normId(x.sid)] = 1; });
+      var missing = [], rest = [];
+      classStudents().forEach(function (st) {
+        (scanned[S.normId(st.sid)] ? rest : missing).push(st);
+      });
+      function opts(list) {
+        return list.map(function (st) {
+          return el('option', { value: st.sid }, st.name + ' · ' + st.sid);
+        });
+      }
+      var sel = el('select', { class: 'sel sm' }, [el('option', { value: '' }, T('unres.assignTo'))]);
+      if (missing.length && rest.length) {
+        sel.appendChild(el('optgroup', { label: T('unres.groupMissing') }, opts(missing)));
+        sel.appendChild(el('optgroup', { label: T('unres.groupScanned') }, opts(rest)));
+      } else {
+        opts(missing.concat(rest)).forEach(function (o) { sel.appendChild(o); });
+      }
       row.appendChild(sel);
       row.appendChild(el('button', {
         class: 'btn sm go', text: T('unres.assign'),
@@ -12766,6 +13072,10 @@ function showGradeItem() {
   renderQuickComments();
 }
 
+/* One token, compared by identity, so the label can be translated without
+ * the equality check silently failing. */
+var ADD_COMMENT = '\u0000add';
+
 /** The keys really available right now. With a rubric the digits pick a
  *  level, not a point value, so the plain-points hint would be wrong. */
 function renderGradeKeys(rubric) {
@@ -12779,11 +13089,11 @@ function renderQuickComments() {
   qc.innerHTML = '';
   (Q.Prefs.get('quickComments', [T('qc.good'), T('qc.showWork'), T('qc.incomplete'),
       T('qc.offTopic'), T('qc.nearly')])
-    .concat(['+ add'])).forEach(function (c) {
+    .concat([ADD_COMMENT])).forEach(function (c) {
       qc.appendChild(el('button', {
-        class: 'qc', text: c,
+        class: 'qc', text: c === ADD_COMMENT ? T('qc.addChip') : c,
         onclick: function () {
-          if (c === '+ add') {
+          if (c === ADD_COMMENT) {
             Q.promptBox(T('qc.add')).then(function (v) {
               if (!v) return;
               var list = Q.Prefs.get('quickComments', []);
