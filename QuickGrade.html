@@ -1970,7 +1970,7 @@ I.packs.en = {
   'cal.fill': 'Sheet fills the frame',
   'cal.fill.d': '{pct}% of frame width',
   'cal.found': 'Sheet found',
-  'cal.found.d': 'all four corner marks detected',
+  'cal.found.d': 'page border detected',
   'cal.h3.bad': 'Printing check — needs attention',
   'cal.h3.ok': 'Printing check passed',
   'cal.h3.warn': 'Printing check — good, with notes',
@@ -2293,7 +2293,7 @@ I.packs.en = {
   'roster.print.blank': 'Print the answer sheet',
   'roster.print.check': 'Check my printing',
   'roster.print.h2': 'Print answer sheets',
-  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner marks.',
+  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the the page border.',
   'roster.print.key': 'Answer-key sheet',
   'roster.print.keyHint': 'for setting the key by scanning',
   'roster.print.other': 'Other kinds of sheet',
@@ -2418,7 +2418,7 @@ I.packs.en = {
   'sheet.class': 'CLASS / PERIOD',
   'sheet.classNumber': 'CLASS NUMBER',
   'sheet.docTitle': '{title} — answer sheets',
-  'sheet.footer': 'QuickGrade answer sheet · print at 100% · keep the corner marks clean',
+  'sheet.footer': 'QuickGrade answer sheet · print at 100%',
   'sheet.howto': 'HOW TO FILL THIS IN',
   'sheet.id': 'ID',
   'sheet.name': 'NAME',
@@ -2432,7 +2432,7 @@ I.packs.en = {
   'sheet.studentId': 'STUDENT ID',
   'sheet.test': 'TEST',
   'sheet.testCode': 'TEST CODE (pre-filled)',
-  'sheet.tips': 'Pencil or dark pen · erase changes fully · keep the corner marks clean',
+  'sheet.tips': 'Pencil or dark pen · erase changes fully',
   'sheet.version': 'VERSION',
 
   /* --- storage --- */
@@ -2707,7 +2707,7 @@ I.packs.en = {
   'wlist.rubricN': 'Rubric · {n}',
   'wlist.short': 'Short answer',
   'scan.idle.h2': 'Hold a sheet up to the camera',
-  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner marks. One beep per sheet.',
+  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all the page border. One beep per sheet.',
   'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
   'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip',
   'ts.opt.scoreBand': 'Score summary band',
@@ -8957,17 +8957,22 @@ var PAPERS = {
   a4:     { w: 8.268, h: 11.693, label: 'A4 (210 × 297 mm)' },
   legal:  { w: 8.5,   h: 14,     label: 'US Legal (8.5 × 14 in)' }
 };
-var MARGIN = 0.55;              // fiducial centre inset from the paper edge
-
+/* Inset of the ruled registration border from the paper edge. This used to be
+ * where the solid corner marks sat, and everything printed had to keep a quiet
+ * zone clear of them or it merged with one under threshold. A hairline needs
+ * far less room, so the border sits further out and the page gets its margins
+ * back. */
+var MARGIN = 0.42;
 var L = {
   page:  { w: 8.5, h: 11 },
   paper: 'letter',
-  fid:   { x0: 0.55, y0: 0.55, x1: 7.95, y1: 10.45, size: 0.30 },
-  keystone: { x: 1.20, y: 0.55, size: 0.15 },   // orientation mark: top edge only
+  /* The registration border: the rectangle the scanner solves the page
+   * geometry from. Every other coordinate is relative to it. */
+  fid:   { x0: 0.42, y0: 0.42, x1: 8.08, y1: 10.58 },
 
-  /* Nothing may be printed within QUIET inches of a fiducial's bounding box —
-   * ink that touches a corner square merges with it under threshold and the
-   * sheet stops being detectable. Every constant below respects that. */
+  /* Nothing may be printed within QUIET inches of the border. Ink that
+   * touches it joins the rectangle under threshold and the corner it
+   * belongs to stops being a corner. */
   quiet: 0.12,
 
   titleY: 0.86, subTitleY: 1.06, idHeadX: 5.20, idHeadY: 0.86,
@@ -9029,7 +9034,9 @@ function setPaper(name) {
   L.nameBox.w = L.idLabelX - 0.22 - L.nameBox.x;
   L.classBox.w = L.nameBox.w;
   L.contentBottom = L.fid.y1 - 0.43;  // bottom-anchored answer grid
-  L.footerY   = L.fid.y1 - 0.13;
+  /* Clear of the foot rule, which is 6pt of solid ink on the bottom edge.
+   * At 0.13 the footer was printing on top of it. */
+  L.footerY   = L.fid.y1 - 0.28;
   L.footerW   = L.fid.x1 - 0.40 - L.footerX;
   L.wRight    = L.fid.x1 - 0.35;
   return L;
@@ -9362,7 +9369,18 @@ var SHEET_CSS = [
 '  margin:14px auto;box-shadow:0 4px 18px rgba(0,0,0,.35)}',
 '@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}',
 '  .page:last-child{page-break-after:auto}.noprint{display:none!important}}',
-'.fid{position:absolute;background:#000}',
+/* 2.5pt. The detector works on a downscaled copy of the photograph, about 58
+     * pixels to the inch, and a hairline came out at six tenths of a pixel and
+     * vanished - leaving the paper edge as the only rectangle in the picture,
+     * which sits five per cent further out and puts every sample on the wrong
+     * bubble. This is an ordinary form rule at a thickness that survives being
+     * looked at. */
+/* A heavier rule along the foot. Forms do this all the time and nobody
+     * reads it as a machine mark, but it is what tells the scanner which end of
+     * the page is the bottom. Inferring that from where the ink sits was tried
+     * and is not dependable: the heading and name box carry more ink than the
+     * identity block, so the page came back upside down. */
+    '.edge{position:absolute;border:2.5pt solid #222;border-bottom-width:6pt;box-sizing:border-box}',
     '.cmark{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
@@ -9417,33 +9435,20 @@ function renderPage(test, pages, pageIdx, who) {
   var choices = test.mc.choices || 5;
   var h = '<div class="page">';
 
-  /* Registration marks, and a hairline frame joining them.
+  /* The registration border.
    *
-   * The frame is not read by anything. It is there because four marks alone
-   * look like an accident, and the same four sitting on the corners of a ruled
-   * border look like a form. It also gives a student an edge to work inside.
-   * It stays outside the quiet zone the detector needs. */
-  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
-   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
-    .forEach(function (c) {
-      cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
-        h += '<div class="fid" style="left:' + b.x + 'in;top:' + b.y +
-             'in;width:' + b.w + 'in;height:' + b.h + 'in"></div>';
-      });
-    });
-  /* A ruled frame joining the four marks was tried here and removed. The
-   * content starts 0.05in inside the fiducial line, so any frame that clears
-   * the brackets quiet zone lands on top of the title and the name box, and
-   * any frame that clears the content is close enough to a bracket to merge
-   * with it under threshold. It needs the whole page to move inward, which is
-   * a bigger change than it is worth. */
-
-  /* Orientation. One extra mark on the top edge tells the reader which way up
-   * the page is; it is sampled as a point, not found as a shape, so it can be
-   * small and sit on the frame like a tick. */
-  h += '<div class="fid" style="left:' + (L.keystone.x - L.keystone.size / 2) + 'in;top:' +
-       (L.keystone.y - L.keystone.size / 2) + 'in;width:' + L.keystone.size + 'in;height:' +
-       L.keystone.size + 'in"></div>';
+   * There were five solid black marks on this page: one at each corner and a
+   * fifth for orientation. They did their job and they looked like a fault in
+   * the printer. On a final examination that has to be signed off before it is
+   * sat, a page covered in machine marks does not get signed off.
+   *
+   * A ruled border does the same work and looks like every form anyone has
+   * ever filled in. Its four corners are what the scanner solves the page
+   * geometry from, and being a continuous line rather than four separate blobs
+   * it cannot half-detect: either the rectangle is there or it is not.
+   */
+  h += '<div class="edge" style="left:' + L.fid.x0 + 'in;top:' + L.fid.y0 +
+       'in;width:' + L.W + 'in;height:' + L.H + 'in"></div>';
   /* A version letter large enough to sort a stack of sheets by eye. */
   if (who.formId) {
     h += absDiv('vmark', L.fid.x1 - 1.02, L.footerY - 0.34, 0.62, 0.46,
@@ -9582,7 +9587,9 @@ function renderPage(test, pages, pageIdx, who) {
   /* written-answer boxes */
   pg.written.forEach(function (wb) {
     var wq = (test.written || [])[wb.w] || {};
-    h += absDiv('boxlbl', wb.x, wb.labelY, 7.2, 0.16,
+    /* As wide as its own box, not a fixed 7.2in. The old width reached a
+     * quarter of an inch past the page border. */
+    h += absDiv('boxlbl', wb.x, wb.labelY, wb.bw, 0.16,
       E((wq.label || ('Question ' + (wb.w + 1)))) +
       '<span style="font-weight:400;color:#666"> &nbsp;(' + (wq.max || 0) + ' pts)</span>');
     h += absDiv('box', wb.x, wb.y, wb.bw, wb.bh, '');
@@ -9718,10 +9725,21 @@ function components(bin, w, h, minArea, maxArea) {
     if (!bin[i] || seen[i]) continue;
     var sp = 0; stack[sp++] = i; seen[i] = 1;
     var area = 0, minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, sx = 0, sy = 0;
+    /* The four points furthest along each diagonal. For a rectangle these are
+     * its corners however it is rotated or tilted, which a bounding box is
+     * not. Tracked here because the flood fill is already touching every
+     * pixel and a second pass over the component would cost more. */
+    var sMin = 1e9, sMax = -1e9, dMin = 1e9, dMax = -1e9;
+    var pTL = null, pBR = null, pTR = null, pBL = null;
     while (sp) {
       var p = stack[--sp];
       var px = p % w, py = (p - px) / w;
       area++; sx += px; sy += py;
+      var sum = px + py, dif = px - py;
+      if (sum < sMin) { sMin = sum; pTL = [px, py]; }
+      if (sum > sMax) { sMax = sum; pBR = [px, py]; }
+      if (dif > dMax) { dMax = dif; pTR = [px, py]; }
+      if (dif < dMin) { dMin = dif; pBL = [px, py]; }
       if (px < minX) minX = px; if (px > maxX) maxX = px;
       if (py < minY) minY = py; if (py > maxY) maxY = py;
       if (area > maxArea + 1) { /* keep draining but stop tracking */ }
@@ -9733,7 +9751,8 @@ function components(bin, w, h, minArea, maxArea) {
     if (area < minArea || area > maxArea) continue;
     var bw = maxX - minX + 1, bh = maxY - minY + 1;
     out.push({ area: area, x: minX, y: minY, w: bw, h: bh, cx: sx / area, cy: sy / area,
-               fill: area / (bw * bh), aspect: bw / bh });
+               fill: area / (bw * bh), aspect: bw / bh,
+               corners: [pTL, pTR, pBR, pBL] });
   }
   return out;
 }
@@ -9864,66 +9883,79 @@ function quadArea(q) {
  * findSheet(gray, w, h) -> { H, quad, white, markers } | null
  * H maps sheet-normalised (u,v) to detection-image pixels.
  */
+/* Find the page by its printed border.
+ *
+ * This used to hunt for four solid corner marks and a fifth for orientation.
+ * They worked, and they made the page look like a machine artefact, which is
+ * fatal for a document that has to be approved before it can be sat.
+ *
+ * A ruled border is a single connected rectangle of ink, and that is a much
+ * more distinctive thing to look for than four squares: it encloses almost the
+ * whole image, and it fills only a few per cent of its own bounding box,
+ * because it is a line rather than a blob. Nothing else on a page looks like
+ * that. Its four extreme points, taken along the diagonals, are its corners
+ * even under perspective.
+ *
+ * Orientation no longer comes from a marker. The top of a sheet carries the
+ * heading, the identity block and the name box; the bottom carries a footer
+ * and white space. Comparing ink above and below the middle tells us which way
+ * up the page is, and it does so from the design rather than from a mark added
+ * to serve the machine.
+ */
 function findSheet(gray, w, h, opts) {
   opts = opts || {};
   var L = S.L;
-  var minDim = Math.min(w, h);
-  var minSide = Math.max(4, minDim * 0.010);
-  var maxSide = minDim * 0.14;
 
-  function candidatesAt(C, fillMin) {
+  function frameAt(C) {
     var bin = threshold(gray, w, h, 0.10, C);
-    var comps = components(bin, w, h, minSide * minSide * 0.45, maxSide * maxSide);
-    return comps.filter(function (c) {
-      return c.fill > fillMin && c.aspect > 0.55 && c.aspect < 1.8 &&
-             c.w >= minSide && c.h >= minSide && c.w <= maxSide && c.h <= maxSide;
+    /* A border encloses most of the frame, so only very large components are
+     * worth considering, and there will be few of them. */
+    var comps = components(bin, w, h, w * h * 0.0004, w * h);
+    var best = null;
+    comps.forEach(function (c) {
+      var boxArea = c.w * c.h;
+      if (boxArea < w * h * (opts.minAreaFrac || 0.10)) return;
+      /* Not the whole frame. A photograph darkens at its edges, and that dark
+       * rim is itself a big hollow rectangle - it was being picked ahead of the
+       * page every time. The page is always inside the picture. */
+      if (boxArea > w * h * 0.90) return;
+      /* The giveaway is how little ink there is. A ruled border measured 0.009
+       * of its own bounding box; the vignette rim measured 0.088. Anything
+       * that is actually a shape rather than a line is far above both. */
+      if (c.fill > 0.05) return;
+      var asp = c.w / c.h;
+      var target = L.aspect;
+      var upright = asp > target * 0.62 && asp < target * 1.45;
+      var sideways = asp > (1 / target) * 0.62 && asp < (1 / target) * 1.45;
+      if (!upright && !sideways) return;
+      /* The innermost qualifying rectangle, not the largest.
+       *
+       * A photographed sheet offers more than one hollow rectangle: the dark
+       * rim of the picture itself, the edge of the paper against the desk, and
+       * the border we printed. They are nested, and the one we drew is the
+       * smallest of them. Taking the largest picked the paper edge, which sits
+       * about five per cent outside the border, and five per cent is enough to
+       * put every sample on the wrong bubble. */
+      if (!best || boxArea < best.w * best.h) best = c;
     });
-  }
-
-  var cands = candidatesAt(10, 0.70);
-  /* Something sheet-like but incomplete: a marker may have merged with nearby
-   * ink or washed out. Re-threshold before giving up — but only then, so the
-   * idle "nothing in frame" path stays a single cheap pass. */
-  if (cands.length > 0 && cands.length < 4) {
-    var alt = candidatesAt(20, 0.66);
-    if (alt.length > cands.length) cands = alt;
-    if (cands.length < 4) {
-      alt = candidatesAt(4, 0.74);
-      if (alt.length > cands.length) cands = alt;
-    }
-  }
-  if (cands.length < 4) return null;
-
-  /* Prefer the four largest similar-sized blobs that span the frame. */
-  cands.sort(function (a, b) { return b.area - a.area; });
-  cands = cands.slice(0, 14);
-
-  var pts = cands.map(function (c) { return [c.cx, c.cy, c.area]; });
-  function pick(fn) {
-    var best = null, bv = Infinity;
-    pts.forEach(function (p) { var v = fn(p); if (v < bv) { bv = v; best = p; } });
     return best;
   }
-  var A = pick(function (p) { return p[0] + p[1]; });          // top-left-most
-  var B = pick(function (p) { return -(p[0] - p[1]); });        // top-right-most
-  var C = pick(function (p) { return -(p[0] + p[1]); });        // bottom-right-most
-  var D = pick(function (p) { return p[0] - p[1]; });           // bottom-left-most
-  var quad = [A, B, C, D];
-  for (var i = 0; i < 4; i++) for (var j = i + 1; j < 4; j++) if (quad[i] === quad[j]) return null;
 
-  var areas = quad.map(function (p) { return p[2]; });
-  if (Math.max.apply(null, areas) > 4.5 * Math.min.apply(null, areas)) return null;
+  var frame = frameAt(10) || frameAt(20) || frameAt(4);
+  if (!frame || !frame.corners || frame.corners.indexOf(null) >= 0) return null;
 
-  var q = orderQuad(quad.map(function (p) { return [p[0], p[1]]; }));
-  var area = quadArea(q);
-  if (area < w * h * (opts.minAreaFrac || 0.045)) return null;
+  /* The corners of a rectangle, however it is turned or tilted: the points
+   * furthest along each diagonal. */
+  var quad = frame.corners.slice();
+  for (var i2 = 0; i2 < 4; i2++)
+    for (var j = i2 + 1; j < 4; j++)
+      if (quad[i2] === quad[j]) return null;
 
-  /* Try all four rotations; the keystone mark decides which is upright. */
-  var ks = S.uv(L.keystone.x, L.keystone.y);
-  var mirrors = [{ u: 1 - ks.u, v: ks.v }, { u: ks.u, v: 1 - ks.v }, { u: 1 - ks.u, v: 1 - ks.v }];
-  var target = L.aspect;
-  var best = null;
+  var q = orderQuad(quad.map(function (pt) { return [pt[0], pt[1]]; }));
+  if (quadArea(q) < w * h * (opts.minAreaFrac || 0.10)) return null;
 
+  var target2 = L.aspect;
+  var best2 = null, scores = [];
   for (var r = 0; r < 4; r++) {
     var p0 = q[r], p1 = q[(r + 1) % 4], p2 = q[(r + 2) % 4], p3 = q[(r + 3) % 4];
     var H = homography(p0, p1, p2, p3);
@@ -9935,25 +9967,70 @@ function findSheet(gray, w, h, opts) {
     if (top < 30 || lef < 30) continue;
     if (Math.max(top, bot) > 2.4 * Math.min(top, bot)) continue;
     if (Math.max(lef, rig) > 2.4 * Math.min(lef, rig)) continue;
-    var asp = ((top + bot) / 2) / ((lef + rig) / 2);
-    if (asp < target * 0.62 || asp > target * 1.45) continue;
+    var asp2 = ((top + bot) / 2) / ((lef + rig) / 2);
+    if (asp2 < target2 * 0.62 || asp2 > target2 * 1.45) continue;
 
     var white = whiteLevel(gray, w, h, H);
-    var kd = darkness(gray, w, h, H, ks, white, L.keystone.size * 0.32);
-    var md = mirrors.map(function (m) { return darkness(gray, w, h, H, m, white, L.keystone.size * 0.32); });
-    var score = kd - Math.max.apply(null, md);
-    if (kd < 0.42) continue;
-    if (!best || score > best.score) best = { score: score, H: H, quad: [p0, p1, p2, p3], white: white };
+    var score = uprightScore(gray, w, h, H, white);
+    scores.push(+score.toFixed(4));
+    if (!best2 || score > best2.score) best2 = { score: score, H: H, quad: [p0, p1, p2, p3], white: white };
   }
-  if (!best) return null;
-  return { H: best.H, quad: best.quad, white: best.white, markers: cands.length };
+  if (!best2) return null;
+  /* scores is kept for diagnosis: four numbers, one per rotation. */
+  return { H: best2.H, quad: best2.quad, white: best2.white, markers: 4, scores: scores };
 }
 
-/* ------------------------------------------------------- page decode */
-/**
- * decodeIdentity(gray,w,h,H,white) -> {sid, code, page, idConf, flags[]}
- * Reads the student-ID, test-code and page-number bubble grids.
+/* Which way up is the page?
+ *
+ * There used to be a mark for this. Without one it has to come from something
+ * the page carries anyway, and the identity block is the best candidate: two
+ * rows of ten bubble outlines with labels beside them, in the same corner of
+ * every page including the writing pages, and nothing like it anywhere else on
+ * the sheet. Twenty printed rings put a lot of edge ink into a small area.
+ *
+ * Top-versus-bottom ink was tried first and is not good enough. It works on a
+ * sheet that is mostly white below the fold and fails on one where questions
+ * run to the bottom of the page, which is now most of them.
  */
+function blockInk(gray, w, h, H, white, u0, u1, v0, v1) {
+  var total = 0, n = 0;
+  for (var vi = 0; vi < 8; vi++) {
+    var v = v0 + (v1 - v0) * (vi + 0.5) / 8;
+    for (var ui = 0; ui < 16; ui++) {
+      var u = u0 + (u1 - u0) * (ui + 0.5) / 16;
+      total += darkness(gray, w, h, H, { u: u, v: v }, white, 0.022);
+      n++;
+    }
+  }
+  return n ? total / n : 0;
+}
+
+/** Which end of the page is the bottom.
+ *
+ * The border is not a plain rectangle: its foot is drawn heavier, the way a
+ * form rules off its footer. That is a fact about the page rather than a guess
+ * about where the ink sits, and it is present on every sheet including the
+ * writing pages, so it works when a page is nearly blank.
+ *
+ * Inferring this from ink distribution was tried twice and failed twice: top
+ * against bottom fails once questions run to the foot of the page, and the
+ * identity block against its mirror fails because the mirror is the heading
+ * and the name box, which carry more ink than twenty bubble outlines.
+ */
+function edgeInk(gray, w, h, H, white, v) {
+  var total = 0, n = 0;
+  for (var i = 0; i < 24; i++) {
+    var u = 0.12 + (0.76 * (i + 0.5) / 24);
+    total += darkness(gray, w, h, H, { u: u, v: v }, white, 0.012);
+    n++;
+  }
+  return total / n;
+}
+function uprightScore(gray, w, h, H, white) {
+  /* Just inside each long edge: only the heavier rule reaches this far in. */
+  return edgeInk(gray, w, h, H, white, 0.9955) -
+         edgeInk(gray, w, h, H, white, 0.0045);
+}
 function decodeIdentity(gray, w, h, H, white, idDigits) {
   var L = S.L, flags = [];
   var nId = idDigits || L.idDigits;
@@ -10129,19 +10206,17 @@ function renderSynthetic(test, pageIdx, opts) {
   var ctx = cv.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
 
+  /* The registration border, drawn the way the printer draws it: one rule
+   * around the page that the reader solves the geometry from. */
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = Math.max(1, inx(0.0347));            // 2.5pt, as printed
+  ctx.strokeRect(inx(L.fid.x0) + ctx.lineWidth / 2, inx(L.fid.y0) + ctx.lineWidth / 2,
+                 inx(L.W) - ctx.lineWidth, inx(L.H) - ctx.lineWidth);
+  /* the heavier foot rule, matching what the printer draws */
+  var footW = inx(0.0833);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(inx(L.fid.x0), inx(L.fid.y1) - footW, inx(L.W), footW);
   ctx.fillStyle = '#000';
-  /* The same brackets the printer draws, from the same function, because a
-   * synthetic sheet that does not match the real one tests nothing. */
-  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
-   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
-    .forEach(function (c) {
-      S.cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
-        ctx.fillRect(inx(b.x), inx(b.y), inx(b.w), inx(b.h));
-      });
-    });
-  var ks = inx(L.keystone.size);
-  ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
-
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.17) + 'px Arial';
   ctx.fillText(test.title || 'Test', inx(0.60), inx(L.titleY + 0.15));

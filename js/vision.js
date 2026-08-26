@@ -55,10 +55,21 @@ function components(bin, w, h, minArea, maxArea) {
     if (!bin[i] || seen[i]) continue;
     var sp = 0; stack[sp++] = i; seen[i] = 1;
     var area = 0, minX = 1e9, minY = 1e9, maxX = -1, maxY = -1, sx = 0, sy = 0;
+    /* The four points furthest along each diagonal. For a rectangle these are
+     * its corners however it is rotated or tilted, which a bounding box is
+     * not. Tracked here because the flood fill is already touching every
+     * pixel and a second pass over the component would cost more. */
+    var sMin = 1e9, sMax = -1e9, dMin = 1e9, dMax = -1e9;
+    var pTL = null, pBR = null, pTR = null, pBL = null;
     while (sp) {
       var p = stack[--sp];
       var px = p % w, py = (p - px) / w;
       area++; sx += px; sy += py;
+      var sum = px + py, dif = px - py;
+      if (sum < sMin) { sMin = sum; pTL = [px, py]; }
+      if (sum > sMax) { sMax = sum; pBR = [px, py]; }
+      if (dif > dMax) { dMax = dif; pTR = [px, py]; }
+      if (dif < dMin) { dMin = dif; pBL = [px, py]; }
       if (px < minX) minX = px; if (px > maxX) maxX = px;
       if (py < minY) minY = py; if (py > maxY) maxY = py;
       if (area > maxArea + 1) { /* keep draining but stop tracking */ }
@@ -70,7 +81,8 @@ function components(bin, w, h, minArea, maxArea) {
     if (area < minArea || area > maxArea) continue;
     var bw = maxX - minX + 1, bh = maxY - minY + 1;
     out.push({ area: area, x: minX, y: minY, w: bw, h: bh, cx: sx / area, cy: sy / area,
-               fill: area / (bw * bh), aspect: bw / bh });
+               fill: area / (bw * bh), aspect: bw / bh,
+               corners: [pTL, pTR, pBR, pBL] });
   }
   return out;
 }
@@ -201,66 +213,79 @@ function quadArea(q) {
  * findSheet(gray, w, h) -> { H, quad, white, markers } | null
  * H maps sheet-normalised (u,v) to detection-image pixels.
  */
+/* Find the page by its printed border.
+ *
+ * This used to hunt for four solid corner marks and a fifth for orientation.
+ * They worked, and they made the page look like a machine artefact, which is
+ * fatal for a document that has to be approved before it can be sat.
+ *
+ * A ruled border is a single connected rectangle of ink, and that is a much
+ * more distinctive thing to look for than four squares: it encloses almost the
+ * whole image, and it fills only a few per cent of its own bounding box,
+ * because it is a line rather than a blob. Nothing else on a page looks like
+ * that. Its four extreme points, taken along the diagonals, are its corners
+ * even under perspective.
+ *
+ * Orientation no longer comes from a marker. The top of a sheet carries the
+ * heading, the identity block and the name box; the bottom carries a footer
+ * and white space. Comparing ink above and below the middle tells us which way
+ * up the page is, and it does so from the design rather than from a mark added
+ * to serve the machine.
+ */
 function findSheet(gray, w, h, opts) {
   opts = opts || {};
   var L = S.L;
-  var minDim = Math.min(w, h);
-  var minSide = Math.max(4, minDim * 0.010);
-  var maxSide = minDim * 0.14;
 
-  function candidatesAt(C, fillMin) {
+  function frameAt(C) {
     var bin = threshold(gray, w, h, 0.10, C);
-    var comps = components(bin, w, h, minSide * minSide * 0.45, maxSide * maxSide);
-    return comps.filter(function (c) {
-      return c.fill > fillMin && c.aspect > 0.55 && c.aspect < 1.8 &&
-             c.w >= minSide && c.h >= minSide && c.w <= maxSide && c.h <= maxSide;
+    /* A border encloses most of the frame, so only very large components are
+     * worth considering, and there will be few of them. */
+    var comps = components(bin, w, h, w * h * 0.0004, w * h);
+    var best = null;
+    comps.forEach(function (c) {
+      var boxArea = c.w * c.h;
+      if (boxArea < w * h * (opts.minAreaFrac || 0.10)) return;
+      /* Not the whole frame. A photograph darkens at its edges, and that dark
+       * rim is itself a big hollow rectangle - it was being picked ahead of the
+       * page every time. The page is always inside the picture. */
+      if (boxArea > w * h * 0.90) return;
+      /* The giveaway is how little ink there is. A ruled border measured 0.009
+       * of its own bounding box; the vignette rim measured 0.088. Anything
+       * that is actually a shape rather than a line is far above both. */
+      if (c.fill > 0.05) return;
+      var asp = c.w / c.h;
+      var target = L.aspect;
+      var upright = asp > target * 0.62 && asp < target * 1.45;
+      var sideways = asp > (1 / target) * 0.62 && asp < (1 / target) * 1.45;
+      if (!upright && !sideways) return;
+      /* The innermost qualifying rectangle, not the largest.
+       *
+       * A photographed sheet offers more than one hollow rectangle: the dark
+       * rim of the picture itself, the edge of the paper against the desk, and
+       * the border we printed. They are nested, and the one we drew is the
+       * smallest of them. Taking the largest picked the paper edge, which sits
+       * about five per cent outside the border, and five per cent is enough to
+       * put every sample on the wrong bubble. */
+      if (!best || boxArea < best.w * best.h) best = c;
     });
-  }
-
-  var cands = candidatesAt(10, 0.70);
-  /* Something sheet-like but incomplete: a marker may have merged with nearby
-   * ink or washed out. Re-threshold before giving up — but only then, so the
-   * idle "nothing in frame" path stays a single cheap pass. */
-  if (cands.length > 0 && cands.length < 4) {
-    var alt = candidatesAt(20, 0.66);
-    if (alt.length > cands.length) cands = alt;
-    if (cands.length < 4) {
-      alt = candidatesAt(4, 0.74);
-      if (alt.length > cands.length) cands = alt;
-    }
-  }
-  if (cands.length < 4) return null;
-
-  /* Prefer the four largest similar-sized blobs that span the frame. */
-  cands.sort(function (a, b) { return b.area - a.area; });
-  cands = cands.slice(0, 14);
-
-  var pts = cands.map(function (c) { return [c.cx, c.cy, c.area]; });
-  function pick(fn) {
-    var best = null, bv = Infinity;
-    pts.forEach(function (p) { var v = fn(p); if (v < bv) { bv = v; best = p; } });
     return best;
   }
-  var A = pick(function (p) { return p[0] + p[1]; });          // top-left-most
-  var B = pick(function (p) { return -(p[0] - p[1]); });        // top-right-most
-  var C = pick(function (p) { return -(p[0] + p[1]); });        // bottom-right-most
-  var D = pick(function (p) { return p[0] - p[1]; });           // bottom-left-most
-  var quad = [A, B, C, D];
-  for (var i = 0; i < 4; i++) for (var j = i + 1; j < 4; j++) if (quad[i] === quad[j]) return null;
 
-  var areas = quad.map(function (p) { return p[2]; });
-  if (Math.max.apply(null, areas) > 4.5 * Math.min.apply(null, areas)) return null;
+  var frame = frameAt(10) || frameAt(20) || frameAt(4);
+  if (!frame || !frame.corners || frame.corners.indexOf(null) >= 0) return null;
 
-  var q = orderQuad(quad.map(function (p) { return [p[0], p[1]]; }));
-  var area = quadArea(q);
-  if (area < w * h * (opts.minAreaFrac || 0.045)) return null;
+  /* The corners of a rectangle, however it is turned or tilted: the points
+   * furthest along each diagonal. */
+  var quad = frame.corners.slice();
+  for (var i2 = 0; i2 < 4; i2++)
+    for (var j = i2 + 1; j < 4; j++)
+      if (quad[i2] === quad[j]) return null;
 
-  /* Try all four rotations; the keystone mark decides which is upright. */
-  var ks = S.uv(L.keystone.x, L.keystone.y);
-  var mirrors = [{ u: 1 - ks.u, v: ks.v }, { u: ks.u, v: 1 - ks.v }, { u: 1 - ks.u, v: 1 - ks.v }];
-  var target = L.aspect;
-  var best = null;
+  var q = orderQuad(quad.map(function (pt) { return [pt[0], pt[1]]; }));
+  if (quadArea(q) < w * h * (opts.minAreaFrac || 0.10)) return null;
 
+  var target2 = L.aspect;
+  var best2 = null, scores = [];
   for (var r = 0; r < 4; r++) {
     var p0 = q[r], p1 = q[(r + 1) % 4], p2 = q[(r + 2) % 4], p3 = q[(r + 3) % 4];
     var H = homography(p0, p1, p2, p3);
@@ -272,25 +297,70 @@ function findSheet(gray, w, h, opts) {
     if (top < 30 || lef < 30) continue;
     if (Math.max(top, bot) > 2.4 * Math.min(top, bot)) continue;
     if (Math.max(lef, rig) > 2.4 * Math.min(lef, rig)) continue;
-    var asp = ((top + bot) / 2) / ((lef + rig) / 2);
-    if (asp < target * 0.62 || asp > target * 1.45) continue;
+    var asp2 = ((top + bot) / 2) / ((lef + rig) / 2);
+    if (asp2 < target2 * 0.62 || asp2 > target2 * 1.45) continue;
 
     var white = whiteLevel(gray, w, h, H);
-    var kd = darkness(gray, w, h, H, ks, white, L.keystone.size * 0.32);
-    var md = mirrors.map(function (m) { return darkness(gray, w, h, H, m, white, L.keystone.size * 0.32); });
-    var score = kd - Math.max.apply(null, md);
-    if (kd < 0.42) continue;
-    if (!best || score > best.score) best = { score: score, H: H, quad: [p0, p1, p2, p3], white: white };
+    var score = uprightScore(gray, w, h, H, white);
+    scores.push(+score.toFixed(4));
+    if (!best2 || score > best2.score) best2 = { score: score, H: H, quad: [p0, p1, p2, p3], white: white };
   }
-  if (!best) return null;
-  return { H: best.H, quad: best.quad, white: best.white, markers: cands.length };
+  if (!best2) return null;
+  /* scores is kept for diagnosis: four numbers, one per rotation. */
+  return { H: best2.H, quad: best2.quad, white: best2.white, markers: 4, scores: scores };
 }
 
-/* ------------------------------------------------------- page decode */
-/**
- * decodeIdentity(gray,w,h,H,white) -> {sid, code, page, idConf, flags[]}
- * Reads the student-ID, test-code and page-number bubble grids.
+/* Which way up is the page?
+ *
+ * There used to be a mark for this. Without one it has to come from something
+ * the page carries anyway, and the identity block is the best candidate: two
+ * rows of ten bubble outlines with labels beside them, in the same corner of
+ * every page including the writing pages, and nothing like it anywhere else on
+ * the sheet. Twenty printed rings put a lot of edge ink into a small area.
+ *
+ * Top-versus-bottom ink was tried first and is not good enough. It works on a
+ * sheet that is mostly white below the fold and fails on one where questions
+ * run to the bottom of the page, which is now most of them.
  */
+function blockInk(gray, w, h, H, white, u0, u1, v0, v1) {
+  var total = 0, n = 0;
+  for (var vi = 0; vi < 8; vi++) {
+    var v = v0 + (v1 - v0) * (vi + 0.5) / 8;
+    for (var ui = 0; ui < 16; ui++) {
+      var u = u0 + (u1 - u0) * (ui + 0.5) / 16;
+      total += darkness(gray, w, h, H, { u: u, v: v }, white, 0.022);
+      n++;
+    }
+  }
+  return n ? total / n : 0;
+}
+
+/** Which end of the page is the bottom.
+ *
+ * The border is not a plain rectangle: its foot is drawn heavier, the way a
+ * form rules off its footer. That is a fact about the page rather than a guess
+ * about where the ink sits, and it is present on every sheet including the
+ * writing pages, so it works when a page is nearly blank.
+ *
+ * Inferring this from ink distribution was tried twice and failed twice: top
+ * against bottom fails once questions run to the foot of the page, and the
+ * identity block against its mirror fails because the mirror is the heading
+ * and the name box, which carry more ink than twenty bubble outlines.
+ */
+function edgeInk(gray, w, h, H, white, v) {
+  var total = 0, n = 0;
+  for (var i = 0; i < 24; i++) {
+    var u = 0.12 + (0.76 * (i + 0.5) / 24);
+    total += darkness(gray, w, h, H, { u: u, v: v }, white, 0.012);
+    n++;
+  }
+  return total / n;
+}
+function uprightScore(gray, w, h, H, white) {
+  /* Just inside each long edge: only the heavier rule reaches this far in. */
+  return edgeInk(gray, w, h, H, white, 0.9955) -
+         edgeInk(gray, w, h, H, white, 0.0045);
+}
 function decodeIdentity(gray, w, h, H, white, idDigits) {
   var L = S.L, flags = [];
   var nId = idDigits || L.idDigits;

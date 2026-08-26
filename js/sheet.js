@@ -20,17 +20,22 @@ var PAPERS = {
   a4:     { w: 8.268, h: 11.693, label: 'A4 (210 × 297 mm)' },
   legal:  { w: 8.5,   h: 14,     label: 'US Legal (8.5 × 14 in)' }
 };
-var MARGIN = 0.55;              // fiducial centre inset from the paper edge
-
+/* Inset of the ruled registration border from the paper edge. This used to be
+ * where the solid corner marks sat, and everything printed had to keep a quiet
+ * zone clear of them or it merged with one under threshold. A hairline needs
+ * far less room, so the border sits further out and the page gets its margins
+ * back. */
+var MARGIN = 0.42;
 var L = {
   page:  { w: 8.5, h: 11 },
   paper: 'letter',
-  fid:   { x0: 0.55, y0: 0.55, x1: 7.95, y1: 10.45, size: 0.30 },
-  keystone: { x: 1.20, y: 0.55, size: 0.15 },   // orientation mark: top edge only
+  /* The registration border: the rectangle the scanner solves the page
+   * geometry from. Every other coordinate is relative to it. */
+  fid:   { x0: 0.42, y0: 0.42, x1: 8.08, y1: 10.58 },
 
-  /* Nothing may be printed within QUIET inches of a fiducial's bounding box —
-   * ink that touches a corner square merges with it under threshold and the
-   * sheet stops being detectable. Every constant below respects that. */
+  /* Nothing may be printed within QUIET inches of the border. Ink that
+   * touches it joins the rectangle under threshold and the corner it
+   * belongs to stops being a corner. */
   quiet: 0.12,
 
   titleY: 0.86, subTitleY: 1.06, idHeadX: 5.20, idHeadY: 0.86,
@@ -92,7 +97,9 @@ function setPaper(name) {
   L.nameBox.w = L.idLabelX - 0.22 - L.nameBox.x;
   L.classBox.w = L.nameBox.w;
   L.contentBottom = L.fid.y1 - 0.43;  // bottom-anchored answer grid
-  L.footerY   = L.fid.y1 - 0.13;
+  /* Clear of the foot rule, which is 6pt of solid ink on the bottom edge.
+   * At 0.13 the footer was printing on top of it. */
+  L.footerY   = L.fid.y1 - 0.28;
   L.footerW   = L.fid.x1 - 0.40 - L.footerX;
   L.wRight    = L.fid.x1 - 0.35;
   return L;
@@ -425,7 +432,18 @@ var SHEET_CSS = [
 '  margin:14px auto;box-shadow:0 4px 18px rgba(0,0,0,.35)}',
 '@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}',
 '  .page:last-child{page-break-after:auto}.noprint{display:none!important}}',
-'.fid{position:absolute;background:#000}',
+/* 2.5pt. The detector works on a downscaled copy of the photograph, about 58
+     * pixels to the inch, and a hairline came out at six tenths of a pixel and
+     * vanished - leaving the paper edge as the only rectangle in the picture,
+     * which sits five per cent further out and puts every sample on the wrong
+     * bubble. This is an ordinary form rule at a thickness that survives being
+     * looked at. */
+/* A heavier rule along the foot. Forms do this all the time and nobody
+     * reads it as a machine mark, but it is what tells the scanner which end of
+     * the page is the bottom. Inferring that from where the ink sits was tried
+     * and is not dependable: the heading and name box carry more ink than the
+     * identity block, so the page came back upside down. */
+    '.edge{position:absolute;border:2.5pt solid #222;border-bottom-width:6pt;box-sizing:border-box}',
     '.cmark{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
@@ -480,33 +498,20 @@ function renderPage(test, pages, pageIdx, who) {
   var choices = test.mc.choices || 5;
   var h = '<div class="page">';
 
-  /* Registration marks, and a hairline frame joining them.
+  /* The registration border.
    *
-   * The frame is not read by anything. It is there because four marks alone
-   * look like an accident, and the same four sitting on the corners of a ruled
-   * border look like a form. It also gives a student an edge to work inside.
-   * It stays outside the quiet zone the detector needs. */
-  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
-   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
-    .forEach(function (c) {
-      cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
-        h += '<div class="fid" style="left:' + b.x + 'in;top:' + b.y +
-             'in;width:' + b.w + 'in;height:' + b.h + 'in"></div>';
-      });
-    });
-  /* A ruled frame joining the four marks was tried here and removed. The
-   * content starts 0.05in inside the fiducial line, so any frame that clears
-   * the brackets quiet zone lands on top of the title and the name box, and
-   * any frame that clears the content is close enough to a bracket to merge
-   * with it under threshold. It needs the whole page to move inward, which is
-   * a bigger change than it is worth. */
-
-  /* Orientation. One extra mark on the top edge tells the reader which way up
-   * the page is; it is sampled as a point, not found as a shape, so it can be
-   * small and sit on the frame like a tick. */
-  h += '<div class="fid" style="left:' + (L.keystone.x - L.keystone.size / 2) + 'in;top:' +
-       (L.keystone.y - L.keystone.size / 2) + 'in;width:' + L.keystone.size + 'in;height:' +
-       L.keystone.size + 'in"></div>';
+   * There were five solid black marks on this page: one at each corner and a
+   * fifth for orientation. They did their job and they looked like a fault in
+   * the printer. On a final examination that has to be signed off before it is
+   * sat, a page covered in machine marks does not get signed off.
+   *
+   * A ruled border does the same work and looks like every form anyone has
+   * ever filled in. Its four corners are what the scanner solves the page
+   * geometry from, and being a continuous line rather than four separate blobs
+   * it cannot half-detect: either the rectangle is there or it is not.
+   */
+  h += '<div class="edge" style="left:' + L.fid.x0 + 'in;top:' + L.fid.y0 +
+       'in;width:' + L.W + 'in;height:' + L.H + 'in"></div>';
   /* A version letter large enough to sort a stack of sheets by eye. */
   if (who.formId) {
     h += absDiv('vmark', L.fid.x1 - 1.02, L.footerY - 0.34, 0.62, 0.46,
@@ -645,7 +650,9 @@ function renderPage(test, pages, pageIdx, who) {
   /* written-answer boxes */
   pg.written.forEach(function (wb) {
     var wq = (test.written || [])[wb.w] || {};
-    h += absDiv('boxlbl', wb.x, wb.labelY, 7.2, 0.16,
+    /* As wide as its own box, not a fixed 7.2in. The old width reached a
+     * quarter of an inch past the page border. */
+    h += absDiv('boxlbl', wb.x, wb.labelY, wb.bw, 0.16,
       E((wq.label || ('Question ' + (wb.w + 1)))) +
       '<span style="font-weight:400;color:#666"> &nbsp;(' + (wq.max || 0) + ' pts)</span>');
     h += absDiv('box', wb.x, wb.y, wb.bw, wb.bh, '');

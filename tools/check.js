@@ -11,9 +11,14 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
-const suites = fs.readdirSync(DIR)
+/* An optional substring argument runs only the suites whose names match.
+ * The full set takes ten minutes, which is long enough that a person
+ * checking one thing will skip running it at all. */
+const only = process.argv[2];
+const suites = (fs.readdirSync(DIR)
   .filter(f => /^(test-.*|runtests)\.js$/.test(f))
-  .sort();
+  .sort())
+  .filter(f => !only || f.indexOf(only) >= 0);
 
 let total = 0, failed = 0;
 const broken = [];
@@ -47,7 +52,21 @@ for (const f of suites) {
    * that silently passes without running is the same bug as one that asserts
    * nothing. */
   const skipped = code === 2;
-  const bad = !skipped && (code !== 0 || fails > 0 || jsonFailed > 0 || jsonErr);
+  /* A suite that asserted nothing is a failure, not a note.
+   *
+   * It printed '(asserted nothing - look at it)' beside a green line and was
+   * counted as passing, which is the exact shape of the defect this runner
+   * exists to catch: an absent result and a negative result print the same,
+   * and the absent one looks like success. A suite exits 0 having run no
+   * assertions for only one interesting reason - it fell over before it got
+   * there - and the count of checks is the fragile number, the one that goes
+   * to zero when the mechanism breaks. So it is the one to assert on.
+   *
+   * Exit code 2 still means 'needed hardware I do not have' and is exempt,
+   * because that suite has said so deliberately. */
+  const assertedNothing = !skipped && n === 0;
+  const bad = !skipped && (code !== 0 || fails > 0 || jsonFailed > 0 || jsonErr ||
+                           assertedNothing);
 
   total += n;
   if (skipped) skippedList.push(f);
@@ -59,7 +78,7 @@ for (const f of suites) {
     String(n).padStart(4) + ' checks ' + String(ms).padStart(7) + ' ms' +
     (skipped
       ? '   ' + (out.split('\n').find(l => l.trim()) || '').trim().slice(0, 58)
-      : n === 0 && !bad ? '   (asserted nothing — look at it)' : ''));
+      : assertedNothing ? '   asserted nothing' : ''));
   if (bad) {
     out.split('\n').filter(l => /FAIL|error|Error/.test(l)).slice(0, 4)
       .forEach(l => console.log('        ' + l.trim().slice(0, 130)));

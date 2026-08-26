@@ -43,19 +43,17 @@ function renderSynthetic(test, pageIdx, opts) {
   var ctx = cv.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
 
+  /* The registration border, drawn the way the printer draws it: one rule
+   * around the page that the reader solves the geometry from. */
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = Math.max(1, inx(0.0347));            // 2.5pt, as printed
+  ctx.strokeRect(inx(L.fid.x0) + ctx.lineWidth / 2, inx(L.fid.y0) + ctx.lineWidth / 2,
+                 inx(L.W) - ctx.lineWidth, inx(L.H) - ctx.lineWidth);
+  /* the heavier foot rule, matching what the printer draws */
+  var footW = inx(0.0833);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(inx(L.fid.x0), inx(L.fid.y1) - footW, inx(L.W), footW);
   ctx.fillStyle = '#000';
-  /* The same brackets the printer draws, from the same function, because a
-   * synthetic sheet that does not match the real one tests nothing. */
-  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
-   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
-    .forEach(function (c) {
-      S.cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
-        ctx.fillRect(inx(b.x), inx(b.y), inx(b.w), inx(b.h));
-      });
-    });
-  var ks = inx(L.keystone.size);
-  ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
-
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.17) + 'px Arial';
   ctx.fillText(test.title || 'Test', inx(0.60), inx(L.titleY + 0.15));
