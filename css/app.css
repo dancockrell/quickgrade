@@ -41,7 +41,19 @@
 }
 
 *,*::before,*::after{box-sizing:border-box}
+/* A non-scrolling app shell on a phone.
+ *
+ * `height:100%` resolves against the viewport as though the browser chrome
+ * were retracted. Because `body` has `overflow:hidden` the page never
+ * scrolls, so on Android the URL bar never retracts, and the shell ends up
+ * taller than the visible area: the marking bar and the scan strip fall
+ * behind the browser chrome, on the two screens used most on a phone.
+ *
+ * `svh` is the viewport with the chrome showing, which for a shell that
+ * cannot scroll is the size it will always actually have. Browsers without
+ * it keep the `100%` above. */
 html,body{height:100%}
+@supports (height:100svh){ html,body{height:100svh} }
 /* Author `display` rules outrank the UA stylesheet's [hidden]{display:none},
    so anything toggled via the hidden attribute needs this to actually hide.
    Without it #modal covers the viewport and swallows every click. */
