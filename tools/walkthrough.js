@@ -25,6 +25,13 @@ let step = 0;
   page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
 
   async function shot(name) {
+    /* Clear any toast first: a message that happens to be on screen is not
+     * part of the design, and it hides whatever it lands on. */
+    await page.evaluate(() => {
+      const t = document.getElementById('toasts');
+      if (t) t.innerHTML = '';
+    });
+    await page.waitForTimeout(120);
     step++;
     const file = path.join(OUT, `${W}-${LANG}-${String(step).padStart(2, '0')}-${name}.png`);
     await page.screenshot({ path: file });

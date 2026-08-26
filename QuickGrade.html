@@ -122,7 +122,7 @@ body{
   color:var(--dim);font:inherit;font-size:12px;cursor:pointer;white-space:nowrap;
 }
 #btnPrivacy:hover{color:var(--ink);background:var(--surface2)}
-.linky{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+.linky{background:none;border:0;padding:0;margin-inline-start:5px;font:inherit;color:var(--accent);
   cursor:pointer;text-decoration:underline}
 
 /* the data statement, on screen */
@@ -740,7 +740,6 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 .brand,code,kbd{unicode-bidi:isolate}
 [dir="rtl"] .brand{direction:ltr}
 [dir="rtl"] code,[dir="rtl"] kbd{direction:ltr}
-[dir="rtl"] .linky{margin-inline-start:5px}
 /* Thai stacks a vowel above the consonant and a tone mark above that;
  * Devanagari hangs marks below as well. At Latin leading the marks are the
  * first thing to be clipped by a fixed-height control, and the text reads as
