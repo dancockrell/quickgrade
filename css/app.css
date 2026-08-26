@@ -486,7 +486,20 @@ tbody tr:last-child td{border-bottom:0}
   border-bottom:1px solid rgba(0,0,0,.07);
 }
 .unrow:last-child{border-bottom:0;padding-bottom:0}
-.unrow img{height:48px;border-radius:5px;background:#fff;border:1px solid var(--line)}
+.unrow img{border-radius:5px;background:#fff;border:1px solid var(--line)}
+/* the page thumbnail is just orientation: keep it small */
+.unrow .unthumb{height:48px;width:auto;flex:0 0 auto}
+/* the handwriting is the whole reason this row exists. It is a wide strip, so
+   without a cap it runs straight off a narrow screen. */
+.unrow .uncrop{
+  height:46px;max-width:100%;flex:0 1 auto;
+  object-fit:contain;object-position:left center;
+}
+@media(max-width:760px){
+  /* on a phone give it the row to itself rather than squeezing it next to
+     the controls, since reading the name is the task */
+  .unrow .uncrop{flex:1 1 100%;width:100%;height:auto;max-height:72px}
+}
 /* uncertainty queue */
 .checks{
   background:var(--warn-soft);border:1px solid var(--warn);border-radius:var(--r);
@@ -773,9 +786,33 @@ body[data-view="written"]{--toast-bottom:150px}
   .rubname{flex:0 0 100%;white-space:normal;margin-bottom:1px}
   .pbtn.rub{flex:1 1 0;min-width:0}
   .rubrow{gap:5px}
-  /* a written answer still needs to be readable on a small screen */
-  #gradeImageWrap{min-height:38vh;padding:10px}
+  /* A written answer still needs to be readable, but not at the cost of
+   * pushing the marking controls off the bottom of the screen.
+   *
+   * `vh` is the large viewport, the one you get with the browser chrome
+   * retracted, which this shell never has. Using it here reserved more room
+   * than actually existed and the comment field fell below the fold on a real
+   * phone. `svh` is the size the shell really gets. */
+  #gradeImageWrap{min-height:26svh;padding:10px}
   #gradeBar{padding:10px 12px;gap:8px}
+  /* Whatever the rubric is, every control stays reachable. */
+  #gradeBar{max-height:62svh;overflow-y:auto}
+
+  /* Two things were eating the room the marking controls needed.
+   *
+   * The keyboard shortcuts are meaningless on a phone: there is no keyboard
+   * to press 1 to 9 on. They were pushing the comment field below the fold
+   * to explain keys that do not exist.
+   *
+   * The quick comments wrapped to three rows. One row that scrolls sideways
+   * shows the same chips and gives the height back. */
+  #gradeKeys{display:none}
+  #quickComments{
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+    padding-bottom:2px;
+  }
+  #quickComments::-webkit-scrollbar{display:none}
+  #quickComments .qc{flex:0 0 auto}
 }
 
 /* On a phone the bottom edge belongs to the marking bar and the scan strip,

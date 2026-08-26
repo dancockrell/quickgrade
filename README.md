@@ -563,12 +563,33 @@ Runs every suite and prints one number. It discovers suites rather than
 reading a list, because the one time a suite was left out of a hand-written
 list it sat broken for a whole session while everything else reported green.
 
+A suite that needs hardware you do not have exits 2 and is reported as
+skipped: not counted as passing, not counted as failing, and never invisible.
+A suite that runs but asserts nothing is called out too.
+
 ```
 node tools/walkthrough.js <outDir> [lang] [width]
 ```
 
 Photographs the whole teacher journey. The suites cannot tell you that a
 screen is confusing; this is for looking at it.
+
+```
+node tools/test-slowphone.js [throttle...]
+```
+
+Runs the app on a phone viewport with the CPU throttled, and measures the
+work a teacher waits for. 1x is your desktop; 6x is about a cheap current
+Android and 12x an old one. At 30x, slower than any real phone, reading a
+sheet still takes 324ms.
+
+```
+node tools/test-android.js
+```
+
+Runs it in Chrome on a real Android build over adb, if you have an emulator
+or device attached. That is a compatibility check, not a speed one: an
+emulator runs on your desktop CPU and is usually faster than a cheap phone.
 
 ## Licence
 

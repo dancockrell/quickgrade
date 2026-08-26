@@ -1712,8 +1712,8 @@ function renderReview() {
     ]);
     r.unresolved.forEach(function (sc) {
       var row = el('div', { class: 'unrow' });
-      row.appendChild(el('img', { src: sc.thumb, alt: T('unres.alt.sheet') }));
-      var crop = el('img', { alt: T('unres.alt.name'), style: 'height:46px;flex:0 0 auto' });
+      row.appendChild(el('img', { class: 'unthumb', src: sc.thumb, alt: T('unres.alt.sheet') }));
+      var crop = el('img', { class: 'uncrop', alt: T('unres.alt.name') });
       if (sc.nameCrop) {
         Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) crop.src = b.data; });
       }

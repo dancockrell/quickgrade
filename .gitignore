@@ -12,3 +12,5 @@ build/
 dist/
 node_modules/
 venv/
+
+# Android SDK and emulator live outside the repo; nothing here should be tracked

@@ -27,11 +27,34 @@ function keysUsedInSource() {
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
-  await page.goto(BASE + '/index.html', { waitUntil: 'networkidle' });
-  await page.waitForTimeout(700);
 
   const res = [];
   const ok = (n, pass, d) => res.push({ n, pass: !!pass, d });
+  await page.goto(BASE + '/index.html', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(700);
+
+  /* Load the sample class before measuring anything about layout.
+   *
+   * The overflow checks below used to run on empty screens, which is a much
+   * easier test than the real one: with no scans there are no handwriting
+   * crops, no student rows and no uncertain marks to overflow. A crop running
+   * off the side of a phone got all the way to a real Android before anyone
+   * saw it. Populated screens are the ones that break. */
+  await page.evaluate(async () => {
+    const b = [...document.querySelectorAll('.demoline button')][0];
+    if (!b) return;
+    b.click();
+    for (let i = 0; i < 120; i++) {
+      await new Promise(r => setTimeout(r, 400));
+      if (QG.App.State.scans.length >= 15) break;
+    }
+    await new Promise(r => setTimeout(r, 800));
+    const t = document.getElementById('toasts');
+    if (t) t.innerHTML = '';
+  });
+  const populated = await page.evaluate(() => QG.App.State.scans.length);
+  ok('the layout checks run against a populated app', populated >= 15,
+    populated + ' scans loaded');
 
   // ---------------------------------------------------- pack integrity
   const packs = await page.evaluate(() => {

@@ -170,10 +170,26 @@ const BUDGET = {
       return ms;
     });
 
+    /* Nothing a teacher has to press may sit below the fold.
+     *
+     * The marking bar is content-sized: a rubric with several criteria, a
+     * comment field and a row of chips can add up to more than a phone has.
+     * This is measured rather than eyeballed because it regresses quietly
+     * every time something is added to that bar. */
+    const fold = await page.evaluate(async () => {
+      QG.App.route('written');
+      await new Promise(r => setTimeout(r, 600));
+      const bar = document.getElementById('gradeBar');
+      if (!bar) return null;
+      const vis = [...bar.children].filter(c => c.offsetParent !== null);
+      const last = vis.length ? vis[vis.length - 1].getBoundingClientRect().bottom : 0;
+      return { over: Math.round(last - innerHeight), scrolls: bar.scrollHeight > bar.clientHeight + 1 };
+    });
+
     const mem = await page.evaluate(() =>
       performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null);
 
-    results.push({ rate, t, mem, decoded, frame, errs });
+    results.push({ rate, t, mem, decoded, frame, fold, errs });
     await ctx.close();
   }
 
@@ -214,6 +230,14 @@ const BUDGET = {
       (r.errs.length ? ', ERRORS: ' + r.errs.slice(0, 2).join(' | ') : ''));
   }
 
+  /* Every marking control has to be reachable without scrolling a bar. */
+  const f = results[0].fold;
+  if (f) {
+    console.log('  ' + (f.over <= 2 && !f.scrolls ? 'ok   ' : 'FAIL ') +
+      'no marking control below the fold'.padEnd(26) +
+      (f.over <= 2 ? '  all visible' : '  ' + f.over + 'px below'));
+  }
+
   /* Fast and wrong is not a pass. */
   for (const r of results) {
     const readOk = r.frame && r.frame.ok && r.frame.sid === '003' && r.frame.page === 1;
@@ -225,7 +249,8 @@ const BUDGET = {
       ('all 15 sheets read at ' + r.rate + 'x').padEnd(26) + '  ' + r.decoded + '/15');
   }
 
-  const anyErr = results.some(r => r.errs.length) ||
+  const anyErr = (f && (f.over > 2 || f.scrolls)) ||
+                 results.some(r => r.errs.length) ||
                  results.some(r => r.decoded !== 15) ||
                  results.some(r => !(r.frame && r.frame.ok && r.frame.sid === '003'));
   console.log('\n  ' + (over || anyErr
