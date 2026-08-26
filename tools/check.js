@@ -17,6 +17,7 @@ const suites = fs.readdirSync(DIR)
 
 let total = 0, failed = 0;
 const broken = [];
+const skippedList = [];
 
 console.log('QuickGrade — full check\n');
 for (const f of suites) {
@@ -41,16 +42,24 @@ for (const f of suites) {
   const jsonErr = /"error"/.test(out);
 
   const n = passes + jsonTotal;
-  const bad = code !== 0 || fails > 0 || jsonFailed > 0 || jsonErr;
+  /* Exit code 2 is the agreed "this needs hardware I do not have" signal.
+   * Reported every time, never counted as passing, never as failing: a suite
+   * that silently passes without running is the same bug as one that asserts
+   * nothing. */
+  const skipped = code === 2;
+  const bad = !skipped && (code !== 0 || fails > 0 || jsonFailed > 0 || jsonErr);
 
   total += n;
-  if (bad) { failed++; broken.push(f); }
+  if (skipped) skippedList.push(f);
+  else if (bad) { failed++; broken.push(f); }
 
   /* console.log has no width specifiers, so pad by hand. */
-  console.log('  ' + (bad ? 'FAIL' : ' ok ') + '  ' +
+  console.log('  ' + (skipped ? 'skip' : bad ? 'FAIL' : ' ok ') + '  ' +
     f.replace(/\.js$/, '').padEnd(20) +
     String(n).padStart(4) + ' checks ' + String(ms).padStart(7) + ' ms' +
-    (n === 0 && !bad ? '   (asserted nothing — look at it)' : ''));
+    (skipped
+      ? '   ' + (out.split('\n').find(l => l.trim()) || '').trim().slice(0, 58)
+      : n === 0 && !bad ? '   (asserted nothing — look at it)' : ''));
   if (bad) {
     out.split('\n').filter(l => /FAIL|error|Error/.test(l)).slice(0, 4)
       .forEach(l => console.log('        ' + l.trim().slice(0, 130)));
@@ -58,5 +67,9 @@ for (const f of suites) {
 }
 
 console.log('\n  ' + suites.length + ' suites, ' + total + ' checks, ' +
-  (failed ? failed + ' FAILING: ' + broken.join(', ') : 'all passing'));
+  (failed ? failed + ' FAILING: ' + broken.join(', ') : 'all passing') +
+  (skippedList.length
+    ? '  (' + skippedList.length + ' skipped: ' +
+      skippedList.map(f => f.replace(/\.js$/, '')).join(', ') + ')'
+    : ''));
 process.exit(failed ? 1 : 0);
