@@ -9327,11 +9327,16 @@ function layoutTest(test) {
   for (var wi = 0; wi < written.length; wi += per) {
     var group = written.slice(wi, wi + per);
     var n = group.length;
-    var avail = L.contentBottom - L.contentTop - (n - 1) * L.wGap;
+    /* Writing pages carry no name box and no filling guide, so they start
+     * where the other later pages start rather than inheriting the position
+     * the multiple-choice grid needs on page one. That was leaving two inches
+     * of white above the first box on every writing side. */
+    var wTop = L.contentTopLater;
+    var avail = L.contentBottom - wTop - (n - 1) * L.wGap;
     var each = avail / n;
     var list = [];
     for (var j = 0; j < n; j++) {
-      var top = L.contentTop + j * (each + L.wGap);
+      var top = wTop + j * (each + L.wGap);
       var boxTop = top + L.wLabelH;
       var boxH = each - L.wLabelH;
       list.push({

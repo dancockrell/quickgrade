@@ -53,9 +53,29 @@ if (!TARGET) {
 const PRINT_GREY = 0.62;
 const MIN_PT = 6.0;
 const OVERLAP_PX = 2;
-/* A fifth of a page with nothing on it is worth mentioning; less is just
- * margin. Reported, never failed: an empty band is a judgement, not a defect. */
-const BLANK_FRAC = 0.18;
+/* Where to start calling an empty area a problem.
+ *
+ * Measured, not chosen. Across the four documents this project prints, the
+ * largest empty rectangle per page runs:
+ *
+ *   question paper          0%
+ *   mark scheme             3%
+ *   answer sheet, paper 1   8, 16, 16, 10, 10%
+ *   answer sheet, paper 2   31, 5, 5%
+ *
+ * So a busy page reaches 16% and the one page anybody would call wasteful is
+ * 31%. 0.24 sits eight points above the busiest normal page and seven below
+ * the real finding. The first value tried was 0.18, which is two points off a
+ * page that is fine - a threshold a real case lands within two points of is a
+ * coin flip with a number written on it.
+ *
+ * Reported, never failed. An empty half page is sometimes exactly what was
+ * wanted, and a check that fails on a judgement teaches people to ignore it,
+ * which then costs you the checks that are not judgements. */
+/* Overridable so the distribution can be measured rather than guessed at.
+ * QG_BLANK_FRAC=0 reports every page and its number. */
+const BLANK_FRAC = process.env.QG_BLANK_FRAC !== undefined
+  ? Number(process.env.QG_BLANK_FRAC) : 0.24;
 
 function url(t) {
   if (/^https?:/i.test(t)) return t;
@@ -337,7 +357,11 @@ function blankInPage(arg) {
       }
     }
     const frac = best.area / (COLS * ROWS);
-    if (frac >= (cfg.BLANK_FRAC || 0.18)) {
+    /* Not (cfg.BLANK_FRAC || 0.18): zero is falsy, so asking for a threshold
+     * of nought silently restored the default and the measurement I ran to
+     * choose the threshold reported nothing. */
+    const floor = cfg.BLANK_FRAC != null ? cfg.BLANK_FRAC : 0.24;
+    if (frac >= floor) {
       out.push({ kind: 'blank', weight: 1,
         why: Math.round(frac * 100) + '% of page ' + (pi + 1) + ' is one empty block, about ' +
              (best.cw * cw / 96).toFixed(1) + 'in by ' + (best.rh * ch / 96).toFixed(1) + 'in',
