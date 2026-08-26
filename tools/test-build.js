@@ -15,20 +15,53 @@ const read = p => fs.readFileSync(path.join(ROOT, p), 'utf8');
 
 /* Rebuild into a scratch copy and compare, so a forgotten build is caught. */
 const before = { sw: read('sw.js'), out: read('QuickGrade.html') };
-/* Windows ships a bare 'python' alias that only advertises the Store and
- * writes a paragraph to stderr, so try the real interpreters first and keep
- * that noise out of the report. */
+/* Finding a working interpreter on Windows takes more than a name.
+ *
+ * The bare 'python' and 'python3' on PATH here are the Store aliases: they
+ * advertise the Store on stderr and exit without running anything, and 'py'
+ * is not installed at all. Meanwhile a path that looks like a real
+ * interpreter is not necessarily a working one. The conda install on this
+ * machine cannot start from a child process at all ("Could not find platform
+ * independent libraries") because it needs its own directories on PATH for
+ * its DLLs, which it has when launched from a conda shell and not otherwise.
+ *
+ * So candidates are not trusted by name or by existing on disk. Each one is
+ * asked to print something first, and only an interpreter that answers gets
+ * to run build.py. */
+const HOME = process.env.USERPROFILE || process.env.HOME || '';
 const PYTHONS = [process.env.QG_PYTHON, 'py', 'python3', 'python',
-                 'C:/Users/Admin/anaconda3/python.exe'].filter(Boolean);
-let built = false;
+                 HOME + '/AppData/Local/Programs/Python/Python313/python.exe',
+                 HOME + '/anaconda3/python.exe',
+                 HOME + '/miniconda3/python.exe'].filter(Boolean);
+let built = false, usedPython = '', buildErr = '', foundPython = false;
 for (const exe of PYTHONS) {
+  let out;
+  try {
+    out = execFileSync(exe, ['-c', 'print(1)'], { encoding: 'utf8', stdio: 'pipe' });
+  } catch (e) { continue; }              // absent, or cannot start
+  if (!/^1/.test(out)) continue;         // answered, but not with Python
+  foundPython = true;
   try {
     execFileSync(exe, ['build.py'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
     built = true;
-    break;
-  } catch (e) { /* try the next one */ }
+    usedPython = exe;
+  } catch (e) {
+    /* A working interpreter that could not run build.py is a real failure,
+     * and the report has to carry the reason rather than a bare FAIL. */
+    buildErr = String(e.stderr || e.message || '').trim().split('\n').pop();
+  }
+  break;
 }
-ok('build.py runs', built);
+
+if (!foundPython) {
+  /* No interpreter at all is not a defect in this repo. Saying so plainly
+   * beats a red line that a contributor learns to scroll past. */
+  console.log('  note  build.py not exercised: no working Python found'
+    + ' (set QG_PYTHON to point at one)');
+} else {
+  ok('build.py runs', built, built ? usedPython : buildErr || 'failed with no output');
+}
+
 
 if (built) {
   const after = { sw: read('sw.js'), out: read('QuickGrade.html') };

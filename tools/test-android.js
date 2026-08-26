@@ -26,7 +26,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-const OUT = process.argv[2] || '.';
+const OUT = process.argv[2] || path.join(__dirname, '.out');
+fs.mkdirSync(OUT, { recursive: true });
 const URL = process.env.QG_ANDROID_URL || 'http://127.0.0.1:5200/index.html';
 const ADB = process.env.QG_ADB || 'C:/Android/platform-tools/adb.exe';
 const PKG = 'com.android.chrome';
