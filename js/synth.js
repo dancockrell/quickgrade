@@ -44,9 +44,15 @@ function renderSynthetic(test, pageIdx, opts) {
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
 
   ctx.fillStyle = '#000';
-  var s = inx(L.fid.size), hs = s / 2;
-  [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]]
-    .forEach(function (c) { ctx.fillRect(inx(c[0]) - hs, inx(c[1]) - hs, s, s); });
+  /* The same brackets the printer draws, from the same function, because a
+   * synthetic sheet that does not match the real one tests nothing. */
+  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
+   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
+    .forEach(function (c) {
+      S.cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
+        ctx.fillRect(inx(b.x), inx(b.y), inx(b.w), inx(b.h));
+      });
+    });
   var ks = inx(L.keystone.size);
   ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
 
@@ -74,9 +80,14 @@ function renderSynthetic(test, pageIdx, opts) {
   S.idGrid(nId).forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
-  var codeD = S.digits(test.code, L.codeDigits);
-  S.codeGrid(nId).forEach(function (row, r) {
-    row.forEach(function (pt, d) { drawBubble(ctx, pt, codeD[r] === d, String(d)); });
+  /* the code strip: a filled square where the bit is set, nothing where it
+   * is not, drawn from the same bit order the printer uses */
+  var cbits = S.codeToBits(test.code);
+  S.codeBits(nId).forEach(function (pt, i) {
+    if (!cbits[i]) return;
+    var xy = uvToPx(pt), m = inx(0.085);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
   });
   S.pageRow(nId).forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 

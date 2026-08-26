@@ -1970,7 +1970,7 @@ I.packs.en = {
   'cal.fill': 'Sheet fills the frame',
   'cal.fill.d': '{pct}% of frame width',
   'cal.found': 'Sheet found',
-  'cal.found.d': 'all four corner squares detected',
+  'cal.found.d': 'all four corner marks detected',
   'cal.h3.bad': 'Printing check — needs attention',
   'cal.h3.ok': 'Printing check passed',
   'cal.h3.warn': 'Printing check — good, with notes',
@@ -2293,7 +2293,7 @@ I.packs.en = {
   'roster.print.blank': 'Print the answer sheet',
   'roster.print.check': 'Check my printing',
   'roster.print.h2': 'Print answer sheets',
-  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.',
+  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner marks.',
   'roster.print.key': 'Answer-key sheet',
   'roster.print.keyHint': 'for setting the key by scanning',
   'roster.print.other': 'Other kinds of sheet',
@@ -2418,7 +2418,7 @@ I.packs.en = {
   'sheet.class': 'CLASS / PERIOD',
   'sheet.classNumber': 'CLASS NUMBER',
   'sheet.docTitle': '{title} — answer sheets',
-  'sheet.footer': 'QuickGrade answer sheet · print at 100% · keep the four corner squares clean',
+  'sheet.footer': 'QuickGrade answer sheet · print at 100% · keep the corner marks clean',
   'sheet.howto': 'HOW TO FILL THIS IN',
   'sheet.id': 'ID',
   'sheet.name': 'NAME',
@@ -2432,7 +2432,7 @@ I.packs.en = {
   'sheet.studentId': 'STUDENT ID',
   'sheet.test': 'TEST',
   'sheet.testCode': 'TEST CODE (pre-filled)',
-  'sheet.tips': 'Pencil or dark pen · erase changes fully · keep the four corner squares clean',
+  'sheet.tips': 'Pencil or dark pen · erase changes fully · keep the corner marks clean',
   'sheet.version': 'VERSION',
 
   /* --- storage --- */
@@ -2707,7 +2707,7 @@ I.packs.en = {
   'wlist.rubricN': 'Rubric · {n}',
   'wlist.short': 'Short answer',
   'scan.idle.h2': 'Hold a sheet up to the camera',
-  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner squares. One beep per sheet.',
+  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner marks. One beep per sheet.',
   'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
   'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip',
   'ts.opt.scoreBand': 'Score summary band',
@@ -8963,7 +8963,7 @@ var L = {
   page:  { w: 8.5, h: 11 },
   paper: 'letter',
   fid:   { x0: 0.55, y0: 0.55, x1: 7.95, y1: 10.45, size: 0.30 },
-  keystone: { x: 1.20, y: 0.55, size: 0.22 },   // orientation mark: top-left only
+  keystone: { x: 1.20, y: 0.55, size: 0.15 },   // orientation mark: top edge only
 
   /* Nothing may be printed within QUIET inches of a fiducial's bounding box —
    * ink that touches a corner square merges with it under threshold and the
@@ -8982,6 +8982,9 @@ var L = {
   codeGap: 0.26, pageGap: 0.228,
 
   contentTop: 3.48, contentTopBase: 3.48, contentBottom: 10.02,
+  /* Page 2 onward has no name box and no filling guide above the grid,
+   * so it starts higher and carries more questions. */
+  contentTopLater: 2.72,
   /* Vertical distance between question rows. */
   rowPitch: 0.255,
   /* Horizontal distance between bubbles in a row. These were one constant,
@@ -9062,6 +9065,70 @@ function usePaper(test) {
   return L;
 }
 
+/* Corner registration marks.
+ *
+ * These used to be solid black squares, 0.30in of ink at each corner plus a
+ * fifth for orientation. They read as damage on a document a child is handed
+ * in an exam room, and on a school final they look like something went wrong
+ * in the printer.
+ *
+ * A bracket carries the same information with a third less ink and reads as a
+ * printer's registration mark, which is what it is. The detector finds these
+ * by connected component: it wants something roughly square in its bounding
+ * box and mostly filled, so the arms are half the mark wide, giving a fill of
+ * 0.75 against a threshold of 0.70.
+ *
+ * The subtlety that matters: the detector uses a component's CENTROID as the
+ * corner point. A square's centroid is its centre; a bracket's is pulled
+ * toward the corner, to 0.41667 of the mark from the outer edge along both
+ * axes. So each bracket is placed by its centroid rather than its box, and
+ * every coordinate downstream is unchanged. Get this wrong and the homography
+ * is skewed by a fortieth of an inch across the whole page, which is enough
+ * to start misreading the outermost bubbles.
+ */
+/* Arm width as a fraction of the mark. This is a robustness number, not a
+ * taste one. The detector keeps a component only if it fills more than 0.70
+ * of its bounding box, and an arm of 0.5 gives a geometric 0.75 that measured
+ * 0.71 once printed, blurred and photographed - one hundredth above the line.
+ * A corner would drop out and the sheet became unfindable. 0.58 gives 0.82,
+ * which measured 0.80 and has room to lose some. */
+var BRACKET_ARM = 0.58;
+
+/* Where the centroid of the bracket sits, as a fraction of the mark in from
+ * its outer corner. Derived from the arm rather than written down beside it,
+ * because the detector places the corner at the centroid and the two drifting
+ * apart would skew the whole page silently. */
+var BRACKET_CENTROID = (function (t) {
+  var area = 2 * t - t * t;
+  var moment = 0.5 * t + t * t * (1 - t) / 2;
+  return moment / area;
+}(BRACKET_ARM));
+
+/** The rightmost x anything may be printed at without touching the quiet zone
+ *  around a corner mark. The mark reaches (1 - BRACKET_CENTROID) of its size
+ *  past the fiducial point into the page, and nothing may come within
+ *  L.quiet of that. Text that breaks this rule merges with the mark under
+ *  threshold and the sheet stops being findable at all. */
+function safeRight() {
+  return L.fid.x1 - L.fid.size * (1 - BRACKET_CENTROID) - L.quiet;
+}
+
+/** The two bars making one corner bracket, in inches, placed so that the
+ *  centroid of their union falls exactly on (px, py). */
+function cornerBars(px, py, right, bottom, size) {
+  var sz = size || L.fid.size;
+  var t = sz * BRACKET_ARM;
+  var k = sz * BRACKET_CENTROID;
+  var ox = right ? px + k : px - k;     // the outer corner of the bracket
+  var oy = bottom ? py + k : py - k;
+  /* The two bars abut rather than overlap. Their union is the same L either
+   * way, but two rectangles lying on top of each other are indistinguishable
+   * from a layout mistake, and the page inspector was right to say so. */
+  return [
+    { x: right ? ox - sz : ox, y: bottom ? oy - t : oy, w: sz, h: t },
+    { x: right ? ox - t : ox, y: bottom ? oy - sz : oy + t, w: t, h: sz - t }
+  ];
+}
 function u(x) { return (x - L.fid.x0) / L.W; }
 function v(y) { return (y - L.fid.y0) / L.H; }
 function uv(x, y) { return { u: u(x), v: v(y) }; }
@@ -9113,7 +9180,8 @@ function idDigitsOf(test) {
   return ID_DIGIT_CHOICES.indexOf(n) >= 0 ? n : L.idDigits;
 }
 function codeY0(n) { return L.idY0 + (n - 1) * L.idPitchY + L.codeGap; }
-function pageY(n) { return codeY0(n) + (L.codeDigits - 1) * L.idPitchY + L.pageGap; }
+/* One row of code marks now sits where three rows of bubbles used to. */
+function pageY(n) { return codeY0(n) + L.pageGap; }
 
 /** Bubble centres for the student-ID grid: [row][value] */
 function idGrid(n) {
@@ -9126,15 +9194,35 @@ function idGrid(n) {
   }
   return rows;
 }
-function codeGrid(n) {
+/* The test code, as ten marks rather than thirty bubbles.
+ *
+ * It used to be three rows of ten bubbles with one in each row already
+ * filled in. That is a hundred and eighty square millimetres of grid asking a
+ * student not to touch it, for a number the machine prints and the machine
+ * reads. Worse, it looks exactly like the class-number grid directly above,
+ * which a student is supposed to fill in.
+ *
+ * Ten marks carry 0 to 1023, which covers every three-digit code. They are
+ * small, they are on one line, and they do not look like anything anybody is
+ * meant to complete.
+ */
+var CODE_BITS = 10;
+function codeBits(n) {
   n = n || L.idDigits;
-  var y0 = codeY0(n), rows = [];
-  for (var r = 0; r < L.codeDigits; r++) {
-    var row = [];
-    for (var d = 0; d < 10; d++) row.push(uv(L.idX0 + d * L.idPitchX, y0 + r * L.idPitchY));
-    rows.push(row);
-  }
-  return rows;
+  var y = codeY0(n), row = [];
+  for (var i = 0; i < CODE_BITS; i++) row.push(uv(L.idX0 + i * L.idPitchX, y));
+  return row;
+}
+/** Most significant bit first, so the printed strip reads left to right. */
+function codeToBits(code) {
+  var v = parseInt(code, 10) || 0, out = [];
+  for (var i = CODE_BITS - 1; i >= 0; i--) out.push((v >> i) & 1);
+  return out;
+}
+function bitsToCode(bits) {
+  var v = 0;
+  for (var i = 0; i < bits.length; i++) v = (v * 2) + (bits[i] ? 1 : 0);
+  return v;
 }
 function pageRow(n) {
   n = n || L.idDigits;
@@ -9154,8 +9242,9 @@ function layoutTest(test) {
   var choices = test.mc.choices || 5;
   var nMc = test.mc.count || 0;
   var written = test.written || [];
-  var perPage = questionsOnSheet(test) ? rowsPerCol() : mcPerPage(choices);
-  var rows = rowsPerCol(), cols = questionsOnSheet(test) ? 1 : colsPerPage(choices);
+  var qOnSheet = questionsOnSheet(test);
+  var perPage = qOnSheet ? rowsPerCol() : mcPerPage(choices);
+  var rows = rowsPerCol(), cols = qOnSheet ? 1 : colsPerPage(choices);
   var cw = colWidth(choices);
   var qOnSheet = questionsOnSheet(test);
   var pages = [];
@@ -9163,6 +9252,11 @@ function layoutTest(test) {
 
   while (q < nMc) {
     var mc = [];
+    /* Page 1 carries the name box and the filling guide; the pages after
+     * it carry neither, so their grid starts higher and holds more. */
+    var top = pages.length === 0 ? L.contentTop : L.contentTopLater;
+    rows = Math.floor((L.contentBottom - top) / L.rowPitch) + 1;
+    perPage = qOnSheet ? rows : rows * cols;
     var take = Math.min(perPage, nMc - q);
     /* Spread the questions evenly rather than filling column 1 to the brim and
      * leaving a four-question stub in column 2. */
@@ -9171,7 +9265,7 @@ function layoutTest(test) {
     for (var i = 0; i < take; i++) {
       var c = Math.floor(i / rowsUsed), r = i % rowsUsed;
       var x0 = L.colLeft + c * (cw + L.colGap);
-      var y = L.contentTop + r * L.rowPitch;
+      var y = top + r * L.rowPitch;
       var ch = [];
       for (var k = 0; k < choices; k++) {
         ch.push(uv(x0 + L.labelW + k * L.bubblePitch + L.bubblePitch / 2, y));
@@ -9269,6 +9363,7 @@ var SHEET_CSS = [
 '@media print{body{background:#fff}.page{margin:0;box-shadow:none;page-break-after:always}',
 '  .page:last-child{page-break-after:auto}.noprint{display:none!important}}',
 '.fid{position:absolute;background:#000}',
+    '.cmark{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
 '.bub.fill{background:#000;border-color:#000}',
@@ -9311,20 +9406,44 @@ var SHEET_CSS = [
 function renderPage(test, pages, pageIdx, who) {
   usePaper(test);
   var pg = pages[pageIdx], n = pages.length;
+  /* The title, the name and class boxes and the filling guide belong on
+   * the first page only. A student writes their name once, reads how to
+   * fill a bubble once, and the handwriting crop is taken from page 1.
+   * Repeating all of it on every page spends an inch and a half of paper
+   * per side to tell them something they already did. */
+  var first = pageIdx === 0;
+  /* Used by every page, not just the one that draws the boxes. */
+  var lbl = (test.options && test.options.labels) || {};
   var choices = test.mc.choices || 5;
   var h = '<div class="page">';
 
-  /* fiducials */
-  var s = L.fid.size, hs = s / 2;
-  [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]]
+  /* Registration marks, and a hairline frame joining them.
+   *
+   * The frame is not read by anything. It is there because four marks alone
+   * look like an accident, and the same four sitting on the corners of a ruled
+   * border look like a form. It also gives a student an edge to work inside.
+   * It stays outside the quiet zone the detector needs. */
+  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
+   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
     .forEach(function (c) {
-      h += '<div class="fid" style="left:' + (c[0] - hs) + 'in;top:' + (c[1] - hs) +
-           'in;width:' + s + 'in;height:' + s + 'in"></div>';
+      cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
+        h += '<div class="fid" style="left:' + b.x + 'in;top:' + b.y +
+             'in;width:' + b.w + 'in;height:' + b.h + 'in"></div>';
+      });
     });
+  /* A ruled frame joining the four marks was tried here and removed. The
+   * content starts 0.05in inside the fiducial line, so any frame that clears
+   * the brackets quiet zone lands on top of the title and the name box, and
+   * any frame that clears the content is close enough to a bracket to merge
+   * with it under threshold. It needs the whole page to move inward, which is
+   * a bigger change than it is worth. */
+
+  /* Orientation. One extra mark on the top edge tells the reader which way up
+   * the page is; it is sampled as a point, not found as a shape, so it can be
+   * small and sit on the frame like a tick. */
   h += '<div class="fid" style="left:' + (L.keystone.x - L.keystone.size / 2) + 'in;top:' +
        (L.keystone.y - L.keystone.size / 2) + 'in;width:' + L.keystone.size + 'in;height:' +
        L.keystone.size + 'in"></div>';
-
   /* A version letter large enough to sort a stack of sheets by eye. */
   if (who.formId) {
     h += absDiv('vmark', L.fid.x1 - 1.02, L.footerY - 0.34, 0.62, 0.46,
@@ -9332,13 +9451,20 @@ function renderPage(test, pages, pageIdx, who) {
   }
 
   /* header */
+  if (first) {
   h += absDiv('hdr', 0.60, L.titleY, 4.20, 0.20,
         '<span style="font-size:12pt;font-weight:700">' + E(test.title || 'Test') + '</span>', 'overflow:hidden');
-  h += absDiv('hdr', 0.60, L.subTitleY, 4.20, 0.16,
-        '<span style="font-size:7.4pt;color:#444">' + E(test.className || '') +
-        (test.date ? ' &nbsp;&middot;&nbsp; ' + E(test.date) : '') +
-        (test.options && test.options.instructions ? ' &nbsp;&middot;&nbsp; ' + E(test.options.instructions) : '') +
+  /* 0.20in, not 0.16: at 7.4pt with a descender the last line of this
+   * was being sliced off, which is the sort of thing nobody sees on screen
+   * and everybody sees on paper. */
+  h += absDiv('hdr', 0.60, L.subTitleY, 4.20, 0.20,
+        /* Join only the parts that exist. With no class and no date this used
+         * to open with a stray separator floating in front of the text. */
+        '<span style="font-size:7.4pt;color:#444">' +
+        [test.className, test.date, test.options && test.options.instructions]
+          .filter(function (x) { return x; }).map(E).join(' &nbsp;&middot;&nbsp; ') +
         '</span>', 'overflow:hidden');
+  }
   h += absDiv('hdr', L.idHeadX, L.idHeadY, 2.40, 0.34,
         '<div style="font-size:7pt;text-align:right;line-height:1.35;color:#222">' +
         E(T('sheet.id')) + ' <b>' + E(who.prefill && who.sid ? digits(who.sid, idDigitsOf(test)).join('')
@@ -9348,9 +9474,9 @@ function renderPage(test, pages, pageIdx, who) {
         ' &nbsp; ' + E(T('sheet.pageWord')) + ' <b>' + (pageIdx + 1) + '</b> ' +
         E(T('sheet.of')) + ' <b>' + n + '</b></div>');
 
+  if (first) {
   /* name + class write-in boxes (cropped and stored for every scan) */
   h += absDiv('box', L.nameBox.x, L.nameBox.y, L.nameBox.w, L.nameBox.h, '');
-  var lbl = (test.options && test.options.labels) || {};
   h += absDiv('boxlbl', L.nameBox.x + 0.07, L.nameBox.y + 0.035, 2.6, 0.13, E(lbl.name || T('sheet.name')));
   h += absDiv('box', L.classBox.x, L.classBox.y, L.classBox.w, L.classBox.h, '');
   h += absDiv('boxlbl', L.classBox.x + 0.07, L.classBox.y + 0.03, 2.6, 0.13, E(lbl.cls || T('sheet.class')));
@@ -9363,10 +9489,11 @@ function renderPage(test, pages, pageIdx, who) {
       '<span style="font-size:10pt">' + E(who.cls) + '</span>', 'overflow:hidden');
   }
 
+  }
   /* Filling guide — occupies the gap between the write-in boxes and the grid,
    * so the page reads as designed rather than half-empty. */
   var gy = L.classBox.y + L.classBox.h + 0.20;
-  if (L.contentTop - gy > 0.72) {
+  if (first && L.contentTop - gy > 0.72) {
     /* A question printed on the sheet starts above the centre of its row,
      * so the guide has to stop higher than the grid line or it lands on the
      * first question. */
@@ -9403,17 +9530,18 @@ function renderPage(test, pages, pageIdx, who) {
                   who.prefill && who.sid ? sid[r] === d : false);
     }
   }
-  var code = digits(who.formCode || test.code, L.codeDigits);
-  h += absDiv('lbl', L.idLabelX - 0.02, cY - 0.20, 2.8, 0.14,
-      '<b style="font-size:6.6pt;letter-spacing:.05em">' + E(lbl.code || T('sheet.testCode')) + '</b>');
-  for (var r2 = 0; r2 < L.codeDigits; r2++) {
-    h += absDiv('lbl', L.idLabelX, cY + r2 * L.idPitchY - 0.07, 0.55, 0.14, '#' + (r2 + 1));
-    for (var d2 = 0; d2 < 10; d2++) {
-      h += bubble(L.idX0 + d2 * L.idPitchX, cY + r2 * L.idPitchY, String(d2), code[r2] === d2);
-    }
-  }
-  /* 0.50in, not 0.62: the wider box reached under the first page bubble.
-   * The word itself is about 0.30in, so nothing is lost. */
+  /* The code strip: ten small marks, machine only. Printed with the number
+   * beside it so a person can still tell two versions apart by eye. */
+  var bits = codeToBits(who.formCode || test.code);
+  var cY2 = codeY0(nId);
+  var mk = 0.085;
+  bits.forEach(function (bit, i) {
+    if (!bit) return;
+    h += '<div class="cmark" style="left:' + (L.idX0 + i * L.idPitchX - mk / 2) +
+         'in;top:' + (cY2 - mk / 2) + 'in;width:' + mk + 'in;height:' + mk + 'in"></div>';
+  });
+  h += absDiv('lbl', L.idLabelX - 0.02, cY2 - 0.075, 0.60, 0.15,
+      '<span style="font-size:6.2pt;color:#666">' + E(who.formCode || test.code) + '</span>');
   h += absDiv('lbl', L.idLabelX, pY - 0.07, 0.50, 0.14, E(lbl.page || T('sheet.pageWord')));
   for (var d3 = 0; d3 < L.pageMax; d3++) {
     h += bubble(L.idX0 + d3 * L.idPitchX, pY, String(d3 + 1), d3 === pageIdx);
@@ -9431,7 +9559,7 @@ function renderPage(test, pages, pageIdx, who) {
      * grew, so the reader sees the geometry it always did. */
     if (qOnSheetNow) {
       var tx = item.x + L.labelW + choices * L.bubblePitch + 0.12;
-      var tw = L.fid.x1 - L.quiet - tx;
+      var tw = safeRight() - tx;
       var opts = qOpts[item.q] || [];
       var body = '<div class="qstem">' + E(qWords[item.q] || '') + '</div>';
       if (opts.length) {
@@ -9518,9 +9646,11 @@ function renderSheets(test, people, opts) {
 
 global.QG = global.QG || {};
 global.QG.Sheet = {
-  L: L, LETTERS: LETTERS, choiceLabelsOf: choiceLabelsOf,
+  L: L, LETTERS: LETTERS, choiceLabelsOf: choiceLabelsOf, cornerBars: cornerBars,
+  safeRight: safeRight,
   u: u, v: v, uv: uv, rect: rect,
-  idGrid: idGrid, codeGrid: codeGrid, pageRow: pageRow,
+  idGrid: idGrid, codeBits: codeBits, codeToBits: codeToBits,
+  bitsToCode: bitsToCode, pageRow: pageRow,
   idDigitsOf: idDigitsOf, ID_DIGIT_CHOICES: ID_DIGIT_CHOICES, codeY0: codeY0, pageY: pageY,
   PAPERS: PAPERS, setPaper: setPaper, paperOf: paperOf, usePaper: usePaper,
   layoutTest: layoutTest, pageIndexFor: pageIndexFor,
@@ -9838,13 +9968,30 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
     return { d: digitsOut, conf: conf, blanks: blanks };
   }
   var idr = readRows(S.idGrid(nId));
-  var cdr = readRows(S.codeGrid(nId));
+  /* The code is ten marks now, present or absent, not three rows of bubbles.
+   * A mark is read against the page white the same way a bubble is, so the
+   * threshold is the same one the answer reader trusts. */
+  var codeDk = S.codeBits(nId).map(function (pt) {
+    return darkness(gray, w, h, H, pt, white, 0.030);
+  });
+  var codeBitsRead = codeDk.map(function (d) { return d > 0.30 ? 1 : 0; });
+  var codeVal = S.bitsToCode(codeBitsRead);
+  /* All ten clear means no strip was found at all, which is different from a
+   * strip that reads zero: a real code is never zero. */
+  var codeSeen = codeDk.some(function (d) { return d > 0.30; });
 
   var pageDk = S.pageRow(nId).map(function (pt) { return darkness(gray, w, h, H, pt, white); });
   var pres = readGroup(pageDk, 0.22, 0.16);
 
   var sid = idr.blanks ? null : idr.d.join('');
-  var code = cdr.blanks ? null : cdr.d.join('');
+  /* Padded to the printed width. A code of 042 decodes to the number 42, and
+   * every comparison downstream is a string comparison, so an unpadded value
+   * makes a correctly read sheet look like it belongs to a different test.
+   * padStart is avoided deliberately: this file runs on old classroom
+   * browsers. */
+  var codeStr = String(codeVal);
+  while (codeStr.length < S.L.codeDigits) codeStr = '0' + codeStr;
+  var code = codeSeen ? codeStr : null;
   if (idr.blanks) flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
   if (!code) flags.push('no-code');
   if (pres.state !== 'ok') flags.push('no-page');
@@ -9983,9 +10130,15 @@ function renderSynthetic(test, pageIdx, opts) {
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
 
   ctx.fillStyle = '#000';
-  var s = inx(L.fid.size), hs = s / 2;
-  [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]]
-    .forEach(function (c) { ctx.fillRect(inx(c[0]) - hs, inx(c[1]) - hs, s, s); });
+  /* The same brackets the printer draws, from the same function, because a
+   * synthetic sheet that does not match the real one tests nothing. */
+  [[L.fid.x0, L.fid.y0, false, false], [L.fid.x1, L.fid.y0, true, false],
+   [L.fid.x0, L.fid.y1, false, true], [L.fid.x1, L.fid.y1, true, true]]
+    .forEach(function (c) {
+      S.cornerBars(c[0], c[1], c[2], c[3]).forEach(function (b) {
+        ctx.fillRect(inx(b.x), inx(b.y), inx(b.w), inx(b.h));
+      });
+    });
   var ks = inx(L.keystone.size);
   ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
 
@@ -10013,9 +10166,14 @@ function renderSynthetic(test, pageIdx, opts) {
   S.idGrid(nId).forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
-  var codeD = S.digits(test.code, L.codeDigits);
-  S.codeGrid(nId).forEach(function (row, r) {
-    row.forEach(function (pt, d) { drawBubble(ctx, pt, codeD[r] === d, String(d)); });
+  /* the code strip: a filled square where the bit is set, nothing where it
+   * is not, drawn from the same bit order the printer uses */
+  var cbits = S.codeToBits(test.code);
+  S.codeBits(nId).forEach(function (pt, i) {
+    if (!cbits[i]) return;
+    var xy = uvToPx(pt), m = inx(0.085);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
   });
   S.pageRow(nId).forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 

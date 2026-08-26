@@ -104,9 +104,14 @@ function renderSynthetic(test, pageIdx, opts) {
   S.idGrid().forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
-  var codeD = S.digits(test.code, L.codeDigits);
-  S.codeGrid().forEach(function (row, r) {
-    row.forEach(function (pt, d) { drawBubble(ctx, pt, codeD[r] === d, String(d)); });
+  /* the code strip: marks, not bubbles */
+  var cbits = S.codeToBits(test.code);
+  S.codeBits().forEach(function (pt, i) {
+    if (!cbits[i]) return;
+    var xy = uvToPx(pt);
+    var m = inx(0.085);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
   });
   S.pageRow().forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 
@@ -357,23 +362,45 @@ var printCheck = new Promise(function (resolve) {
       }
       function centreIn(node) { var b = box(node); return [b.cx / pxPerIn, b.cy / pxPerIn]; }
 
-      /* 1. corner squares land exactly where the scanner looks for them */
+      /* 1. the corner marks land where the scanner looks for them.
+       *
+       * A mark is a bracket drawn as two bars, and the detector locates it by
+       * the CENTROID of the ink, not by the centre of its bounding box. So
+       * this weighs the bars by area and checks where their combined centre
+       * of mass falls. Getting this wrong skews the homography across the
+       * whole page and starts costing the outermost bubbles. */
       var fids = [].slice.call(page.querySelectorAll('.fid'));   /* first page only */
-      var want = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1],
-                  [L.fid.x1, L.fid.y1], [L.keystone.x, L.keystone.y]];
+      var corners = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0],
+                     [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]];
       var maxErr = 0;
-      want.forEach(function (wpt, i) {
-        var c = centreIn(fids[i]);
-        maxErr = Math.max(maxErr, Math.abs(c[0] - wpt[0]), Math.abs(c[1] - wpt[1]));
+      corners.forEach(function (wpt) {
+        /* the bars belonging to this corner: the two nearest it */
+        var near = fids.map(function (n) {
+          var bx = box(n);
+          var cx = (bx.x0 + bx.x1) / 2, cy = (bx.y0 + bx.y1) / 2;
+          return { bx: bx, d: Math.abs(cx - wpt[0]) + Math.abs(cy - wpt[1]) };
+        }).sort(function (m, n) { return m.d - n.d; }).slice(0, 2);
+        var mx = 0, my = 0, area = 0;
+        near.forEach(function (o) {
+          var w = o.bx.x1 - o.bx.x0, hgt = o.bx.y1 - o.bx.y0, ar = w * hgt;
+          mx += ar * (o.bx.x0 + w / 2); my += ar * (o.bx.y0 + hgt / 2); area += ar;
+        });
+        maxErr = Math.max(maxErr, Math.abs(mx / area - wpt[0]), Math.abs(my / area - wpt[1]));
       });
-      check('printed corner squares match the scanner geometry',
-        fids.length === 5 && maxErr < 0.01, 'worst offset ' + (maxErr * 1000).toFixed(1) + ' thou');
-
+      var kNode = fids.filter(function (n) {
+        var bx = box(n);
+        return Math.abs((bx.x0 + bx.x1) / 2 - L.keystone.x) < 0.2 &&
+               Math.abs((bx.y0 + bx.y1) / 2 - L.keystone.y) < 0.2;
+      })[0];
+      var kErr = kNode ? Math.max(Math.abs(centreIn(kNode)[0] - L.keystone.x),
+                                  Math.abs(centreIn(kNode)[1] - L.keystone.y)) : 9;
+      check('corner marks put their centre of ink where the scanner looks',
+        fids.length === 9 && maxErr < 0.01 && kErr < 0.01,
+        fids.length + ' marks, worst offset ' + (Math.max(maxErr, kErr) * 1000).toFixed(1) + ' thou');
       /* 2. every printed bubble centre matches a bubble the scanner samples */
       var pages = S.layoutTest(test);
       var expected = [];
       S.idGrid().forEach(function (r) { r.forEach(function (pt) { expected.push(pt); }); });
-      S.codeGrid().forEach(function (r) { r.forEach(function (pt) { expected.push(pt); }); });
       S.pageRow().forEach(function (pt) { expected.push(pt); });
       pages[0].mc.forEach(function (it) { it.choices.forEach(function (pt) { expected.push(pt); }); });
       var expIn = expected.map(function (pt) {

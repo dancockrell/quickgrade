@@ -305,13 +305,30 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
     return { d: digitsOut, conf: conf, blanks: blanks };
   }
   var idr = readRows(S.idGrid(nId));
-  var cdr = readRows(S.codeGrid(nId));
+  /* The code is ten marks now, present or absent, not three rows of bubbles.
+   * A mark is read against the page white the same way a bubble is, so the
+   * threshold is the same one the answer reader trusts. */
+  var codeDk = S.codeBits(nId).map(function (pt) {
+    return darkness(gray, w, h, H, pt, white, 0.030);
+  });
+  var codeBitsRead = codeDk.map(function (d) { return d > 0.30 ? 1 : 0; });
+  var codeVal = S.bitsToCode(codeBitsRead);
+  /* All ten clear means no strip was found at all, which is different from a
+   * strip that reads zero: a real code is never zero. */
+  var codeSeen = codeDk.some(function (d) { return d > 0.30; });
 
   var pageDk = S.pageRow(nId).map(function (pt) { return darkness(gray, w, h, H, pt, white); });
   var pres = readGroup(pageDk, 0.22, 0.16);
 
   var sid = idr.blanks ? null : idr.d.join('');
-  var code = cdr.blanks ? null : cdr.d.join('');
+  /* Padded to the printed width. A code of 042 decodes to the number 42, and
+   * every comparison downstream is a string comparison, so an unpadded value
+   * makes a correctly read sheet look like it belongs to a different test.
+   * padStart is avoided deliberately: this file runs on old classroom
+   * browsers. */
+  var codeStr = String(codeVal);
+  while (codeStr.length < S.L.codeDigits) codeStr = '0' + codeStr;
+  var code = codeSeen ? codeStr : null;
   if (idr.blanks) flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
   if (!code) flags.push('no-code');
   if (pres.state !== 'ok') flags.push('no-page');

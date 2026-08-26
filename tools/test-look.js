@@ -27,6 +27,19 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       opts: { questionsOnSheet: true, idDigits: 2 }, count: 12, choices: 4, written: 0, text: true }
   ];
 
+  const geom = await page.evaluate(() => {
+    const S = QG.Sheet;
+    /* Read the bracket back out of what it actually draws rather than
+     * trusting a constant: two bars, arm width over mark size, and the
+     * centroid is the point the caller asked for. */
+    S.setPaper('a4');
+    const bars = S.cornerBars(2, 3, false, false);
+    const size = bars[0].w;
+    const arm = bars[0].h / size;
+    const t = arm, area = 2 * t - t * t;
+    const cx = (0.5 * t + t * t * (1 - t) / 2) / area;
+    return { size, arm, centroid: (2 - bars[0].x) / size };
+  });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qg-look-'));
   const files = [];
   for (const sh of shapes) {
@@ -55,7 +68,38 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   }
   await browser.close();
 
+  /* The corner marks are the one thing on the page that the whole system
+   * depends on. The detector keeps a component only if it fills more than
+   * 0.70 of its box, and a printed, blurred, photographed bracket measures
+   * about 0.04 below its geometry. An arm that looks fine on screen and sits
+   * a hundredth above the threshold loses a corner to noise and the sheet
+   * becomes unfindable - which is how this was found. */
   let failed = 0, checks = 0;
+  {
+    const arm = geom.arm;
+    const fill = 1 - (1 - arm) * (1 - arm);
+    const margin = fill - 0.70;
+    checks++;
+    if (margin < 0.10) {
+      failed++;
+      console.log("  FAIL corner mark fill  — " + fill.toFixed(3) +
+        " is only " + margin.toFixed(3) + " above the detector threshold");
+    } else {
+      console.log("  ok   corner mark fill  — " + fill.toFixed(3) +
+        ", " + margin.toFixed(3) + " clear of the threshold");
+    }
+    const drift = Math.abs(geom.centroid - (function (t) {
+      return (0.5 * t + t * t * (1 - t) / 2) / (2 * t - t * t);
+    }(arm)));
+    checks++;
+    if (drift > 1e-6) {
+      failed++;
+      console.log("  FAIL corner mark centroid  — off by " + drift.toExponential(2) +
+        ", which skews the whole page");
+    } else {
+      console.log("  ok   corner mark centroid  — matches the arm exactly");
+    }
+  }
   for (const { sh, f } of files) {
     let out = '';
     try {
