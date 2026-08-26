@@ -75,6 +75,7 @@ Scanner.start = function (deviceId) {
     var caps = Scanner.track.getCapabilities ? Scanner.track.getCapabilities() : {};
     $('#btnTorch').hidden = !(caps && caps.torch);
     loop();
+    showIdle(false);
     return Scanner.listCameras().then(fillCameraSelect);
   }).catch(function (e) {
     Q.toast(T('scan.cameraError', { msg: e && e.message ? e.message : e }), 'err', 7000);
@@ -83,8 +84,17 @@ Scanner.start = function (deviceId) {
   });
 };
 
+/* The idle panel and the live picture are mutually exclusive; keeping that
+ * in one place means they cannot both be visible or both be missing. */
+function showIdle(on) {
+  var n = $('#scanIdle');
+  if (n) n.hidden = !on;
+}
+Scanner.showIdle = showIdle;
+
 Scanner.stop = function () {
   Scanner.running = false;
+  showIdle(true);
   if (Scanner.rafId) cancelAnimationFrame(Scanner.rafId), Scanner.rafId = 0;
   if (Scanner.timer) clearTimeout(Scanner.timer), Scanner.timer = 0;
   if (Scanner.stream) {

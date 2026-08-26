@@ -196,6 +196,7 @@ label{
 }
 label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var(--text)}
 .sel{width:auto;min-width:150px}
+.sel:empty{display:none}
 .sel.sm{height:30px;padding:0 26px 0 10px;font-size:12.5px;min-width:120px;
   background-position:calc(100% - 13px) 13px, calc(100% - 8px) 13px}
 .chk{
@@ -345,6 +346,35 @@ tbody tr:last-child td{border-bottom:0}
 #flash.ok{background:rgba(28,190,120,.5);opacity:1}
 #flash.bad{background:rgba(255,60,80,.5);opacity:1}
 #flash.dup{background:rgba(240,170,40,.45);opacity:1}
+/* The idle state of the camera stage. It is the first thing a teacher sees
+   on the screen they use most, so it explains the one thing they have to do
+   rather than showing an unexplained black rectangle. */
+#scanIdle{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  padding:24px;gap:6px;color:#fff;z-index:2;
+}
+#scanIdle[hidden]{display:none !important}
+#scanIdle h2{margin:0;font-size:21px;font-weight:700;color:#fff;letter-spacing:-.01em}
+#scanIdle p{margin:0;max-width:44ch;color:rgba(255,255,255,.72);font-size:14px;line-height:1.55}
+#scanIdle .sfoot{margin-top:20px;font-size:12.5px;color:rgba(255,255,255,.5)}
+#scanIdle .sicon{
+  width:96px;height:76px;margin-bottom:16px;border-radius:8px;
+  border:2px dashed rgba(255,255,255,.32);position:relative;
+}
+/* the four corner squares, which is what the reader is actually looking for */
+#scanIdle .sicon::before,#scanIdle .sicon::after{
+  content:"";position:absolute;width:13px;height:13px;background:rgba(255,255,255,.8);
+}
+#scanIdle .sicon::before{top:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
+#scanIdle .sicon::after{bottom:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
+@media(max-width:560px){
+  #scanIdle h2{font-size:18px}
+  #scanIdle .sicon{width:76px;height:60px}
+  #scanIdle .sicon::before{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+  #scanIdle .sicon::after{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+}
+
 #scanHud{
   position:absolute;top:0;left:0;right:0;padding:12px;display:flex;
   flex-direction:column;gap:9px;
@@ -405,15 +435,17 @@ tbody tr:last-child td{border-bottom:0}
   background:var(--surface2);overflow:auto;padding:16px;
 }
 #gradeImage{
-  max-width:100%;max-height:100%;object-fit:contain;background:#fff;
+  width:100%;height:100%;object-fit:contain;background:#fff;
   border-radius:var(--r);box-shadow:var(--sh2);cursor:zoom-in;
 }
+#gradeImage:not([src]){box-shadow:none;background:transparent}
 #gradeImage.zoom{max-width:none;max-height:none;width:190%;cursor:zoom-out}
 #gradeBar{
   padding:12px 16px;border-top:1px solid var(--line);background:var(--surface);
   display:flex;flex-direction:column;gap:10px;box-shadow:0 -4px 14px rgba(16,22,34,.05);
 }
 #pointsRow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#pointsRow:has(.rubgrid){align-items:flex-start}
 .pbtn{
   min-width:50px;height:46px;padding:0 12px;border-radius:9px;cursor:pointer;
   border:1.5px solid var(--line2);background:var(--surface);color:var(--text);
@@ -616,7 +648,10 @@ td.mono{font-variant-numeric:tabular-nums;font-family:var(--fm);font-size:12px}
 
 /* ─────────────────────────── toasts / modal ─────────────────────────── */
 #toasts{
-  position:fixed;inset-inline-end:18px;bottom:18px;display:flex;flex-direction:column;
+  position:fixed;inset-inline-end:18px;bottom:var(--toast-bottom,18px);
+  display:flex;flex-direction:column;
+  /* the stack never blocks a click; each toast re-enables it for itself */
+  pointer-events:none;
   gap:9px;z-index:120;pointer-events:none;
 }
 .toast{
@@ -712,3 +747,9 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 [dir="rtl"] details#advExport>summary::before{content:"\25C2"}
 [dir="rtl"] details.more[open]>summary::before,
 [dir="rtl"] details#advExport[open]>summary::before{transform:rotate(-90deg)}
+
+/* Views with something fixed along the bottom edge push the toast stack clear
+   of it, so a message never lands on the scan strip or the marking bar. */
+body[data-view="scan"]{--toast-bottom:126px}
+body[data-view="written"]{--toast-bottom:150px}
+.toast{pointer-events:auto}

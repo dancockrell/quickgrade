@@ -212,6 +212,7 @@ function route(name) {
   if (name === 'scan' && !State.test) { Q.toast(T('toast.createOrSelect'), 'err'); name = 'tests'; }
   $$('.view').forEach(function (v) { v.classList.toggle('active', v.id === 'view-' + name); });
   $$('.navbtn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === name); });
+  document.body.dataset.view = name;
   Q.Prefs.set('view', name);
   if (name !== 'scan') Scanner.stop();
   if (name === 'tests') renderTests();
@@ -2338,9 +2339,10 @@ function showGradeItem() {
         text: done ? T('grade.rubricDone')
                    : T('grade.rubricPrompt', { n: rubric.levels.length }) })
     ]));
+    grid.lastChild.appendChild(el('button', { class: 'btn sm', style: 'margin-inline-start:8px',
+      text: T('grade.skip'), onclick: function () { move(1); } }));
     row.appendChild(grid);
-    row.appendChild(el('button', { class: 'btn sm', text: T('grade.skip'),
-      onclick: function () { move(1); } }));
+    renderGradeKeys(rubric);
     renderQuickComments();
     return;
   }
@@ -2362,7 +2364,15 @@ function showGradeItem() {
     onchange: function (e) { setPoints(Math.min(max, +e.target.value || 0), false); }
   }));
 
+  renderGradeKeys(null);
   renderQuickComments();
+}
+
+/** The keys really available right now. With a rubric the digits pick a
+ *  level, not a point value, so the plain-points hint would be wrong. */
+function renderGradeKeys(rubric) {
+  var n = $('#gradeKeys');
+  if (n) n.innerHTML = T(rubric ? 'grade.keys.rubric' : 'grade.keys');
 }
 
 /** Shared by the plain points strip and the rubric grid. */
@@ -3352,10 +3362,14 @@ function wireUI() {
   on($('#btnPrintKey'), 'click', function () { printSheets('key', chosenForm()); });
 
   /* scan */
-  on($('#btnCamStart'), 'click', function () {
+  /* Two buttons start the camera — one on the idle panel, one in the HUD once
+   * it is running. Same handler, so they can never drift apart. */
+  function startCamera() {
     Q.Audio2.unlock();
     Scanner.start($('#camSelect').value || undefined);
-  });
+  }
+  on($('#btnCamStart'), 'click', startCamera);
+  on($('#btnCamStart2'), 'click', startCamera);
   on($('#camSelect'), 'change', function (e) { if (Scanner.running) Scanner.start(e.target.value); });
   on($('#btnTorch'), 'click', function () { Scanner.toggleTorch(); });
   on($('#optSound'), 'change', function (e) { Q.Audio2.setEnabled(e.target.checked); Q.Prefs.set('sound', e.target.checked); });
@@ -3364,6 +3378,7 @@ function wireUI() {
   $('#optSpeak').checked = Q.Prefs.get('speak', false);
   Q.Audio2.setEnabled($('#optSound').checked);
   on($('#btnPhotoImport'), 'click', function () { $('#photoInput').click(); });
+  on($('#btnPhotoImport2'), 'click', function () { $('#photoInput').click(); });
   on($('#btnCalibrate'), 'click', function () {
     if (!Scanner.running) { Q.toast(T('toast.startCameraFirst'), 'err'); return; }
     Scanner.startCalibration();

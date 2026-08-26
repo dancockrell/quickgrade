@@ -763,6 +763,10 @@ I.packs.en = {
   'wlist.rubricAdd': 'Mark against criteria instead of one number',
   'wlist.rubricEdit': 'Edit the rubric',
   'wlist.rubricN': 'Rubric · {n}',
-  'wlist.short': 'Short answer'
+  'wlist.short': 'Short answer',
+  'scan.idle.h2': 'Hold a sheet up to the camera',
+  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner squares. One beep per sheet.',
+  'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
+  'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip'
 };
 })(window.QG.I18N);

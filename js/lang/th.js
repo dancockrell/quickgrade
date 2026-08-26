@@ -726,6 +726,10 @@ I.packs.th = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'ถูก,จริง,ใช่',
   'parse.falseWords': 'ผิด,เท็จ,ไม่ใช่',
-  'parse.pointWords': 'คะแนน'
+  'parse.pointWords': 'คะแนน',
+  'scan.idle.h2': 'ยกกระดาษขึ้นให้กล้องเห็น',
+  'scan.idle.p': 'ให้เต็มกรอบ วางให้เรียบ แล้ว QuickGrade จะอ่านทันทีที่เห็นสี่เหลี่ยมมุมครบทั้งสี่มุม หนึ่งเสียงต่อหนึ่งแผ่น',
+  'scan.idle.foot': 'เครื่องนี้ไม่มีกล้องใช่ไหม ถ่ายรูปกระดาษด้วยโทรศัพท์แล้วนำเข้ารูปภาพแทนได้',
+  'grade.keys.rubric': 'ปุ่มลัด: <kbd>1</kbd>–<kbd>9</kbd> ระดับของเกณฑ์ถัดไป · <kbd>Enter</kbd> นักเรียนคนถัดไป · <kbd>←</kbd> ย้อนกลับ · <kbd>S</kbd> ข้าม'
 };
 })(window.QG.I18N);

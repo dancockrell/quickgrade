@@ -751,6 +751,10 @@ I.packs.tl = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'TAMA,OO,O',
   'parse.falseWords': 'MALI,HINDI,M',
-  'parse.pointWords': 'puntos,puntong'
+  'parse.pointWords': 'puntos,puntong',
+  'scan.idle.h2': 'Iharap ang papel sa kamera',
+  'scan.idle.p': 'Punuin ang frame, ipatong nang patag, at babasahin ito ng QuickGrade sa oras na makita ang apat na parisukat sa sulok. Isang beep bawat papel.',
+  'scan.idle.foot': 'Walang kamera ang device na ito? Kunan ng litrato ang mga papel gamit ang telepono at i-import ang mga larawan.',
+  'grade.keys.rubric': 'Mga key: <kbd>1</kbd>–<kbd>9</kbd> antas para sa susunod na pamantayan · <kbd>Enter</kbd> susunod na mag-aaral · <kbd>←</kbd> balik · <kbd>S</kbd> laktawan'
 };
 })(window.QG.I18N);

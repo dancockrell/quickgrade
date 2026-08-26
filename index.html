@@ -233,6 +233,21 @@
     <canvas id="overlay" aria-hidden="true"></canvas>
     <div id="flash" aria-hidden="true"></div>
 
+    <!-- Shown until the camera is live. Without it the most-used screen in
+         the app opens as an unexplained black rectangle. -->
+    <div id="scanIdle">
+      <div class="sicon" aria-hidden="true"></div>
+      <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
+      <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
+        soon as it can see all four corner squares. One beep per sheet.</p>
+      <div class="row gap" style="justify-content:center;margin-top:18px">
+        <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
+        <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
+      </div>
+      <p class="sfoot" data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets
+        with a phone and import the pictures instead.</p>
+    </div>
+
     <div id="scanHud">
       <div class="hudrow">
         <button class="btn sm go" id="btnCamStart" data-i18n="scan.start">Start camera</button>
@@ -298,7 +313,7 @@
         <input id="gradeComment" data-i18n-ph="grade.comment.ph" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
         <div class="row gap" id="quickComments"></div>
       </div>
-      <div class="hint" data-i18n-html="grade.keys">Keys: <kbd>0</kbd>&ndash;<kbd>9</kbd> points &middot; <kbd>.</kbd> half point &middot; <kbd>Enter</kbd> next &middot; <kbd>&larr;</kbd> back &middot; <kbd>F</kbd> full &middot; <kbd>Z</kbd> zero &middot; <kbd>S</kbd> skip</div>
+      <div class="hint" id="gradeKeys"></div>
     </div>
   </div>
 </section>

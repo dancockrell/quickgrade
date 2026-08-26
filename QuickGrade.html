@@ -211,6 +211,7 @@ label{
 }
 label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var(--text)}
 .sel{width:auto;min-width:150px}
+.sel:empty{display:none}
 .sel.sm{height:30px;padding:0 26px 0 10px;font-size:12.5px;min-width:120px;
   background-position:calc(100% - 13px) 13px, calc(100% - 8px) 13px}
 .chk{
@@ -360,6 +361,35 @@ tbody tr:last-child td{border-bottom:0}
 #flash.ok{background:rgba(28,190,120,.5);opacity:1}
 #flash.bad{background:rgba(255,60,80,.5);opacity:1}
 #flash.dup{background:rgba(240,170,40,.45);opacity:1}
+/* The idle state of the camera stage. It is the first thing a teacher sees
+   on the screen they use most, so it explains the one thing they have to do
+   rather than showing an unexplained black rectangle. */
+#scanIdle{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;text-align:center;
+  padding:24px;gap:6px;color:#fff;z-index:2;
+}
+#scanIdle[hidden]{display:none !important}
+#scanIdle h2{margin:0;font-size:21px;font-weight:700;color:#fff;letter-spacing:-.01em}
+#scanIdle p{margin:0;max-width:44ch;color:rgba(255,255,255,.72);font-size:14px;line-height:1.55}
+#scanIdle .sfoot{margin-top:20px;font-size:12.5px;color:rgba(255,255,255,.5)}
+#scanIdle .sicon{
+  width:96px;height:76px;margin-bottom:16px;border-radius:8px;
+  border:2px dashed rgba(255,255,255,.32);position:relative;
+}
+/* the four corner squares, which is what the reader is actually looking for */
+#scanIdle .sicon::before,#scanIdle .sicon::after{
+  content:"";position:absolute;width:13px;height:13px;background:rgba(255,255,255,.8);
+}
+#scanIdle .sicon::before{top:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
+#scanIdle .sicon::after{bottom:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
+@media(max-width:560px){
+  #scanIdle h2{font-size:18px}
+  #scanIdle .sicon{width:76px;height:60px}
+  #scanIdle .sicon::before{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+  #scanIdle .sicon::after{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+}
+
 #scanHud{
   position:absolute;top:0;left:0;right:0;padding:12px;display:flex;
   flex-direction:column;gap:9px;
@@ -420,15 +450,17 @@ tbody tr:last-child td{border-bottom:0}
   background:var(--surface2);overflow:auto;padding:16px;
 }
 #gradeImage{
-  max-width:100%;max-height:100%;object-fit:contain;background:#fff;
+  width:100%;height:100%;object-fit:contain;background:#fff;
   border-radius:var(--r);box-shadow:var(--sh2);cursor:zoom-in;
 }
+#gradeImage:not([src]){box-shadow:none;background:transparent}
 #gradeImage.zoom{max-width:none;max-height:none;width:190%;cursor:zoom-out}
 #gradeBar{
   padding:12px 16px;border-top:1px solid var(--line);background:var(--surface);
   display:flex;flex-direction:column;gap:10px;box-shadow:0 -4px 14px rgba(16,22,34,.05);
 }
 #pointsRow{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+#pointsRow:has(.rubgrid){align-items:flex-start}
 .pbtn{
   min-width:50px;height:46px;padding:0 12px;border-radius:9px;cursor:pointer;
   border:1.5px solid var(--line2);background:var(--surface);color:var(--text);
@@ -631,7 +663,10 @@ td.mono{font-variant-numeric:tabular-nums;font-family:var(--fm);font-size:12px}
 
 /* ─────────────────────────── toasts / modal ─────────────────────────── */
 #toasts{
-  position:fixed;inset-inline-end:18px;bottom:18px;display:flex;flex-direction:column;
+  position:fixed;inset-inline-end:18px;bottom:var(--toast-bottom,18px);
+  display:flex;flex-direction:column;
+  /* the stack never blocks a click; each toast re-enables it for itself */
+  pointer-events:none;
   gap:9px;z-index:120;pointer-events:none;
 }
 .toast{
@@ -727,6 +762,12 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 [dir="rtl"] details#advExport>summary::before{content:"\25C2"}
 [dir="rtl"] details.more[open]>summary::before,
 [dir="rtl"] details#advExport[open]>summary::before{transform:rotate(-90deg)}
+
+/* Views with something fixed along the bottom edge push the toast stack clear
+   of it, so a message never lands on the scan strip or the marking bar. */
+body[data-view="scan"]{--toast-bottom:126px}
+body[data-view="written"]{--toast-bottom:150px}
+.toast{pointer-events:auto}
 
 </style>
 <script>
@@ -949,6 +990,21 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
     <canvas id="overlay" aria-hidden="true"></canvas>
     <div id="flash" aria-hidden="true"></div>
 
+    <!-- Shown until the camera is live. Without it the most-used screen in
+         the app opens as an unexplained black rectangle. -->
+    <div id="scanIdle">
+      <div class="sicon" aria-hidden="true"></div>
+      <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
+      <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
+        soon as it can see all four corner squares. One beep per sheet.</p>
+      <div class="row gap" style="justify-content:center;margin-top:18px">
+        <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
+        <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
+      </div>
+      <p class="sfoot" data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets
+        with a phone and import the pictures instead.</p>
+    </div>
+
     <div id="scanHud">
       <div class="hudrow">
         <button class="btn sm go" id="btnCamStart" data-i18n="scan.start">Start camera</button>
@@ -1014,7 +1070,7 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
         <input id="gradeComment" data-i18n-ph="grade.comment.ph" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
         <div class="row gap" id="quickComments"></div>
       </div>
-      <div class="hint" data-i18n-html="grade.keys">Keys: <kbd>0</kbd>&ndash;<kbd>9</kbd> points &middot; <kbd>.</kbd> half point &middot; <kbd>Enter</kbd> next &middot; <kbd>&larr;</kbd> back &middot; <kbd>F</kbd> full &middot; <kbd>Z</kbd> zero &middot; <kbd>S</kbd> skip</div>
+      <div class="hint" id="gradeKeys"></div>
     </div>
   </div>
 </section>
@@ -2562,7 +2618,11 @@ I.packs.en = {
   'wlist.rubricAdd': 'Mark against criteria instead of one number',
   'wlist.rubricEdit': 'Edit the rubric',
   'wlist.rubricN': 'Rubric · {n}',
-  'wlist.short': 'Short answer'
+  'wlist.short': 'Short answer',
+  'scan.idle.h2': 'Hold a sheet up to the camera',
+  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all four corner squares. One beep per sheet.',
+  'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
+  'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip'
 };
 })(window.QG.I18N);
 
@@ -3327,7 +3387,11 @@ I.packs.ar = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'ص,صح,صحيح,نعم',
   'parse.falseWords': 'خ,خطأ,خاطئ,لا',
-  'parse.pointWords': 'درجة,درجات,نقطة,نقاط'
+  'parse.pointWords': 'درجة,درجات,نقطة,نقاط',
+  'scan.idle.h2': 'ارفع الورقة أمام الكاميرا',
+  'scan.idle.p': 'املأ الإطار بالورقة، وأبقِها مستوية، ويقرأها QuickGrade فور أن يرى المربعات الأربعة في الزوايا. صافرة واحدة لكل ورقة.',
+  'scan.idle.foot': 'لا كاميرا في هذا الجهاز؟ صوّر الأوراق بهاتف واستورد الصور بدلاً من ذلك.',
+  'grade.keys.rubric': 'المفاتيح: <kbd>1</kbd>–<kbd>9</kbd> مستوى المعيار التالي · <kbd>Enter</kbd> الطالب التالي · <kbd>←</kbd> رجوع · <kbd>S</kbd> تخطٍ'
 };
 })(window.QG.I18N);
 
@@ -4085,7 +4149,11 @@ I.packs.hi = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'सही,हाँ,हां',
   'parse.falseWords': 'गलत,ग़लत,नहीं',
-  'parse.pointWords': 'अंक'
+  'parse.pointWords': 'अंक',
+  'scan.idle.h2': 'कैमरे के सामने एक पत्रक पकड़िए',
+  'scan.idle.p': 'फ़्रेम भरिए, पत्रक समतल रखिए, और चारों कोनों के वर्ग दिखते ही QuickGrade उसे पढ़ लेता है। हर पत्रक पर एक बीप।',
+  'scan.idle.foot': 'इस डिवाइस में कैमरा नहीं है? पत्रकों की फ़ोटो फ़ोन से लीजिए और तस्वीरें आयात कर लीजिए।',
+  'grade.keys.rubric': 'कुंजियाँ: <kbd>1</kbd>–<kbd>9</kbd> अगले मानदंड का स्तर · <kbd>Enter</kbd> अगला विद्यार्थी · <kbd>←</kbd> पीछे · <kbd>S</kbd> छोड़ें'
 };
 })(window.QG.I18N);
 
@@ -4843,7 +4911,11 @@ I.packs.tl = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'TAMA,OO,O',
   'parse.falseWords': 'MALI,HINDI,M',
-  'parse.pointWords': 'puntos,puntong'
+  'parse.pointWords': 'puntos,puntong',
+  'scan.idle.h2': 'Iharap ang papel sa kamera',
+  'scan.idle.p': 'Punuin ang frame, ipatong nang patag, at babasahin ito ng QuickGrade sa oras na makita ang apat na parisukat sa sulok. Isang beep bawat papel.',
+  'scan.idle.foot': 'Walang kamera ang device na ito? Kunan ng litrato ang mga papel gamit ang telepono at i-import ang mga larawan.',
+  'grade.keys.rubric': 'Mga key: <kbd>1</kbd>–<kbd>9</kbd> antas para sa susunod na pamantayan · <kbd>Enter</kbd> susunod na mag-aaral · <kbd>←</kbd> balik · <kbd>S</kbd> laktawan'
 };
 })(window.QG.I18N);
 
@@ -5667,7 +5739,11 @@ I.packs.ru = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'В,ВЕРНО,Д,ДА,П,ПРАВДА',
   'parse.falseWords': 'Н,НЕВЕРНО,НЕТ,Л,ЛОЖЬ',
-  'parse.pointWords': 'балл,балла,баллов,б'
+  'parse.pointWords': 'балл,балла,баллов,б',
+  'scan.idle.h2': 'Поднесите бланк к камере',
+  'scan.idle.p': 'Заполните им кадр, держите ровно — QuickGrade прочитает его, как только увидит четыре угловых квадрата. Один сигнал на бланк.',
+  'scan.idle.foot': 'На этом устройстве нет камеры? Сфотографируйте бланки телефоном и импортируйте снимки.',
+  'grade.keys.rubric': 'Клавиши: <kbd>1</kbd>–<kbd>9</kbd> уровень следующего критерия · <kbd>Enter</kbd> следующий ученик · <kbd>←</kbd> назад · <kbd>S</kbd> пропустить'
 };
 })(window.QG.I18N);
 
@@ -6400,7 +6476,11 @@ I.packs.th = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'ถูก,จริง,ใช่',
   'parse.falseWords': 'ผิด,เท็จ,ไม่ใช่',
-  'parse.pointWords': 'คะแนน'
+  'parse.pointWords': 'คะแนน',
+  'scan.idle.h2': 'ยกกระดาษขึ้นให้กล้องเห็น',
+  'scan.idle.p': 'ให้เต็มกรอบ วางให้เรียบ แล้ว QuickGrade จะอ่านทันทีที่เห็นสี่เหลี่ยมมุมครบทั้งสี่มุม หนึ่งเสียงต่อหนึ่งแผ่น',
+  'scan.idle.foot': 'เครื่องนี้ไม่มีกล้องใช่ไหม ถ่ายรูปกระดาษด้วยโทรศัพท์แล้วนำเข้ารูปภาพแทนได้',
+  'grade.keys.rubric': 'ปุ่มลัด: <kbd>1</kbd>–<kbd>9</kbd> ระดับของเกณฑ์ถัดไป · <kbd>Enter</kbd> นักเรียนคนถัดไป · <kbd>←</kbd> ย้อนกลับ · <kbd>S</kbd> ข้าม'
 };
 })(window.QG.I18N);
 
@@ -7133,7 +7213,11 @@ I.packs.ko = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'O,예,맞음,참',
   'parse.falseWords': 'X,아니오,틀림,거짓',
-  'parse.pointWords': '점,점수'
+  'parse.pointWords': '점,점수',
+  'scan.idle.h2': '용지를 카메라에 비춰 주세요',
+  'scan.idle.p': '화면을 채우고 평평하게 잡으면, 네 모서리 사각형이 보이는 즉시 QuickGrade가 읽습니다. 한 장에 한 번 소리가 납니다.',
+  'scan.idle.foot': '이 기기에 카메라가 없나요? 휴대폰으로 용지를 찍어 사진을 가져오셔도 됩니다.',
+  'grade.keys.rubric': '단축키: <kbd>1</kbd>–<kbd>9</kbd> 다음 평가 요소의 수준 · <kbd>Enter</kbd> 다음 학생 · <kbd>←</kbd> 이전 · <kbd>S</kbd> 건너뛰기'
 };
 })(window.QG.I18N);
 
@@ -9657,6 +9741,7 @@ Scanner.start = function (deviceId) {
     var caps = Scanner.track.getCapabilities ? Scanner.track.getCapabilities() : {};
     $('#btnTorch').hidden = !(caps && caps.torch);
     loop();
+    showIdle(false);
     return Scanner.listCameras().then(fillCameraSelect);
   }).catch(function (e) {
     Q.toast(T('scan.cameraError', { msg: e && e.message ? e.message : e }), 'err', 7000);
@@ -9665,8 +9750,17 @@ Scanner.start = function (deviceId) {
   });
 };
 
+/* The idle panel and the live picture are mutually exclusive; keeping that
+ * in one place means they cannot both be visible or both be missing. */
+function showIdle(on) {
+  var n = $('#scanIdle');
+  if (n) n.hidden = !on;
+}
+Scanner.showIdle = showIdle;
+
 Scanner.stop = function () {
   Scanner.running = false;
+  showIdle(true);
   if (Scanner.rafId) cancelAnimationFrame(Scanner.rafId), Scanner.rafId = 0;
   if (Scanner.timer) clearTimeout(Scanner.timer), Scanner.timer = 0;
   if (Scanner.stream) {
@@ -10516,6 +10610,7 @@ function route(name) {
   if (name === 'scan' && !State.test) { Q.toast(T('toast.createOrSelect'), 'err'); name = 'tests'; }
   $$('.view').forEach(function (v) { v.classList.toggle('active', v.id === 'view-' + name); });
   $$('.navbtn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === name); });
+  document.body.dataset.view = name;
   Q.Prefs.set('view', name);
   if (name !== 'scan') Scanner.stop();
   if (name === 'tests') renderTests();
@@ -12642,9 +12737,10 @@ function showGradeItem() {
         text: done ? T('grade.rubricDone')
                    : T('grade.rubricPrompt', { n: rubric.levels.length }) })
     ]));
+    grid.lastChild.appendChild(el('button', { class: 'btn sm', style: 'margin-inline-start:8px',
+      text: T('grade.skip'), onclick: function () { move(1); } }));
     row.appendChild(grid);
-    row.appendChild(el('button', { class: 'btn sm', text: T('grade.skip'),
-      onclick: function () { move(1); } }));
+    renderGradeKeys(rubric);
     renderQuickComments();
     return;
   }
@@ -12666,7 +12762,15 @@ function showGradeItem() {
     onchange: function (e) { setPoints(Math.min(max, +e.target.value || 0), false); }
   }));
 
+  renderGradeKeys(null);
   renderQuickComments();
+}
+
+/** The keys really available right now. With a rubric the digits pick a
+ *  level, not a point value, so the plain-points hint would be wrong. */
+function renderGradeKeys(rubric) {
+  var n = $('#gradeKeys');
+  if (n) n.innerHTML = T(rubric ? 'grade.keys.rubric' : 'grade.keys');
 }
 
 /** Shared by the plain points strip and the rubric grid. */
@@ -13656,10 +13760,14 @@ function wireUI() {
   on($('#btnPrintKey'), 'click', function () { printSheets('key', chosenForm()); });
 
   /* scan */
-  on($('#btnCamStart'), 'click', function () {
+  /* Two buttons start the camera — one on the idle panel, one in the HUD once
+   * it is running. Same handler, so they can never drift apart. */
+  function startCamera() {
     Q.Audio2.unlock();
     Scanner.start($('#camSelect').value || undefined);
-  });
+  }
+  on($('#btnCamStart'), 'click', startCamera);
+  on($('#btnCamStart2'), 'click', startCamera);
   on($('#camSelect'), 'change', function (e) { if (Scanner.running) Scanner.start(e.target.value); });
   on($('#btnTorch'), 'click', function () { Scanner.toggleTorch(); });
   on($('#optSound'), 'change', function (e) { Q.Audio2.setEnabled(e.target.checked); Q.Prefs.set('sound', e.target.checked); });
@@ -13668,6 +13776,7 @@ function wireUI() {
   $('#optSpeak').checked = Q.Prefs.get('speak', false);
   Q.Audio2.setEnabled($('#optSound').checked);
   on($('#btnPhotoImport'), 'click', function () { $('#photoInput').click(); });
+  on($('#btnPhotoImport2'), 'click', function () { $('#photoInput').click(); });
   on($('#btnCalibrate'), 'click', function () {
     if (!Scanner.running) { Q.toast(T('toast.startCameraFirst'), 'err'); return; }
     Scanner.startCalibration();

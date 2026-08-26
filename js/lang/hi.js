@@ -751,6 +751,10 @@ I.packs.hi = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'सही,हाँ,हां',
   'parse.falseWords': 'गलत,ग़लत,नहीं',
-  'parse.pointWords': 'अंक'
+  'parse.pointWords': 'अंक',
+  'scan.idle.h2': 'कैमरे के सामने एक पत्रक पकड़िए',
+  'scan.idle.p': 'फ़्रेम भरिए, पत्रक समतल रखिए, और चारों कोनों के वर्ग दिखते ही QuickGrade उसे पढ़ लेता है। हर पत्रक पर एक बीप।',
+  'scan.idle.foot': 'इस डिवाइस में कैमरा नहीं है? पत्रकों की फ़ोटो फ़ोन से लीजिए और तस्वीरें आयात कर लीजिए।',
+  'grade.keys.rubric': 'कुंजियाँ: <kbd>1</kbd>–<kbd>9</kbd> अगले मानदंड का स्तर · <kbd>Enter</kbd> अगला विद्यार्थी · <kbd>←</kbd> पीछे · <kbd>S</kbd> छोड़ें'
 };
 })(window.QG.I18N);

@@ -726,6 +726,10 @@ I.packs.ko = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'O,예,맞음,참',
   'parse.falseWords': 'X,아니오,틀림,거짓',
-  'parse.pointWords': '점,점수'
+  'parse.pointWords': '점,점수',
+  'scan.idle.h2': '용지를 카메라에 비춰 주세요',
+  'scan.idle.p': '화면을 채우고 평평하게 잡으면, 네 모서리 사각형이 보이는 즉시 QuickGrade가 읽습니다. 한 장에 한 번 소리가 납니다.',
+  'scan.idle.foot': '이 기기에 카메라가 없나요? 휴대폰으로 용지를 찍어 사진을 가져오셔도 됩니다.',
+  'grade.keys.rubric': '단축키: <kbd>1</kbd>–<kbd>9</kbd> 다음 평가 요소의 수준 · <kbd>Enter</kbd> 다음 학생 · <kbd>←</kbd> 이전 · <kbd>S</kbd> 건너뛰기'
 };
 })(window.QG.I18N);

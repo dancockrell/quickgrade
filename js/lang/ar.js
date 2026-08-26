@@ -758,6 +758,10 @@ I.packs.ar = {
   /* --- words the paste parsers should recognise --- */
   'parse.trueWords': 'ص,صح,صحيح,نعم',
   'parse.falseWords': 'خ,خطأ,خاطئ,لا',
-  'parse.pointWords': 'درجة,درجات,نقطة,نقاط'
+  'parse.pointWords': 'درجة,درجات,نقطة,نقاط',
+  'scan.idle.h2': 'ارفع الورقة أمام الكاميرا',
+  'scan.idle.p': 'املأ الإطار بالورقة، وأبقِها مستوية، ويقرأها QuickGrade فور أن يرى المربعات الأربعة في الزوايا. صافرة واحدة لكل ورقة.',
+  'scan.idle.foot': 'لا كاميرا في هذا الجهاز؟ صوّر الأوراق بهاتف واستورد الصور بدلاً من ذلك.',
+  'grade.keys.rubric': 'المفاتيح: <kbd>1</kbd>–<kbd>9</kbd> مستوى المعيار التالي · <kbd>Enter</kbd> الطالب التالي · <kbd>←</kbd> رجوع · <kbd>S</kbd> تخطٍ'
 };
 })(window.QG.I18N);
