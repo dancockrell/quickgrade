@@ -553,6 +553,23 @@ gradebook export, so it's easy to eyeball.
 
 ---
 
+## Checking a change
+
+```
+node tools/check.js
+```
+
+Runs every suite and prints one number. It discovers suites rather than
+reading a list, because the one time a suite was left out of a hand-written
+list it sat broken for a whole session while everything else reported green.
+
+```
+node tools/walkthrough.js <outDir> [lang] [width]
+```
+
+Photographs the whole teacher journey. The suites cannot tell you that a
+screen is confusing; this is for looking at it.
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE). Use it, change it, translate it, put it on your

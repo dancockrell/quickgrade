@@ -449,6 +449,22 @@ function openPrintWindow(html, autoPrint) {
 }
 
 global.QG = global.QG || {};
+/* Replaced by i18n.js the moment it loads. Defined here so that a page
+ * built without the language modules degrades to readable English rather
+ * than throwing on the first lookup. */
+if (!global.QG.T) {
+  global.QG.T = function (key) { return key; };
+}
+if (!global.QG.I18N) {
+  global.QG.I18N = {
+    lang: 'en',
+    meta: function () { return { code: 'en', name: 'English', dir: 'ltr' }; },
+    fonts: function () {
+      return { css: 'system-ui,sans-serif', print: 'Arial,Helvetica,sans-serif',
+               docx: { ascii: 'Calibri', cs: 'Calibri', eastAsia: 'Calibri' } };
+    }
+  };
+}
 Object.assign(global.QG, {
   $: $, $$: $$, el: el, on: on, esc: esc, pad: pad, uid: uid, clamp: clamp, round2: round2,
   todayISO: todayISO, prettyDate: prettyDate, sortName: sortName,
