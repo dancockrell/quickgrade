@@ -209,7 +209,15 @@ function saveGrades() { return Q.DB.put('kv', { k: 'grades:' + State.test.id, v:
 function route(name) {
   if (name === 'scan' && !State.test) { Q.toast(T('toast.createOrSelect'), 'err'); name = 'tests'; }
   $$('.view').forEach(function (v) { v.classList.toggle('active', v.id === 'view-' + name); });
-  $$('.navbtn').forEach(function (b) { b.classList.toggle('active', b.dataset.view === name); });
+  $$('.navbtn').forEach(function (b) {
+    var on = b.dataset.view === name;
+    b.classList.toggle('active', on);
+    /* The strip scrolls sideways on a narrow screen. Without this the tab
+     * you are on can sit off-screen, along with its badge. */
+    if (on && b.scrollIntoView) {
+      try { b.scrollIntoView({ block: 'nearest', inline: 'center' }); } catch (e) {}
+    }
+  });
   document.body.dataset.view = name;
   Q.Prefs.set('view', name);
   if (name !== 'scan') Scanner.stop();

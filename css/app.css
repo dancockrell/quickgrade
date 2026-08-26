@@ -649,10 +649,9 @@ td.mono{font-variant-numeric:tabular-nums;font-family:var(--fm);font-size:12px}
 /* ─────────────────────────── toasts / modal ─────────────────────────── */
 #toasts{
   position:fixed;inset-inline-end:18px;bottom:var(--toast-bottom,18px);
-  display:flex;flex-direction:column;
+  display:flex;flex-direction:column;gap:9px;z-index:120;
   /* the stack never blocks a click; each toast re-enables it for itself */
   pointer-events:none;
-  gap:9px;z-index:120;pointer-events:none;
 }
 .toast{
   background:var(--surface);border:1px solid var(--line);border-inline-start:3px solid var(--accent);
@@ -753,3 +752,28 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 body[data-view="scan"]{--toast-bottom:126px}
 body[data-view="written"]{--toast-bottom:150px}
 .toast{pointer-events:auto}
+
+/* ── phone: the marking screen ────────────────────────────────────────
+   At 420px a 190px criterion label plus three buttons cannot share a row,
+   so the last button wrapped onto its own line and you could no longer see
+   which criterion it belonged to. Give the name its own line and let the
+   levels split what is left evenly. */
+@media(max-width:700px){
+  .rubname{flex:0 0 100%;white-space:normal;margin-bottom:1px}
+  .pbtn.rub{flex:1 1 0;min-width:0}
+  .rubrow{gap:5px}
+  /* a written answer still needs to be readable on a small screen */
+  #gradeImageWrap{min-height:38vh;padding:10px}
+  #gradeBar{padding:10px 12px;gap:8px}
+}
+
+/* On a phone the bottom edge belongs to the marking bar and the scan strip,
+   and a toast anchored there will always cover the thing you are using. Put
+   messages under the header instead, where nothing competes for the space. */
+@media(max-width:700px){
+  #toasts{
+    inset-inline:10px;bottom:auto;top:calc(var(--hdr) + 8px);
+    align-items:stretch;
+  }
+  .toast{max-width:none}
+}
