@@ -27,18 +27,40 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       opts: { questionsOnSheet: true, idDigits: 2 }, count: 12, choices: 4, written: 0, text: true }
   ];
 
+  /* Measure the registration border off a rendered sheet.
+   *
+   * This used to read the corner brackets back out of cornerBars(). When the
+   * page moved to a ruled border that function went away, the probe returned
+   * undefined, and the guard reported "NaN, NaN clear of the threshold" and
+   * PASSED - because NaN < 0.10 is false. A check whose input has vanished
+   * should be the loudest thing in the run, not the quietest. */
   const geom = await page.evaluate(() => {
     const S = QG.Sheet;
-    /* Read the bracket back out of what it actually draws rather than
-     * trusting a constant: two bars, arm width over mark size, and the
-     * centroid is the point the caller asked for. */
     S.setPaper('a4');
-    const bars = S.cornerBars(2, 3, false, false);
-    const size = bars[0].w;
-    const arm = bars[0].h / size;
-    const t = arm, area = 2 * t - t * t;
-    const cx = (0.5 * t + t * t * (1 - t) / 2) / area;
-    return { size, arm, centroid: (2 - bars[0].x) / size };
+    const t = { id: 't', title: 'Border probe', className: '', date: '', code: '117',
+      mc: { count: 4, choices: 4, key: [], points: 1, text: [], options: [], topic: [], rules: {} },
+      written: [], curve: { kind: 'none', value: 0 }, options: { paper: 'a4' } };
+    const host = document.createElement('div');
+    host.innerHTML = S.renderSheets(t, [{ sid: '07', name: '' }], {});
+    document.body.appendChild(host);
+    const pg = host.querySelector('.page');
+    const edge = host.querySelector('.edge');
+    if (!pg || !edge) { host.remove(); return { missing: true }; }
+    const pr = pg.getBoundingClientRect(), er = edge.getBoundingClientRect();
+    const cs = getComputedStyle(edge);
+    const pxPerIn = pr.width / S.L.page.w;
+    const g = {
+      /* where the border sits, in inches, against the rectangle the scanner
+       * solves the page from */
+      offX: Math.abs((er.left - pr.left) / pxPerIn - S.L.fid.x0),
+      offY: Math.abs((er.top - pr.top) / pxPerIn - S.L.fid.y0),
+      widthIn: er.width / pxPerIn,
+      expectWidthIn: S.L.W,
+      ruleIn: parseFloat(cs.borderTopWidth) / pxPerIn,
+      footIn: parseFloat(cs.borderBottomWidth) / pxPerIn
+    };
+    host.remove();
+    return g;
   });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qg-look-'));
   const files = [];
@@ -68,37 +90,52 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   }
   await browser.close();
 
-  /* The corner marks are the one thing on the page that the whole system
-   * depends on. The detector keeps a component only if it fills more than
-   * 0.70 of its box, and a printed, blurred, photographed bracket measures
-   * about 0.04 below its geometry. An arm that looks fine on screen and sits
-   * a hundredth above the threshold loses a corner to noise and the sheet
-   * becomes unfindable - which is how this was found. */
+  /* The registration border is the one thing on the page the whole system
+   * depends on, so it is measured off a rendered sheet rather than trusted.
+   *
+   * Three properties, each of which has actually broken:
+   *   - it sits on the fiducial rectangle. Every other coordinate is relative
+   *     to that, so an offset here skews the whole page.
+   *   - the rule is thick enough to survive the downscale the detector works
+   *     on. A hairline came out at six tenths of a pixel and vanished, taking
+   *     the sheet with it.
+   *   - the foot rule is heavier than the rest, because that difference is
+   *     the only thing telling an upright page from an upside-down one.
+   */
   let failed = 0, checks = 0;
-  {
-    const arm = geom.arm;
-    const fill = 1 - (1 - arm) * (1 - arm);
-    const margin = fill - 0.70;
+  function guard(name, pass, detail) {
     checks++;
-    if (margin < 0.10) {
-      failed++;
-      console.log("  FAIL corner mark fill  — " + fill.toFixed(3) +
-        " is only " + margin.toFixed(3) + " above the detector threshold");
-    } else {
-      console.log("  ok   corner mark fill  — " + fill.toFixed(3) +
-        ", " + margin.toFixed(3) + " clear of the threshold");
-    }
-    const drift = Math.abs(geom.centroid - (function (t) {
-      return (0.5 * t + t * t * (1 - t) / 2) / (2 * t - t * t);
-    }(arm)));
-    checks++;
-    if (drift > 1e-6) {
-      failed++;
-      console.log("  FAIL corner mark centroid  — off by " + drift.toExponential(2) +
-        ", which skews the whole page");
-    } else {
-      console.log("  ok   corner mark centroid  — matches the arm exactly");
-    }
+    if (pass) { console.log('  ok   ' + name + '  - ' + detail); }
+    else { failed++; console.log('  FAIL ' + name + '  - ' + detail); }
+  }
+  if (geom.missing || geom.ruleIn === undefined || !isFinite(geom.ruleIn)) {
+    /* Say so loudly. A probe that returns nothing used to leave NaN in the
+     * comparison, and NaN < threshold is false, so the guard passed. */
+    guard('border geometry could be measured', false,
+          'the probe returned nothing to measure');
+  } else {
+    guard('border sits on the geometry the scanner solves from',
+      geom.offX < 0.01 && geom.offY < 0.01 &&
+      Math.abs(geom.widthIn - geom.expectWidthIn) < 0.01,
+      'offset ' + (Math.max(geom.offX, geom.offY) * 1000).toFixed(1) + ' thou, width ' +
+      geom.widthIn.toFixed(3) + 'in against ' + geom.expectWidthIn.toFixed(3) + 'in');
+
+    /* At 480 across, a sheet filling the frame gives about 58 pixels to the
+     * inch. Two pixels is the floor for a line that has to be found; 0.0347in
+     * gives two. Anything under 0.030in is asking to disappear. */
+    /* The floor is where evidence puts it, not where the current value
+     * happens to land. A border at 0.69px is not found at all (a page held
+     * far back, before the higher-resolution retry existed). At 1.81px every
+     * suite passes. The boundary between those has not been measured, so the
+     * floor sits at 1.5 and the border is drawn thick enough to clear it by
+     * a wide margin rather than by a hundredth of a pixel, which is what the
+     * first attempt at this check did. */
+    const pxAtDetection = geom.ruleIn * 58;
+    guard('border survives the detection downscale', pxAtDetection >= 1.5,
+      geom.ruleIn.toFixed(4) + 'in is ' + pxAtDetection.toFixed(2) + 'px at 480 across');
+
+    guard('the foot rule is heavier than the others', geom.footIn > geom.ruleIn * 1.6,
+      geom.footIn.toFixed(4) + 'in against ' + geom.ruleIn.toFixed(4) + 'in');
   }
   for (const { sh, f } of files) {
     let out = '';

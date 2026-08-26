@@ -8989,7 +8989,10 @@ var L = {
   contentTop: 3.48, contentTopBase: 3.48, contentBottom: 10.02,
   /* Page 2 onward has no name box and no filling guide above the grid,
    * so it starts higher and carries more questions. */
-  contentTopLater: 2.72,
+  /* Clearance below the identity block, for pages that start under it.
+   * The start itself is worked out per test by laterTop(), because the block's
+   * height depends on how many ID digits the test uses. */
+  laterGap: 0.20,
   /* Vertical distance between question rows. */
   rowPitch: 0.255,
   /* Horizontal distance between bubbles in a row. These were one constant,
@@ -9231,6 +9234,18 @@ function bitsToCode(bits) {
   for (var i = 0; i < bits.length; i++) v = (v * 2) + (bits[i] ? 1 : 0);
   return v;
 }
+/** Where a page that carries no name box and no filling guide can start.
+ *
+ * Derived from the identity block rather than written down as a constant. It
+ * was 2.72in, which is fine for a two-digit class number and lands on the
+ * page-number bubbles for a six-digit one: the block grows downward with every
+ * extra digit. The layout inspector caught it as a bubble sitting under a
+ * written-question label, which is exactly the collision it was built to see.
+ */
+function laterTop(n) {
+  n = n || L.idDigits;
+  return pageY(n) + L.bubbleR + L.laterGap;
+}
 function pageRow(n) {
   n = n || L.idDigits;
   var y = pageY(n), row = [];
@@ -9268,7 +9283,7 @@ function layoutTest(test) {
    */
   function planPages(total) {
     function capacity(pageIdx) {
-      var t = pageIdx === 0 ? L.contentTop : L.contentTopLater;
+      var t = pageIdx === 0 ? L.contentTop : laterTop(idDigitsOf(test));
       var r = Math.floor((L.contentBottom - t) / L.rowPitch) + 1;
       return qOnSheet ? r : r * cols;
     }
@@ -9294,7 +9309,7 @@ function layoutTest(test) {
     var mc = [];
     /* Page 1 carries the name box and the filling guide; the pages after
      * it carry neither, so their grid starts higher and holds more. */
-    var top = pages.length === 0 ? L.contentTop : L.contentTopLater;
+    var top = pages.length === 0 ? L.contentTop : laterTop(idDigitsOf(test));
     rows = Math.floor((L.contentBottom - top) / L.rowPitch) + 1;
     perPage = qOnSheet ? rows : rows * cols;
     var take = Math.min(plan[pages.length] || perPage, nMc - q);
@@ -9331,7 +9346,7 @@ function layoutTest(test) {
      * where the other later pages start rather than inheriting the position
      * the multiple-choice grid needs on page one. That was leaving two inches
      * of white above the first box on every writing side. */
-    var wTop = L.contentTopLater;
+    var wTop = laterTop(idDigitsOf(test));
     var avail = L.contentBottom - wTop - (n - 1) * L.wGap;
     var each = avail / n;
     var list = [];
@@ -9418,7 +9433,7 @@ var SHEET_CSS = [
      * the page is the bottom. Inferring that from where the ink sits was tried
      * and is not dependable: the heading and name box carry more ink than the
      * identity block, so the page came back upside down. */
-    '.edge{position:absolute;border:2.5pt solid #222;border-bottom-width:6pt;box-sizing:border-box}',
+    '.edge{position:absolute;border:3pt solid #222;border-bottom-width:7pt;box-sizing:border-box}',
     '.cmark{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
@@ -9691,7 +9706,7 @@ function renderSheets(test, people, opts) {
 
 global.QG = global.QG || {};
 global.QG.Sheet = {
-  L: L, LETTERS: LETTERS, choiceLabelsOf: choiceLabelsOf, cornerBars: cornerBars,
+  L: L, LETTERS: LETTERS, laterTop: laterTop, choiceLabelsOf: choiceLabelsOf, cornerBars: cornerBars,
   safeRight: safeRight,
   u: u, v: v, uv: uv, rect: rect,
   idGrid: idGrid, codeBits: codeBits, codeToBits: codeToBits,
@@ -9944,8 +9959,31 @@ function findSheet(gray, w, h, opts) {
   opts = opts || {};
   var L = S.L;
 
-  function frameAt(C) {
+  /* Thicken by one pixel.
+   *
+   * A ruled border is the thinnest thing on the page that has to be found, and
+   * a page held far back can put it below one pixel in the downscaled copy the
+   * detector works on. It then breaks into fragments, none of which encloses
+   * anything, and the sheet is simply not there. One pass of dilation
+   * reconnects a line that is dashed by sampling without meaningfully changing
+   * a line that is solid. Only used as a fallback, because it also fattens
+   * everything else on the page. */
+  function dilate(bin) {
+    var out = new Uint8Array(bin.length);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var i = y * w + x;
+        if (bin[i] ||
+            (x > 0 && bin[i - 1]) || (x < w - 1 && bin[i + 1]) ||
+            (y > 0 && bin[i - w]) || (y < h - 1 && bin[i + w])) out[i] = 1;
+      }
+    }
+    return out;
+  }
+
+  function frameAt(C, thicken) {
     var bin = threshold(gray, w, h, 0.10, C);
+    if (thicken) bin = dilate(bin);
     /* A border encloses most of the frame, so only very large components are
      * worth considering, and there will be few of them. */
     var comps = components(bin, w, h, w * h * 0.0004, w * h);
@@ -9953,10 +9991,15 @@ function findSheet(gray, w, h, opts) {
     comps.forEach(function (c) {
       var boxArea = c.w * c.h;
       if (boxArea < w * h * (opts.minAreaFrac || 0.10)) return;
-      /* Not the whole frame. A photograph darkens at its edges, and that dark
-       * rim is itself a big hollow rectangle - it was being picked ahead of the
-       * page every time. The page is always inside the picture. */
-      if (boxArea > w * h * 0.90) return;
+      /* Not something that runs off the edge of the picture.
+       *
+       * A photograph darkens at its edges and that dark rim is itself a large
+       * hollow rectangle, which was being picked ahead of the page every time.
+       * An area cap was tried first and is the wrong test: it depends on how
+       * much of the frame the page happens to fill. What is actually true is
+       * that the page is inside the photograph, so anything touching the
+       * picture's own edge is not it. */
+      if (c.x <= 1 || c.y <= 1 || c.x + c.w >= w - 1 || c.y + c.h >= h - 1) return;
       /* The giveaway is how little ink there is. A ruled border measured 0.009
        * of its own bounding box; the vignette rim measured 0.088. Anything
        * that is actually a shape rather than a line is far above both. */
@@ -9966,20 +10009,31 @@ function findSheet(gray, w, h, opts) {
       var upright = asp > target * 0.62 && asp < target * 1.45;
       var sideways = asp > (1 / target) * 0.62 && asp < (1 / target) * 1.45;
       if (!upright && !sideways) return;
-      /* The innermost qualifying rectangle, not the largest.
+      /* The largest qualifying rectangle, now that the picture's own rim is
+       * excluded by touching the frame edge rather than by an area cap.
        *
-       * A photographed sheet offers more than one hollow rectangle: the dark
-       * rim of the picture itself, the edge of the paper against the desk, and
-       * the border we printed. They are nested, and the one we drew is the
-       * smallest of them. Taking the largest picked the paper edge, which sits
-       * about five per cent outside the border, and five per cent is enough to
-       * put every sample on the wrong bubble. */
-      if (!best || boxArea < best.w * best.h) best = c;
+       * Taking the smallest was tried and is wrong, expensively so. A writing
+       * page carries one large ruled answer box, which is also a hollow
+       * rectangle, also low-fill, and with one question to a page its aspect
+       * lands inside the tolerance. The detector locked onto the answer box
+       * instead of the page border and every writing page in the sample class
+       * failed to read: eight scans where there should have been fifteen, at
+       * every CPU speed, which is what gave it away as geometry rather than
+       * timing.
+       *
+       * The border encloses everything else printed on the page, so among
+       * candidates that are wholly inside the photograph it is the biggest by
+       * construction. */
+      if (!best || boxArea > best.w * best.h) best = c;
     });
     return best;
   }
 
-  var frame = frameAt(10) || frameAt(20) || frameAt(4);
+  /* Three thresholds first, then the same three with the ink thickened. The
+   * plain passes carry the common case; thickening is what rescues a sheet
+   * held far enough back that the border is thinner than a pixel. */
+  var frame = frameAt(10) || frameAt(20) || frameAt(4) ||
+              frameAt(10, true) || frameAt(20, true) || frameAt(4, true);
   if (!frame || !frame.corners || frame.corners.indexOf(null) >= 0) return null;
 
   /* The corners of a rectangle, however it is turned or tilted: the points
@@ -10247,11 +10301,11 @@ function renderSynthetic(test, pageIdx, opts) {
   /* The registration border, drawn the way the printer draws it: one rule
    * around the page that the reader solves the geometry from. */
   ctx.strokeStyle = '#222';
-  ctx.lineWidth = Math.max(1, inx(0.0347));            // 2.5pt, as printed
+  ctx.lineWidth = Math.max(1, inx(0.0417));            // 3pt, as printed
   ctx.strokeRect(inx(L.fid.x0) + ctx.lineWidth / 2, inx(L.fid.y0) + ctx.lineWidth / 2,
                  inx(L.W) - ctx.lineWidth, inx(L.H) - ctx.lineWidth);
   /* the heavier foot rule, matching what the printer draws */
-  var footW = inx(0.0833);
+  var footW = inx(0.0972);
   ctx.fillStyle = '#222';
   ctx.fillRect(inx(L.fid.x0), inx(L.fid.y1) - footW, inx(L.W), footW);
   ctx.fillStyle = '#000';
@@ -10620,6 +10674,26 @@ function tick() {
   var detImg = Scanner.detCtx.getImageData(0, 0, detW, detH);
   var gray = V.toGray(detImg);
   var found = V.findSheet(gray.g, detW, detH);
+  if (!found && capW > detW) {
+    /* Look again with more of the picture.
+     *
+     * 480 across is plenty when the sheet fills the frame, and not nearly
+     * enough when it does not. A page held far back can occupy a seventh of
+     * the width, which puts the registration border below one pixel here and
+     * it simply is not in the image to be found. Solid corner marks used to
+     * survive that; a ruled line does not, and this is the price of taking
+     * them off the page.
+     *
+     * The retry is on the miss rather than always, because every frame that
+     * finds the sheet immediately should stay cheap: this runs at camera rate
+     * on a phone. */
+    var bigW = Math.min(capW, detW * 2), bigH = Math.round(capH * bigW / capW);
+    Scanner.det.width = bigW; Scanner.det.height = bigH;
+    Scanner.detCtx.drawImage(Scanner.cap, 0, 0, bigW, bigH);
+    var gray2 = V.toGray(Scanner.detCtx.getImageData(0, 0, bigW, bigH));
+    var found2 = V.findSheet(gray2.g, bigW, bigH);
+    if (found2) { found = found2; detW = bigW; detH = bigH; gray = gray2; }
+  }
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);

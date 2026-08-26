@@ -46,11 +46,11 @@ function renderSynthetic(test, pageIdx, opts) {
   /* The registration border, drawn the way the printer draws it: one rule
    * around the page that the reader solves the geometry from. */
   ctx.strokeStyle = '#222';
-  ctx.lineWidth = Math.max(1, inx(0.0347));            // 2.5pt, as printed
+  ctx.lineWidth = Math.max(1, inx(0.0417));            // 3pt, as printed
   ctx.strokeRect(inx(L.fid.x0) + ctx.lineWidth / 2, inx(L.fid.y0) + ctx.lineWidth / 2,
                  inx(L.W) - ctx.lineWidth, inx(L.H) - ctx.lineWidth);
   /* the heavier foot rule, matching what the printer draws */
-  var footW = inx(0.0833);
+  var footW = inx(0.0972);
   ctx.fillStyle = '#222';
   ctx.fillRect(inx(L.fid.x0), inx(L.fid.y1) - footW, inx(L.W), footW);
   ctx.fillStyle = '#000';

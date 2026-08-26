@@ -52,7 +52,10 @@ var L = {
   contentTop: 3.48, contentTopBase: 3.48, contentBottom: 10.02,
   /* Page 2 onward has no name box and no filling guide above the grid,
    * so it starts higher and carries more questions. */
-  contentTopLater: 2.72,
+  /* Clearance below the identity block, for pages that start under it.
+   * The start itself is worked out per test by laterTop(), because the block's
+   * height depends on how many ID digits the test uses. */
+  laterGap: 0.20,
   /* Vertical distance between question rows. */
   rowPitch: 0.255,
   /* Horizontal distance between bubbles in a row. These were one constant,
@@ -294,6 +297,18 @@ function bitsToCode(bits) {
   for (var i = 0; i < bits.length; i++) v = (v * 2) + (bits[i] ? 1 : 0);
   return v;
 }
+/** Where a page that carries no name box and no filling guide can start.
+ *
+ * Derived from the identity block rather than written down as a constant. It
+ * was 2.72in, which is fine for a two-digit class number and lands on the
+ * page-number bubbles for a six-digit one: the block grows downward with every
+ * extra digit. The layout inspector caught it as a bubble sitting under a
+ * written-question label, which is exactly the collision it was built to see.
+ */
+function laterTop(n) {
+  n = n || L.idDigits;
+  return pageY(n) + L.bubbleR + L.laterGap;
+}
 function pageRow(n) {
   n = n || L.idDigits;
   var y = pageY(n), row = [];
@@ -331,7 +346,7 @@ function layoutTest(test) {
    */
   function planPages(total) {
     function capacity(pageIdx) {
-      var t = pageIdx === 0 ? L.contentTop : L.contentTopLater;
+      var t = pageIdx === 0 ? L.contentTop : laterTop(idDigitsOf(test));
       var r = Math.floor((L.contentBottom - t) / L.rowPitch) + 1;
       return qOnSheet ? r : r * cols;
     }
@@ -357,7 +372,7 @@ function layoutTest(test) {
     var mc = [];
     /* Page 1 carries the name box and the filling guide; the pages after
      * it carry neither, so their grid starts higher and holds more. */
-    var top = pages.length === 0 ? L.contentTop : L.contentTopLater;
+    var top = pages.length === 0 ? L.contentTop : laterTop(idDigitsOf(test));
     rows = Math.floor((L.contentBottom - top) / L.rowPitch) + 1;
     perPage = qOnSheet ? rows : rows * cols;
     var take = Math.min(plan[pages.length] || perPage, nMc - q);
@@ -394,7 +409,7 @@ function layoutTest(test) {
      * where the other later pages start rather than inheriting the position
      * the multiple-choice grid needs on page one. That was leaving two inches
      * of white above the first box on every writing side. */
-    var wTop = L.contentTopLater;
+    var wTop = laterTop(idDigitsOf(test));
     var avail = L.contentBottom - wTop - (n - 1) * L.wGap;
     var each = avail / n;
     var list = [];
@@ -481,7 +496,7 @@ var SHEET_CSS = [
      * the page is the bottom. Inferring that from where the ink sits was tried
      * and is not dependable: the heading and name box carry more ink than the
      * identity block, so the page came back upside down. */
-    '.edge{position:absolute;border:2.5pt solid #222;border-bottom-width:6pt;box-sizing:border-box}',
+    '.edge{position:absolute;border:3pt solid #222;border-bottom-width:7pt;box-sizing:border-box}',
     '.cmark{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
@@ -752,7 +767,7 @@ function renderSheets(test, people, opts) {
 
 global.QG = global.QG || {};
 global.QG.Sheet = {
-  L: L, LETTERS: LETTERS, choiceLabelsOf: choiceLabelsOf, cornerBars: cornerBars,
+  L: L, LETTERS: LETTERS, laterTop: laterTop, choiceLabelsOf: choiceLabelsOf, cornerBars: cornerBars,
   safeRight: safeRight,
   u: u, v: v, uv: uv, rect: rect,
   idGrid: idGrid, codeBits: codeBits, codeToBits: codeToBits,

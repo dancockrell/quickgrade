@@ -236,8 +236,31 @@ function findSheet(gray, w, h, opts) {
   opts = opts || {};
   var L = S.L;
 
-  function frameAt(C) {
+  /* Thicken by one pixel.
+   *
+   * A ruled border is the thinnest thing on the page that has to be found, and
+   * a page held far back can put it below one pixel in the downscaled copy the
+   * detector works on. It then breaks into fragments, none of which encloses
+   * anything, and the sheet is simply not there. One pass of dilation
+   * reconnects a line that is dashed by sampling without meaningfully changing
+   * a line that is solid. Only used as a fallback, because it also fattens
+   * everything else on the page. */
+  function dilate(bin) {
+    var out = new Uint8Array(bin.length);
+    for (var y = 0; y < h; y++) {
+      for (var x = 0; x < w; x++) {
+        var i = y * w + x;
+        if (bin[i] ||
+            (x > 0 && bin[i - 1]) || (x < w - 1 && bin[i + 1]) ||
+            (y > 0 && bin[i - w]) || (y < h - 1 && bin[i + w])) out[i] = 1;
+      }
+    }
+    return out;
+  }
+
+  function frameAt(C, thicken) {
     var bin = threshold(gray, w, h, 0.10, C);
+    if (thicken) bin = dilate(bin);
     /* A border encloses most of the frame, so only very large components are
      * worth considering, and there will be few of them. */
     var comps = components(bin, w, h, w * h * 0.0004, w * h);
@@ -245,10 +268,15 @@ function findSheet(gray, w, h, opts) {
     comps.forEach(function (c) {
       var boxArea = c.w * c.h;
       if (boxArea < w * h * (opts.minAreaFrac || 0.10)) return;
-      /* Not the whole frame. A photograph darkens at its edges, and that dark
-       * rim is itself a big hollow rectangle - it was being picked ahead of the
-       * page every time. The page is always inside the picture. */
-      if (boxArea > w * h * 0.90) return;
+      /* Not something that runs off the edge of the picture.
+       *
+       * A photograph darkens at its edges and that dark rim is itself a large
+       * hollow rectangle, which was being picked ahead of the page every time.
+       * An area cap was tried first and is the wrong test: it depends on how
+       * much of the frame the page happens to fill. What is actually true is
+       * that the page is inside the photograph, so anything touching the
+       * picture's own edge is not it. */
+      if (c.x <= 1 || c.y <= 1 || c.x + c.w >= w - 1 || c.y + c.h >= h - 1) return;
       /* The giveaway is how little ink there is. A ruled border measured 0.009
        * of its own bounding box; the vignette rim measured 0.088. Anything
        * that is actually a shape rather than a line is far above both. */
@@ -258,20 +286,31 @@ function findSheet(gray, w, h, opts) {
       var upright = asp > target * 0.62 && asp < target * 1.45;
       var sideways = asp > (1 / target) * 0.62 && asp < (1 / target) * 1.45;
       if (!upright && !sideways) return;
-      /* The innermost qualifying rectangle, not the largest.
+      /* The largest qualifying rectangle, now that the picture's own rim is
+       * excluded by touching the frame edge rather than by an area cap.
        *
-       * A photographed sheet offers more than one hollow rectangle: the dark
-       * rim of the picture itself, the edge of the paper against the desk, and
-       * the border we printed. They are nested, and the one we drew is the
-       * smallest of them. Taking the largest picked the paper edge, which sits
-       * about five per cent outside the border, and five per cent is enough to
-       * put every sample on the wrong bubble. */
-      if (!best || boxArea < best.w * best.h) best = c;
+       * Taking the smallest was tried and is wrong, expensively so. A writing
+       * page carries one large ruled answer box, which is also a hollow
+       * rectangle, also low-fill, and with one question to a page its aspect
+       * lands inside the tolerance. The detector locked onto the answer box
+       * instead of the page border and every writing page in the sample class
+       * failed to read: eight scans where there should have been fifteen, at
+       * every CPU speed, which is what gave it away as geometry rather than
+       * timing.
+       *
+       * The border encloses everything else printed on the page, so among
+       * candidates that are wholly inside the photograph it is the biggest by
+       * construction. */
+      if (!best || boxArea > best.w * best.h) best = c;
     });
     return best;
   }
 
-  var frame = frameAt(10) || frameAt(20) || frameAt(4);
+  /* Three thresholds first, then the same three with the ink thickened. The
+   * plain passes carry the common case; thickening is what rescues a sheet
+   * held far enough back that the border is thinner than a pixel. */
+  var frame = frameAt(10) || frameAt(20) || frameAt(4) ||
+              frameAt(10, true) || frameAt(20, true) || frameAt(4, true);
   if (!frame || !frame.corners || frame.corners.indexOf(null) >= 0) return null;
 
   /* The corners of a rectangle, however it is turned or tilted: the points

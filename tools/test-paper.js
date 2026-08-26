@@ -19,15 +19,26 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const res = [];
     const ok = (n, c, d) => res.push({ n, pass: !!c, d });
 
-    // Letter must be unchanged from the pre-paper-support constants
+    /* Letter geometry must not drift by accident.
+     *
+     * The numbers below were the pre-paper-support constants, when the page
+     * was registered from four solid corner marks inset 0.55in. Registration
+     * is now a ruled border at 0.42in, which widens the working area and moves
+     * everything derived from it. That change was deliberate and the baseline
+     * has been re-recorded here rather than the check weakened: its job is to
+     * catch drift nobody intended, and it did exactly that.
+     *
+     * Sheets printed before the border exists will not scan against this
+     * build. There is no way around that: the geometry a scanner solves from
+     * has moved. */
     S.setPaper('letter');
     ok('Letter geometry unchanged',
-      L.fid.x1 === 7.95 && L.fid.y1 === 10.45 &&
-      Math.abs(L.W - 7.4) < 1e-9 && Math.abs(L.H - 9.9) < 1e-9 &&
-      Math.abs(L.idX0 - 5.56) < 1e-9 && Math.abs(L.idLabelX - 4.92) < 1e-9 &&
-      Math.abs(L.contentBottom - 10.02) < 1e-9 &&
-      Math.abs(L.footerY - 10.32) < 1e-9 && Math.abs(L.wRight - 7.6) < 1e-9 &&
-      Math.abs(L.nameBox.w - 4.10) < 1e-9,
+      L.fid.x1 === 8.08 && L.fid.y1 === 10.58 &&
+      Math.abs(L.W - 7.66) < 1e-9 && Math.abs(L.H - 10.16) < 1e-9 &&
+      Math.abs(L.idX0 - 5.69) < 1e-9 && Math.abs(L.idLabelX - 5.05) < 1e-9 &&
+      Math.abs(L.contentBottom - 10.15) < 1e-9 &&
+      Math.abs(L.footerY - 10.30) < 1e-9 && Math.abs(L.wRight - 7.73) < 1e-9 &&
+      Math.abs(L.nameBox.w - 4.23) < 1e-9,
       'fid ' + L.fid.x1 + '/' + L.fid.y1 + ', idX0 ' + L.idX0 + ', bottom ' + L.contentBottom.toFixed(2));
 
     function mk(paper, nMc) {

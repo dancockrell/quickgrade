@@ -75,13 +75,20 @@ function renderSynthetic(test, pageIdx, opts) {
   var ctx = cv.getContext('2d');
   ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
 
-  /* fiducials + keystone */
+  /* The registration border, and a heavier rule along its foot.
+   *
+   * This drew four solid corner marks and a fifth for orientation until the
+   * page started registering off a ruled border instead. Drawn here exactly as
+   * the printer draws it, because a synthetic sheet that does not match the
+   * real one tests nothing. */
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = Math.max(1, inx(0.0417));
+  ctx.strokeRect(inx(L.fid.x0) + ctx.lineWidth / 2, inx(L.fid.y0) + ctx.lineWidth / 2,
+                 inx(L.W) - ctx.lineWidth, inx(L.H) - ctx.lineWidth);
+  var footW = inx(0.0972);
+  ctx.fillStyle = '#222';
+  ctx.fillRect(inx(L.fid.x0), inx(L.fid.y1) - footW, inx(L.W), footW);
   ctx.fillStyle = '#000';
-  var s = inx(L.fid.size), hs = s / 2;
-  [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]]
-    .forEach(function (c) { ctx.fillRect(inx(c[0]) - hs, inx(c[1]) - hs, s, s); });
-  var ks = inx(L.keystone.size);
-  ctx.fillRect(inx(L.keystone.x) - ks / 2, inx(L.keystone.y) - ks / 2, ks, ks);
 
   /* some page furniture so the detector sees realistic clutter */
   ctx.fillStyle = '#111'; ctx.font = 'bold ' + inx(0.17) + 'px Arial'; ctx.textAlign = 'left';
@@ -225,6 +232,17 @@ function decode(photo, pages, nId) {
   dc.getContext('2d').drawImage(photo, 0, 0, detW, detH);
   var gDet = V.toGray(dc.getContext('2d').getImageData(0, 0, detW, detH));
   var found = V.findSheet(gDet.g, detW, detH);
+  if (!found && W > detW) {
+    /* The same second look the scanner takes. 480 across is plenty when the
+     * sheet fills the frame and not nearly enough when it does not: a page
+     * held far back occupies a seventh of the width, which puts the ruled
+     * border below one pixel here, so it is not in the image to be found. */
+    detW = Math.min(W, detW * 2); detH = Math.round(H2 * detW / W);
+    dc.width = detW; dc.height = detH;
+    dc.getContext('2d').drawImage(photo, 0, 0, detW, detH);
+    gDet = V.toGray(dc.getContext('2d').getImageData(0, 0, detW, detH));
+    found = V.findSheet(gDet.g, detW, detH);
+  }
   if (!found) return { ok: false, reason: 'sheet not found' };
 
   var Hc = V.scaleH(found.H, W / detW);
@@ -362,41 +380,25 @@ var printCheck = new Promise(function (resolve) {
       }
       function centreIn(node) { var b = box(node); return [b.cx / pxPerIn, b.cy / pxPerIn]; }
 
-      /* 1. the corner marks land where the scanner looks for them.
+      /* 1. the registration border lands where the scanner looks for it.
        *
-       * A mark is a bracket drawn as two bars, and the detector locates it by
-       * the CENTROID of the ink, not by the centre of its bounding box. So
-       * this weighs the bars by area and checks where their combined centre
-       * of mass falls. Getting this wrong skews the homography across the
-       * whole page and starts costing the outermost bubbles. */
-      var fids = [].slice.call(page.querySelectorAll('.fid'));   /* first page only */
-      var corners = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0],
-                     [L.fid.x0, L.fid.y1], [L.fid.x1, L.fid.y1]];
-      var maxErr = 0;
-      corners.forEach(function (wpt) {
-        /* the bars belonging to this corner: the two nearest it */
-        var near = fids.map(function (n) {
-          var bx = box(n);
-          var cx = (bx.x0 + bx.x1) / 2, cy = (bx.y0 + bx.y1) / 2;
-          return { bx: bx, d: Math.abs(cx - wpt[0]) + Math.abs(cy - wpt[1]) };
-        }).sort(function (m, n) { return m.d - n.d; }).slice(0, 2);
-        var mx = 0, my = 0, area = 0;
-        near.forEach(function (o) {
-          var w = o.bx.x1 - o.bx.x0, hgt = o.bx.y1 - o.bx.y0, ar = w * hgt;
-          mx += ar * (o.bx.x0 + w / 2); my += ar * (o.bx.y0 + hgt / 2); area += ar;
-        });
-        maxErr = Math.max(maxErr, Math.abs(mx / area - wpt[0]), Math.abs(my / area - wpt[1]));
-      });
-      var kNode = fids.filter(function (n) {
-        var bx = box(n);
-        return Math.abs((bx.x0 + bx.x1) / 2 - L.keystone.x) < 0.2 &&
-               Math.abs((bx.y0 + bx.y1) / 2 - L.keystone.y) < 0.2;
-      })[0];
-      var kErr = kNode ? Math.max(Math.abs(centreIn(kNode)[0] - L.keystone.x),
-                                  Math.abs(centreIn(kNode)[1] - L.keystone.y)) : 9;
-      check('corner marks put their centre of ink where the scanner looks',
-        fids.length === 9 && maxErr < 0.01 && kErr < 0.01,
-        fids.length + ' marks, worst offset ' + (Math.max(maxErr, kErr) * 1000).toFixed(1) + ' thou');
+       * This used to weigh two bars per corner and check where their combined
+       * centre of ink fell, because a bracket is located by its centroid. The
+       * page is registered from a ruled border now, so what matters is that
+       * the border box sits exactly on the fiducial rectangle: every other
+       * coordinate on the sheet is expressed relative to it, and an error here
+       * skews the whole page. */
+      var edges = [].slice.call(page.querySelectorAll('.edge'));
+      var maxErr = 9;
+      if (edges.length === 1) {
+        var eb = box(edges[0]);
+        maxErr = Math.max(Math.abs(eb.x0 - L.fid.x0), Math.abs(eb.y0 - L.fid.y0),
+                          Math.abs(eb.x1 - L.fid.x1), Math.abs(eb.y1 - L.fid.y1));
+      }
+      check('the registration border sits on the geometry the scanner solves from',
+        edges.length === 1 && maxErr < 0.01,
+        edges.length + ' border(s), worst offset ' + (maxErr * 1000).toFixed(1) + ' thou');
+
       /* 2. every printed bubble centre matches a bubble the scanner samples */
       var pages = S.layoutTest(test);
       var expected = [];
@@ -436,15 +438,23 @@ var printCheck = new Promise(function (resolve) {
       check('pre-printed ID bubbles encode the student number',
         readBack === SID, 'read back ' + readBack + ' (expected ' + SID + ')');
 
-      /* 4. nothing printed inside a corner square's quiet zone */
-      var zones = [[L.fid.x0, L.fid.y0], [L.fid.x1, L.fid.y0], [L.fid.x0, L.fid.y1],
-                   [L.fid.x1, L.fid.y1], [L.keystone.x, L.keystone.y]].map(function (c, i) {
-        var half = (i === 4 ? L.keystone.size : L.fid.size) / 2 + L.quiet;
-        return { x0: c[0] - half, y0: c[1] - half, x1: c[0] + half, y1: c[1] + half };
-      });
+      /* 4. nothing printed close enough to the border to merge with it.
+       *
+       * This checked five square quiet zones when the page carried corner
+       * marks. The border is one continuous rectangle, so the zone is a band
+       * following it: ink that touches the border joins it under threshold and
+       * the corner it belongs to stops being a corner, which is the same
+       * failure the old zones existed to prevent. */
+      var q = L.quiet;
+      var zones = [
+        { x0: L.fid.x0 - q, y0: L.fid.y0 - q, x1: L.fid.x1 + q, y1: L.fid.y0 + q },
+        { x0: L.fid.x0 - q, y0: L.fid.y1 - q, x1: L.fid.x1 + q, y1: L.fid.y1 + q },
+        { x0: L.fid.x0 - q, y0: L.fid.y0 - q, x1: L.fid.x0 + q, y1: L.fid.y1 + q },
+        { x0: L.fid.x1 - q, y0: L.fid.y0 - q, x1: L.fid.x1 + q, y1: L.fid.y1 + q }
+      ];
       var intruders = [];
       [].slice.call(page.children).forEach(function (node, i) {
-        if (node.classList.contains('fid')) return;
+        if (node.classList.contains('edge')) return;
         var b = box(node);
         if (b.x1 - b.x0 <= 0 || b.y1 - b.y0 <= 0) return;
         zones.forEach(function (z, zi) {
@@ -455,7 +465,7 @@ var printCheck = new Promise(function (resolve) {
           }
         });
       });
-      check('no printed element intrudes on a corner square quiet zone',
+      check('no printed element touches the registration border',
         intruders.length === 0, intruders.length ? intruders.slice(0, 4).join(' ; ') :
         page.children.length + ' elements checked');
 

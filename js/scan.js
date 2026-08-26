@@ -213,6 +213,26 @@ function tick() {
   var detImg = Scanner.detCtx.getImageData(0, 0, detW, detH);
   var gray = V.toGray(detImg);
   var found = V.findSheet(gray.g, detW, detH);
+  if (!found && capW > detW) {
+    /* Look again with more of the picture.
+     *
+     * 480 across is plenty when the sheet fills the frame, and not nearly
+     * enough when it does not. A page held far back can occupy a seventh of
+     * the width, which puts the registration border below one pixel here and
+     * it simply is not in the image to be found. Solid corner marks used to
+     * survive that; a ruled line does not, and this is the price of taking
+     * them off the page.
+     *
+     * The retry is on the miss rather than always, because every frame that
+     * finds the sheet immediately should stay cheap: this runs at camera rate
+     * on a phone. */
+    var bigW = Math.min(capW, detW * 2), bigH = Math.round(capH * bigW / capW);
+    Scanner.det.width = bigW; Scanner.det.height = bigH;
+    Scanner.detCtx.drawImage(Scanner.cap, 0, 0, bigW, bigH);
+    var gray2 = V.toGray(Scanner.detCtx.getImageData(0, 0, bigW, bigH));
+    var found2 = V.findSheet(gray2.g, bigW, bigH);
+    if (found2) { found = found2; detW = bigW; detH = bigH; gray = gray2; }
+  }
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);
