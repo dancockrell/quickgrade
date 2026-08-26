@@ -9253,7 +9253,13 @@ var SHEET_CSS = [
 '.vmark{position:absolute;border:1.6px solid #111;border-radius:.08in;display:flex;',
 '  align-items:center;justify-content:center;font-weight:800;font-size:19pt;color:#111}',
 '.rule{position:absolute;border-top:1px solid #999}',
-'.writeline{position:absolute;border-top:.6px dotted #c8c8c8}',
+/* Ruled lines a student can actually see.
+     * These were .6px dotted #c8c8c8: sub-pixel at print resolution and 78%
+     * white, so on the one master that gets photocopied for the class they
+     * came out as nothing at all. A writing box with no visible rule is a
+     * blank rectangle, and students write crooked or not at all. Dark enough
+     * to survive a third-generation copy, light enough to sit under pencil. */
+    '.writeline{position:absolute;border-top:1px dotted #777}',
 '.toolbar{position:sticky;top:0;background:#111;color:#fff;padding:10px 14px;z-index:9;display:flex;gap:10px;align-items:center}',
 '.toolbar button{background:#22c07a;color:#04240f;border:0;border-radius:7px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer}',
 '.toolbar span{font-size:12px;opacity:.85}'
@@ -9386,9 +9392,13 @@ function renderPage(test, pages, pageIdx, who) {
       E((wq.label || ('Question ' + (wb.w + 1)))) +
       '<span style="font-weight:400;color:#666"> &nbsp;(' + (wq.max || 0) + ' pts)</span>');
     h += absDiv('box', wb.x, wb.y, wb.bw, wb.bh, '');
-    var lines = Math.max(0, Math.floor(wb.bh / 0.32) - 1);
+    /* 0.28in is ordinary school ruling. The old 0.32in spacing with a
+     * line subtracted left a four-mark answer two lines and half an inch of
+     * dead space at the bottom of the box. */
+    var lineGap = 0.28;
+    var lines = Math.max(0, Math.floor((wb.bh - 0.10) / lineGap));
     for (var li = 1; li <= lines; li++) {
-      h += '<div class="writeline" style="left:' + (wb.x + 0.12) + 'in;top:' + (wb.y + li * 0.32) +
+      h += '<div class="writeline" style="left:' + (wb.x + 0.12) + 'in;top:' + (wb.y + li * lineGap) +
            'in;width:' + (wb.bw - 0.24) + 'in"></div>';
     }
   });
