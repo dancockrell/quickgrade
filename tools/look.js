@@ -53,6 +53,9 @@ if (!TARGET) {
 const PRINT_GREY = 0.62;
 const MIN_PT = 6.0;
 const OVERLAP_PX = 2;
+/* A fifth of a page with nothing on it is worth mentioning; less is just
+ * margin. Reported, never failed: an empty band is a judgement, not a defect. */
+const BLANK_FRAC = 0.18;
 
 function url(t) {
   if (/^https?:/i.test(t)) return t;
@@ -242,6 +245,110 @@ function escapedInPage(sel) {
   return out;
 }
 
+
+/* Large areas where a reader would see nothing.
+ *
+ * Borrowed from desktop-vision-rig, which added it after a session lost an
+ * evening to a thousand-pixel column rendering as black nothing while every
+ * assertion passed. The insight transfers exactly: every check here answers
+ * "does the element exist", and none of them answer "would anybody see
+ * anything in this part of the page". On paper the cost is not a broken render
+ * but a wasted side, which a school pays for by the copy.
+ *
+ * Judged from element boxes rather than pixels, because at this point the DOM
+ * is the truth about what was laid out and pixels would only add sampling
+ * error.
+ */
+/* page.evaluate passes exactly one argument, so both arrive in one object. */
+function blankInPage(arg) {
+  const sel = arg.sel, cfg = arg.cfg;
+  const out = [];
+  const pages = [...document.querySelectorAll(sel)];
+  pages.forEach((pg, pi) => {
+    const pr = pg.getBoundingClientRect();
+    if (pr.width < 50 || pr.height < 50) return;
+    const COLS = 12, ROWS = 16;
+    const cw = pr.width / COLS, ch = pr.height / ROWS;
+    const filled = new Uint8Array(COLS * ROWS);
+
+    [...pg.querySelectorAll('*')].forEach(el => {
+      const cs = getComputedStyle(el);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) return;
+      const hasText = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      const hasEdge = ['borderTopWidth','borderBottomWidth','borderLeftWidth','borderRightWidth']
+        .some(w => parseFloat(cs[w]) > 0);
+      const solid = !/rgba\(0, 0, 0, 0\)|transparent/.test(cs.backgroundColor);
+      if (!hasText && !hasEdge && !solid) return;
+      const r = el.getBoundingClientRect();
+      if (r.width <= 0 || r.height <= 0) return;
+      /* A hollow element puts its ink on its perimeter, not across its area.
+       * A ruled border, a writing box, a panel outline: the middle of one is
+       * empty paper and should be counted as such. Treating them as solid was
+       * marking every cell of a nearly blank page as occupied, because the
+       * page border alone covers the whole grid. */
+      const hollow = !hasText && !solid && hasEdge;
+      const bw = {
+        t: parseFloat(cs.borderTopWidth) || 0, b: parseFloat(cs.borderBottomWidth) || 0,
+        l: parseFloat(cs.borderLeftWidth) || 0, r: parseFloat(cs.borderRightWidth) || 0
+      };
+      const bands = hollow
+        ? [{ x0: r.left, y0: r.top, x1: r.right, y1: r.top + Math.max(bw.t, 1) },
+           { x0: r.left, y0: r.bottom - Math.max(bw.b, 1), x1: r.right, y1: r.bottom },
+           { x0: r.left, y0: r.top, x1: r.left + Math.max(bw.l, 1), y1: r.bottom },
+           { x0: r.right - Math.max(bw.r, 1), y0: r.top, x1: r.right, y1: r.bottom }]
+        : [{ x0: r.left, y0: r.top, x1: r.right, y1: r.bottom }];
+      for (let c = 0; c < COLS; c++) {
+        for (let rw = 0; rw < ROWS; rw++) {
+          const x0 = pr.left + c * cw, y0 = pr.top + rw * ch;
+          const hit = bands.some(bd =>
+            bd.x0 < x0 + cw && bd.x1 > x0 && bd.y0 < y0 + ch && bd.y1 > y0);
+          if (hit) filled[c * ROWS + rw] = 1;
+        }
+      }
+    });
+
+    /* The largest empty rectangle, not the tallest empty row.
+     *
+     * A band of rows only counts as empty if nothing occupies any column in
+     * it, so an identity block sitting in the right-hand quarter hides two
+     * inches of white across the rest of the width. The page 5 of a real
+     * answer sheet reported nothing at all on the row test while a quarter of
+     * the sheet was visibly bare. This is the standard largest-rectangle-in-a
+     * -histogram sweep, one row at a time. */
+    let best = { area: 0, c0: 0, r0: 0, cw: 0, rh: 0 };
+    const heights = new Array(COLS).fill(0);
+    for (let rw = 0; rw < ROWS; rw++) {
+      for (let c = 0; c < COLS; c++) {
+        heights[c] = filled[c * ROWS + rw] ? 0 : heights[c] + 1;
+      }
+      const stack = [];
+      for (let c = 0; c <= COLS; c++) {
+        const hgt = c === COLS ? 0 : heights[c];
+        let start = c;
+        while (stack.length && stack[stack.length - 1].h >= hgt) {
+          const top = stack.pop();
+          const area = top.h * (c - top.c);
+          if (area > best.area) {
+            best = { area, c0: top.c, r0: rw - top.h + 1, cw: c - top.c, rh: top.h };
+          }
+          start = top.c;
+        }
+        stack.push({ c: start, h: hgt });
+      }
+    }
+    const frac = best.area / (COLS * ROWS);
+    if (frac >= (cfg.BLANK_FRAC || 0.18)) {
+      out.push({ kind: 'blank', weight: 1,
+        why: Math.round(frac * 100) + '% of page ' + (pi + 1) + ' is one empty block, about ' +
+             (best.cw * cw / 96).toFixed(1) + 'in by ' + (best.rh * ch / 96).toFixed(1) + 'in',
+        label: 'page ' + (pi + 1) + ', nothing a reader would see here',
+        rect: { x: Math.round(pr.left + best.c0 * cw), y: Math.round(pr.top + best.r0 * ch),
+                w: Math.round(best.cw * cw), h: Math.round(best.rh * ch) } });
+    }
+  });
+  return out;
+}
+
 /* ------------------------------------------------------------------ run */
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
@@ -253,7 +360,7 @@ function escapedInPage(sel) {
   await page.goto(url(TARGET), { waitUntil: 'networkidle' });
   await page.waitForTimeout(1200);                       // webfonts settle
 
-  const cfg = { PRINT_GREY, MIN_PT, OVERLAP_PX };
+  const cfg = { PRINT_GREY, MIN_PT, OVERLAP_PX, BLANK_FRAC };
   const pageSel = await page.evaluate(() => {
     for (const s of ['.page', '.sheet', '.slide', 'body']) {
       if (document.querySelectorAll(s).length) return s;
@@ -265,6 +372,7 @@ function escapedInPage(sel) {
   findings = findings.concat(await page.evaluate(auditInPage, cfg));
   findings = findings.concat(await page.evaluate(collisionsInPage, cfg));
   findings = findings.concat(await page.evaluate(escapedInPage, pageSel));
+  findings = findings.concat(await page.evaluate(blankInPage, { sel: pageSel, cfg }));
   findings.sort((a, b) => b.weight - a.weight || a.rect.y - b.rect.y);
 
   /* ---- annotated screenshot: every finding boxed and numbered ---- */
@@ -275,7 +383,7 @@ function escapedInPage(sel) {
       'pointer-events:none;z-index:2147483647';
     document.body.appendChild(lay);
     const colour = { collision: '#e11', truncated: '#e11', escaped: '#e11',
-                     faint: '#07c', tiny: '#c60' };
+                     faint: '#07c', tiny: '#c60', blank: '#0a7' };
     list.forEach(function (f, i) {
       const d = document.createElement('div');
       const c = colour[f.kind] || '#e11';

@@ -320,6 +320,39 @@ function layoutTest(test) {
   var pages = [];
   var q = 0;
 
+  /* How many questions go on each page.
+   *
+   * Filling every page to capacity and letting the last one take what is left
+   * gave 12, 13 and 5 for a thirty-question paper: the third side was 42% bare,
+   * which the page inspector reported and a school pays for by the copy. Work
+   * out how many sides are needed first, then share the questions across them,
+   * respecting the fact that page one holds fewer because it also carries the
+   * name box and the filling guide.
+   */
+  function planPages(total) {
+    function capacity(pageIdx) {
+      var t = pageIdx === 0 ? L.contentTop : L.contentTopLater;
+      var r = Math.floor((L.contentBottom - t) / L.rowPitch) + 1;
+      return qOnSheet ? r : r * cols;
+    }
+    var n = 0, left = total;
+    while (left > 0) { left -= capacity(n); n++; }
+    var plan = [], remaining = total;
+    for (var i = 0; i < n; i++) {
+      var share = Math.round(remaining / (n - i));
+      plan.push(Math.min(share, capacity(i)));
+      remaining -= plan[i];
+    }
+    /* Rounding can leave a question over; give it to the first page with room. */
+    for (var j = 0; remaining > 0 && j < n; j++) {
+      var room = capacity(j) - plan[j];
+      var add = Math.min(room, remaining);
+      plan[j] += add; remaining -= add;
+    }
+    return plan;
+  }
+  var plan = planPages(nMc);
+
   while (q < nMc) {
     var mc = [];
     /* Page 1 carries the name box and the filling guide; the pages after
@@ -327,7 +360,7 @@ function layoutTest(test) {
     var top = pages.length === 0 ? L.contentTop : L.contentTopLater;
     rows = Math.floor((L.contentBottom - top) / L.rowPitch) + 1;
     perPage = qOnSheet ? rows : rows * cols;
-    var take = Math.min(perPage, nMc - q);
+    var take = Math.min(plan[pages.length] || perPage, nMc - q);
     /* Spread the questions evenly rather than filling column 1 to the brim and
      * leaving a four-question stub in column 2. */
     var colsUsed = Math.max(1, Math.min(cols, Math.ceil(take / rows)));
