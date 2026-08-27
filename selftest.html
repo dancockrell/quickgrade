@@ -25,6 +25,8 @@ distorts them the way a hand-held camera would, and pushes them through the real
 <script src="js/i18n.js"></script>
 <script src="js/lang/en.js"></script>
 <script src="js/ooxml.js"></script>
+<script src="js/vendor/qrcode.js"></script>
+<script src="js/vendor/jsqr.js"></script>
 <script src="js/sheet.js"></script>
 <script src="js/vision.js"></script>
 <script>
@@ -111,15 +113,19 @@ function renderSynthetic(test, pageIdx, opts) {
   S.idGrid().forEach(function (row, r) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
-  /* the code strip: marks, not bubbles */
-  var cbits = S.codeToBits(test.code, pageIdx);
-  S.codeBits().forEach(function (pt, i) {
-    if (!cbits[i]) return;
-    var xy = uvToPx(pt);
-    var m = inx(0.085);
-    ctx.fillStyle = '#111';
-    ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
-  });
+  /* the identity QR, same mechanism synth.js uses for the real suites */
+  var qr = S.qrEncode(test.code, pageIdx);
+  var qb = S.qrRect(L.idDigits);
+  var mod = qr.getModuleCount();
+  var cell = (qb.size - L.qrQuiet * 2) / mod;
+  ctx.fillStyle = '#000';
+  for (var qy = 0; qy < mod; qy++) {
+    for (var qx = 0; qx < mod; qx++) {
+      if (!qr.isDark(qy, qx)) continue;
+      ctx.fillRect(inx(qb.x + L.qrQuiet + qx * cell), inx(qb.y + L.qrQuiet + qy * cell),
+                   inx(cell), inx(cell));
+    }
+  }
 
   /* answers */
   pg.mc.forEach(function (item) {

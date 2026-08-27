@@ -83,15 +83,21 @@ function renderSynthetic(test, pageIdx, opts) {
       row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
     });
   }
-  /* the code strip: a filled square where the bit is set, nothing where it
-   * is not, drawn from the same bit order the printer uses */
-  var cbits = S.codeToBits(test.code, pageIdx);
-  S.codeBits(nId).forEach(function (pt, i) {
-    if (!cbits[i]) return;
-    var xy = uvToPx(pt), m = inx(0.085);
-    ctx.fillStyle = '#111';
-    ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
-  });
+  /* the identity QR, drawn module by module the same way the printer draws
+   * it, so a synthetic photograph is tested against the same mark a real
+   * camera would see */
+  var qr = S.qrEncode(test.code, pageIdx);
+  var qb = S.qrRect(nId);
+  var mod = qr.getModuleCount();
+  var cell = (qb.size - L.qrQuiet * 2) / mod;
+  ctx.fillStyle = '#000';
+  for (var qy = 0; qy < mod; qy++) {
+    for (var qx = 0; qx < mod; qx++) {
+      if (!qr.isDark(qy, qx)) continue;
+      ctx.fillRect(inx(qb.x + L.qrQuiet + qx * cell), inx(qb.y + L.qrQuiet + qy * cell),
+                   inx(cell), inx(cell));
+    }
+  }
 
   pg.mc.forEach(function (item) {
     /* answers[q] may be: a choice index (clean mark), [a,b] (double-marked),

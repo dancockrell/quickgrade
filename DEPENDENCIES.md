@@ -11,11 +11,17 @@ Generated from the shared memory database. Edit there, not here:
 
 ### CPython 3.13
 
-- Location: `AppData/Local/Programs/Python/Python313/python.exe`
-- Why: build.py regenerates sw.js and the single-file QuickGrade.html, and the build test fails without it. No manifest names an interpreter, and the obvious names on PATH are Store aliases that do nothing. See trap python-none-on-path.
+- Location: `C:/Users/Admin/AppData/Local/Programs/Python/Python313`
+- Why: build.py regenerates sw.js and the single-file QuickGrade.html, and the build check fails without it. No manifest names an interpreter, and the obvious names on PATH are Store aliases that execute nothing. The binary is python.exe inside this directory. See trap python-none-on-path.
 
-### playwright + chromium browser cache
+### chromium browser cache (playwright)
 
-- Location: `Downloads/testgrader/tools/node_modules and AppData/Local/ms-playwright`
+- Location: `C:/Users/Admin/AppData/Local/ms-playwright`
 - Source: https://playwright.dev
-- Why: The whole 21-suite harness is Playwright driving headless Chromium. tools/package.json names playwright, but nothing records that the browser binaries live in a separate machine-wide cache that can be stripped independently of node_modules. Both have to be present: npm install, then npx playwright install chromium.
+- Why: Where playwright keeps the browsers it downloads. Separate from node_modules and strippable independently of it: on 26 Aug 2026 icudtl.dat vanished from here and Chrome launched then died while --version still worked. Restore with npx playwright install chromium --force. See trap file-stripping.
+
+### playwright (node package)
+
+- Location: `C:/Users/Admin/Downloads/testgrader/tools/node_modules`
+- Source: https://playwright.dev
+- Why: The whole test harness is Playwright driving headless Chromium. tools/package.json names the package but nothing records that the browser binaries live in a separate machine-wide cache, listed as its own row. Both must be present.

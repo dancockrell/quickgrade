@@ -48,6 +48,12 @@ var L = {
   codeDigits: 3, pageMax: 10,
   /* gaps from the last row of one block to the first row of the next */
   codeGap: 0.26, pageGap: 0.228,
+  /* Printed footprint of the identity QR code, including its own blank
+   * margin. Small enough to be inconspicuous, large enough that a phone
+   * camera at ordinary scanning distance resolves it with room to spare -
+   * this app already reads bubbles a fraction of this size reliably via the
+   * same homography-corrected sampling the QR crop uses. */
+  qrSize: 0.52, qrQuiet: 0.04,
 
   contentTop: 3.48, contentTopBase: 3.48, contentBottom: 10.02,
   /* Page 2 onward has no name box and no filling guide above the grid,
@@ -216,65 +222,35 @@ function idGrid(n) {
   }
   return rows;
 }
-/* The test code, as ten marks rather than thirty bubbles.
+/* The test code and page number, as a QR code rather than a strip of marks.
  *
- * It used to be three rows of ten bubbles with one in each row already
- * filled in. That is a hundred and eighty square millimetres of grid asking a
- * student not to touch it, for a number the machine prints and the machine
- * reads. Worse, it looks exactly like the class-number grid directly above,
- * which a student is supposed to fill in.
+ * It used to be a row of ten small squares, a home-rolled binary encoding
+ * read by sampling darkness at fourteen precise points against a threshold.
+ * That works until the sheet is folded, smudged, photographed at an angle, or
+ * copied one generation too many - any single mark reading wrong flips a bit
+ * silently, and a flipped bit in the code or page number does not look like a
+ * failure, it looks like a DIFFERENT sheet. A QR code carries its own error
+ * correction: it either decodes to exactly what was printed, or it fails to
+ * decode at all. The silent-wrong-answer failure mode this is replacing does
+ * not exist for a QR code the way it does for fourteen independent marks.
  *
- * Ten marks carry 0 to 1023, which covers every three-digit code. They are
- * small, they are on one line, and they do not look like anything anybody is
- * meant to complete.
+ * It is also unmistakably a machine-only mark to a student, which none of the
+ * bubble-shaped alternatives ever quite were.
  */
-var CODE_BITS = 10;
-/* The page number rides on the same strip.
- *
- * It had a row of its own: ten bubbles with one already filled, sitting under
- * the class-number grid and looking exactly like it, for a number the printer
- * writes and only the scanner reads. Four more marks carry one to sixteen,
- * which is more pages than the sheet allows, and the row goes away. That is
- * ten bubbles off every side of every sheet, and one less row of identity
- * block above the questions.
- */
-var PAGE_BITS = 4;
-var STRIP_BITS = CODE_BITS + PAGE_BITS;
-/* The strip has its own pitch, tighter than a bubble.
- *
- * At bubble spacing fourteen marks are 3.29in wide in an identity block that
- * is 2.39in, so the last four were printed past the right edge of the page and
- * sampled off it: the page number read as zero on every sheet. Nobody has to
- * aim at these, so they can sit closer together than something a student fills
- * in. Thirteen gaps at 0.168in span 2.18in and stay inside the block.
- */
-function stripPitch() { return (2.39 - 0.20) / (STRIP_BITS - 1); }
-function codeBits(n) {
-  n = n || L.idDigits;
-  var y = codeY0(n), p = stripPitch(), row = [];
-  for (var i = 0; i < STRIP_BITS; i++) row.push(uv(L.idX0 + i * p, y));
-  return row;
+var QR_ECC = 'M';                       // ~15% of the code can be damaged and still read
+/** Bounding box, in inches, of the printed QR block: same anchor point the
+ * mark strip used, sized to hold it rather than a thin line. */
+function qrRect(n) {
+  return { x: L.idX0, y: codeY0(n), size: L.qrSize };
 }
-/** Most significant bit first, so the printed strip reads left to right. */
-function numToBits(v, n) {
-  var out = [];
-  v = parseInt(v, 10) || 0;
-  for (var i = n - 1; i >= 0; i--) out.push(Math.floor(v / Math.pow(2, i)) % 2);
-  return out;
-}
-function codeToBits(code, pageIdx) {
-  return numToBits(code, CODE_BITS).concat(numToBits((pageIdx || 0) + 1, PAGE_BITS));
-}
-function bitsToCode(bits) {
-  var v = 0;
-  for (var i = 0; i < Math.min(bits.length, CODE_BITS); i++) v = (v * 2) + (bits[i] ? 1 : 0);
-  return v;
-}
-/** @returns 1-based page, or null when the marks say something impossible. */
-function bitsToPage(bits) {
-  var v = 0;
-  for (var i = CODE_BITS; i < bits.length; i++) v = (v * 2) + (bits[i] ? 1 : 0);
-  return v >= 1 && v <= L.pageMax ? v : null;
+/** A qrcode-generator instance encoding "<code>.<page>", version auto-picked
+ * to fit. Building fresh each call rather than caching: it is cheap, and the
+ * library's own object is mutable state nothing else should hold onto. */
+function qrEncode(code, pageIdx) {
+  var q = global.qrcode(0, QR_ECC);
+  q.addData(String(code) + '.' + ((pageIdx || 0) + 1));
+  q.make();
+  return q;
 }
 /** Where a page that carries no name box and no filling guide can start.
  *
@@ -286,9 +262,10 @@ function bitsToPage(bits) {
  */
 function laterTop(n) {
   n = n || L.idDigits;
-  /* The strip is the last thing in the identity block now that the page
+  /* The QR block is the last thing in the identity block now that the page
    * row has gone, so clearance is measured from it. */
-  return codeY0(n) + L.bubbleR + L.laterGap;
+  var r = qrRect(n);
+  return r.y + r.size + L.laterGap;
 }
 function pageRow(n) {
   n = n || L.idDigits;
@@ -479,7 +456,7 @@ var SHEET_CSS = [
      * identity block, so the page came back upside down. */
     '.logo{position:absolute;object-fit:contain}',
     '.edge{position:absolute;border:3pt solid #222;border-bottom-width:7pt;box-sizing:border-box}',
-    '.cmark{position:absolute;background:#000}',
+    '.qrmod{position:absolute;background:#000}',
 '.bub{position:absolute;border:1.1px solid #1a1a1a;border-radius:50%;font-size:5.6pt;line-height:1;',
 '  color:#b9b9b9;text-align:center;display:flex;align-items:center;justify-content:center;background:#fff}',
 '.bub.fill{background:#000;border-color:#000}',
@@ -689,23 +666,19 @@ function renderPage(test, pages, pageIdx, who) {
         '<span style="font-size:6pt;color:#666">' +
         E(lbl.continuesWhy || T('sheet.continuesWhy')) + '</span>');
   }
-  /* The code strip: ten small marks, machine only. Printed with the number
-   * beside it so a person can still tell two versions apart by eye. */
-  var bits = codeToBits(who.formCode || test.code, pageIdx);
-  var cY2 = codeY0(nId);
-  var mk = 0.085;
-  bits.forEach(function (bit, i) {
-    if (!bit) return;
-    h += '<div class="cmark" style="left:' + (L.idX0 + i * stripPitch() - mk / 2) +
-         'in;top:' + (cY2 - mk / 2) + 'in;width:' + mk + 'in;height:' + mk + 'in"></div>';
-  });
-  /* No code printed beside the strip. The corner already reads "TEST 117 -
-   * PAGE 2 OF 5", which tells a person the same thing and tells them the page
-   * as well, and the label here sat at a page-1 height that ran into the first
-   * question on every later page. */
-  /* The page row of ten bubbles is gone. Its number rides on the last four
-   * marks of the strip above, and a person reads it from "PAGE n of m" in the
-   * corner, which was always there. */
+  /* The identity QR: which test, which page, machine only. No code printed
+   * beside it - the corner already reads "TEST 117 - PAGE 2 OF 5", which
+   * tells a person the same thing and the page as well. */
+  var qr = qrEncode(who.formCode || test.code, pageIdx);
+  var qb = qrRect(nId);
+  var mod = qr.getModuleCount();
+  var cell = (qb.size - L.qrQuiet * 2) / mod;
+  for (var qy = 0; qy < mod; qy++) {
+    for (var qx = 0; qx < mod; qx++) {
+      if (!qr.isDark(qy, qx)) continue;
+      h += absDiv('qrmod', qb.x + L.qrQuiet + qx * cell, qb.y + L.qrQuiet + qy * cell, cell, cell);
+    }
+  }
 
   /* multiple-choice grid */
   var qOnSheetNow = questionsOnSheet(test);
@@ -809,8 +782,7 @@ global.QG.Sheet = {
   L: L, LETTERS: LETTERS, laterTop: laterTop, choiceLabelsOf: choiceLabelsOf,
   safeRight: safeRight,
   u: u, v: v, uv: uv, rect: rect,
-  idGrid: idGrid, codeBits: codeBits, codeToBits: codeToBits,
-  bitsToCode: bitsToCode, bitsToPage: bitsToPage, pageRow: pageRow,
+  idGrid: idGrid, qrRect: qrRect, qrEncode: qrEncode, pageRow: pageRow,
   idDigitsOf: idDigitsOf, ID_DIGIT_CHOICES: ID_DIGIT_CHOICES, codeY0: codeY0, pageY: pageY,
   PAPERS: PAPERS, setPaper: setPaper, paperOf: paperOf, usePaper: usePaper,
   layoutTest: layoutTest, pageIndexFor: pageIndexFor,

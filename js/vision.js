@@ -1,7 +1,9 @@
 /* QuickGrade — vision.js
  * Pure-JS sheet detection: adaptive threshold -> connected components ->
  * four corner fiducials -> homography -> bubble sampling.
- * No libraries; runs comfortably at 15-30 fps on a phone.
+ * Runs comfortably at 15-30 fps on a phone. The one library this file uses is
+ * jsQR, vendored in full rather than fetched, to decode the identity mark -
+ * see js/vendor/ for what "no libraries" gave way to and why.
  */
 (function (global) {
 'use strict';
@@ -15,6 +17,17 @@ function toGray(img) {                       // img: ImageData
     g[i] = (d[j] * 77 + d[j + 1] * 151 + d[j + 2] * 28) >> 8;
   }
   return { g: g, w: img.width, h: img.height };
+}
+/** A single-channel array as an RGBA ImageData-alike, for feeding a
+ * grayscale crop through code that expects a colour image - here, warping a
+ * region ahead of a QR decode, which only needs contrast, not colour. */
+function grayToImageData(gray, w, h) {
+  var n = w * h, data = new Uint8ClampedArray(n * 4);
+  for (var i = 0, j = 0; i < n; i++, j += 4) {
+    var v = gray[i];
+    data[j] = v; data[j + 1] = v; data[j + 2] = v; data[j + 3] = 255;
+  }
+  return { data: data, width: w, height: h };
 }
 
 /* Adaptive mean threshold via integral image. Returns Uint8Array, 1 = ink. */
@@ -413,20 +426,34 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
     });
     return { d: digitsOut, conf: conf, blanks: blanks };
   }
-  /* The strip is read first, because it says which page this is, and that
-   * decides whether there is a class-number grid to read at all. */
-  var codeDk = S.codeBits(nId).map(function (pt) {
-    return darkness(gray, w, h, H, pt, white, 0.030);
-  });
-  var codeBitsRead = codeDk.map(function (d) { return d > 0.30 ? 1 : 0; });
-  var codeVal = S.bitsToCode(codeBitsRead);
-  /* All ten clear means no strip was found at all, which is different from a
-   * strip that reads zero: a real code is never zero. */
-  var codeSeen = codeDk.some(function (d) { return d > 0.30; });
-
-  /* The page number is four marks on the end of the code strip now, not a row
-   * of ten bubbles of its own. Read from the same strip in the same pass. */
-  var pageNo = S.bitsToPage(codeBitsRead);
+  /* The QR is read first, because it says which page this is, and that
+   * decides whether there is a class-number grid to read at all.
+   *
+   * Crop and dewarp the QR's box the same way a name or class crop is warped
+   * elsewhere in this file, then hand the result to jsQR. A QR either decodes
+   * to exactly what was printed or it does not decode at all - there is no
+   * "read wrong with confidence" failure mode here the way there was for
+   * fourteen independently-thresholded marks, so codeSeen and the parsed
+   * value come from a single decode rather than a per-mark vote. */
+  var codeVal = 0, pageNo = null, codeSeen = false;
+  var qb = S.qrRect(nId);
+  var qrCanvas = warpRegion(grayToImageData(gray, w, h), H,
+                             S.rect(qb.x, qb.y, qb.size, qb.size), 300);
+  var qrPixels = qrCanvas.getContext('2d').getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+  var qrResult = null;
+  try { qrResult = global.jsQR(qrPixels.data, qrPixels.width, qrPixels.height); }
+  catch (e) { qrResult = null; }
+  if (qrResult) {
+    var parsed = /^(\d+)\.(\d+)$/.exec(qrResult.data || '');
+    if (parsed) {
+      codeVal = parseInt(parsed[1], 10);
+      var pv = parseInt(parsed[2], 10);
+      pageNo = pv >= 1 && pv <= L.pageMax ? pv : null;
+      codeSeen = true;
+    }
+    /* A QR that decodes but not to "<code>.<page>" is not this sheet's
+     * mark - leave codeSeen false rather than guess at a value from it. */
+  }
 
   /* Only page one carries the class number.
    *
