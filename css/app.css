@@ -735,6 +735,16 @@ details.more .btn{height:auto;padding:10px 14px;flex-direction:column;align-item
 }
 #storageWarn button:hover{opacity:1}
 
+/* A sheet sitting in Review with no student matched still reads as "nothing
+ * scanned" to every export, and "leave out students who have nothing
+ * scanned" is checked by default. Same palette as #storageWarn: both are
+ * "something is being silently dropped". */
+#exUnmatchedWarn{
+  background:var(--warn-soft);border:1px solid var(--warn);border-radius:8px;
+  color:var(--warn);padding:9px 12px;font-size:13px;font-weight:500;
+}
+#exUnmatchedWarn b{color:var(--text)}
+
 /* ───────────────────────────── language ───────────────────────────── */
 #langPick{
   flex:0 0 auto;height:28px;min-width:0;width:auto;padding:0 24px 0 8px;

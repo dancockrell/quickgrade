@@ -146,6 +146,8 @@ I.packs.ko = {
   'export.gradebook.h2': '성적부 (점수)',
   'export.gradebook.hint': '성적부를 한 번만 고르세요. QuickGrade가 기억해 두었다가 그 프로그램이 원하는 방식으로 열을 배치합니다.',
   'export.h1': '내보내기',
+  'export.unmatchedWarn.one': '<b>스캔된 시트 1장이 이 내보내기에 포함되지 않았습니다.</b> 학생과 연결되지 않아 검토에 대기 중입니다.',
+  'export.unmatchedWarn.other': '<b>스캔된 시트 {n}장이 이 내보내기에 포함되지 않았습니다.</b> 학생과 연결되지 않아 검토에 대기 중입니다.',
   'export.hint': 'Excel 파일로 내려받습니다. 대부분의 성적부는 <code>.xlsx</code> 또는 <code>.csv</code>를 바로 가져옵니다.',
   'export.more': '다른 설정',
   'export.myGradebook': '내 성적부는',

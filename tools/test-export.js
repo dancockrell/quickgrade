@@ -88,6 +88,48 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('renamed headings substitute the test title',
       cu.head[1].indexOf('Unit 7 Quiz') > 0);
 
+    // ---- a scanned-but-unmatched sheet must not silently vanish ----
+    //
+    // "Leave out students who have nothing scanned" is checked by default,
+    // and a sheet that could not be matched to a student reads as exactly
+    // that - nothing scanned - even though the paper is right there with a
+    // name in the handwriting crop.
+    {
+      QG.App.route('scan');
+      await new Promise(r => setTimeout(r, 200));
+      const pages = QG.Sheet.layoutTest(T);
+      const sheet = Sy.renderSynthetic(T, 0, { sid: null, name: '', answers: {} });
+      const photo = Sy.simulateCamera(sheet, {
+        w: 980, h: 1110, noise: 8, vignette: 0.2,
+        corners: [[150, 96], [880, 88], [905, 1010], [128, 1022]]
+      });
+      await QG.Scanner.importFiles([await Sy.canvasToFile(photo, 'orphan.jpg')], { quiet: true });
+      QG.App.recompute();
+      ok('the setup produced an unmatched scan to test against',
+        QG.App.State.results.unresolved.length > 0,
+        QG.App.State.results.unresolved.length + ' unresolved');
+
+      QG.App.route('export');
+      await new Promise(r => setTimeout(r, 400));
+      const box = document.getElementById('exUnmatchedWarn');
+      ok('the export screen warns that an unmatched sheet exists',
+        box && box.hidden === false && /not in this export/i.test(box.textContent),
+        box ? JSON.stringify(box.textContent.trim().slice(0, 70)) : 'no warning element');
+
+      const onlyScanned = document.getElementById('fmtOnlyScanned');
+      onlyScanned.checked = false;
+      onlyScanned.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 300));
+      ok('the warning clears once "only scanned" is turned off',
+        box.hidden === true, 'hidden=' + box.hidden);
+
+      onlyScanned.checked = true;
+      onlyScanned.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 300));
+      ok('and returns when it is turned back on',
+        box.hidden === false, 'hidden=' + box.hidden);
+    }
+
     // ---- sending is the one path that leaves the device ----
     //
     // A no-cors POST resolves as soon as the bytes are DISPATCHED: opaque

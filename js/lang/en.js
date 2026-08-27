@@ -152,6 +152,8 @@ I.packs.en = {
   'export.gradebook.h2': 'Gradebook (scores)',
   'export.gradebook.hint': 'Pick your gradebook once. QuickGrade remembers it and lays the columns out the way that program expects.',
   'export.h1': 'Export',
+  'export.unmatchedWarn.one': '<b>1 scanned sheet is not in this export.</b> It could not be matched to a student and is sitting in Review. Match it there, or turn off “leave out students who have nothing scanned” below.',
+  'export.unmatchedWarn.other': '<b>{n} scanned sheets are not in this export.</b> They could not be matched to a student and are sitting in Review. Match them there, or turn off “leave out students who have nothing scanned” below.',
   'export.hint': 'Downloads an Excel file. Most gradebooks import <code>.xlsx</code> or <code>.csv</code> directly.',
   'export.more': 'More options',
   'export.myGradebook': 'My gradebook is',

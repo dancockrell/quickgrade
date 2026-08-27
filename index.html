@@ -357,6 +357,14 @@
     <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
       <code>.xlsx</code> or <code>.csv</code> directly.</p>
 
+    <!-- "Leave out students who have nothing scanned" is checked by default,
+         and a sheet sitting in Review under "could not be matched" reads as
+         nothing scanned even though the paper is right there with the
+         student's name in the handwriting crop. Without this, that student
+         drops out of every exported gradebook with nothing on this screen
+         saying so. -->
+    <p class="hint warn" id="exUnmatchedWarn" hidden></p>
+
     <details id="advExport">
       <summary data-i18n="export.more">More options</summary>
       <div class="advbody">

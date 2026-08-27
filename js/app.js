@@ -3209,7 +3209,32 @@ function renderFormatUI() {
   renderPreview();
 }
 
+/* "Leave out students who have nothing scanned" is checked by default, and a
+ * page sitting in Review under "could not be matched to a student" reads as
+ * exactly that - nothing scanned - even though the paper is there, with the
+ * student's name legible in the handwriting crop. Found by a red team session
+ * playing the app as a teacher: a scanned sheet dropped out of all six
+ * gradebook formats with nothing on the Export screen saying so.
+ *
+ * This does not change what gets exported. "Nothing scanned" is still a
+ * reasonable definition and the checkbox still means what it says. What was
+ * missing is telling the teacher, at the moment it matters, that the box they
+ * are about to leave checked is the reason a student they know scanned a
+ * sheet is not going to be in the file. */
+function renderExportUnmatchedWarn() {
+  var box = $('#exUnmatchedWarn');
+  if (!box) return;
+  var r = State.results;
+  var only = $('#fmtOnlyScanned') && $('#fmtOnlyScanned').checked;
+  var n = r ? r.unresolved.length : 0;
+  if (!only || !n) { box.hidden = true; return; }
+  box.innerHTML = '';
+  box.appendChild(el('span', { html: T('export.unmatchedWarn', { n: n }) }));
+  box.hidden = false;
+}
+
 function renderPreview() {
+  renderExportUnmatchedWarn();
   var host = $('#fmtPreview');
   host.innerHTML = '';
   if (!State.test) return;
