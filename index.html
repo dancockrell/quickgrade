@@ -365,6 +365,13 @@
          saying so. -->
     <p class="hint warn" id="exUnmatchedWarn" hidden></p>
 
+    <!-- A missing page is scored zero for the questions on it, which can only
+         ever cost points. Only the "full" preset has an Issues column that
+         says so; the other five gradebooks show a number with no sign that a
+         page was never scanned. Warn when the selected format is one of the
+         five and it matters for someone in the class. -->
+    <p class="hint warn" id="exMissingPageWarn" hidden></p>
+
     <details id="advExport">
       <summary data-i18n="export.more">More options</summary>
       <div class="advbody">

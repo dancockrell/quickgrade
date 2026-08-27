@@ -148,6 +148,8 @@ I.packs.ko = {
   'export.h1': '내보내기',
   'export.unmatchedWarn.one': '<b>스캔된 시트 1장이 이 내보내기에 포함되지 않았습니다.</b> 학생과 연결되지 않아 검토에 대기 중입니다.',
   'export.unmatchedWarn.other': '<b>스캔된 시트 {n}장이 이 내보내기에 포함되지 않았습니다.</b> 학생과 연결되지 않아 검토에 대기 중입니다.',
+  'export.missingPageWarn.one': '<b>1명은 페이지가 누락되었습니다.</b> 해당 페이지는 0점으로 처리되며, 이 형식에는 원인이 표시되지 않습니다.',
+  'export.missingPageWarn.other': '<b>{n}명은 페이지가 누락되었습니다.</b> 해당 페이지들은 0점으로 처리됩니다.',
   'export.hint': 'Excel 파일로 내려받습니다. 대부분의 성적부는 <code>.xlsx</code> 또는 <code>.csv</code>를 바로 가져옵니다.',
   'export.more': '다른 설정',
   'export.myGradebook': '내 성적부는',

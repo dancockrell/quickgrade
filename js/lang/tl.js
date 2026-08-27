@@ -149,6 +149,8 @@ I.packs.tl = {
   'export.h1': 'I-export',
   'export.unmatchedWarn.one': '<b>1 na na-scan na sheet ang wala sa export na ito.</b> Hindi ito na-match sa isang mag-aaral at nasa Review. I-match ito doon, o i-off ang “leave out students who have nothing scanned” sa ibaba.',
   'export.unmatchedWarn.other': '<b>{n} na na-scan na mga sheet ang wala sa export na ito.</b> Hindi sila na-match sa mga mag-aaral at nasa Review.',
+  'export.missingPageWarn.one': '<b>1 mag-aaral ang kulang ng pahina.</b> Zero ang iskor doon, at hindi ito ipinapakita ng format na ito. Lumipat sa “QuickGrade full gradebook” para makita ito, o tingnan sa Review.',
+  'export.missingPageWarn.other': '<b>{n} na mag-aaral ang kulang ng pahina.</b> Zero ang iskor doon, at hindi ito ipinapakita ng format na ito.',
   'export.hint': 'Nagda-download ng Excel file. Karamihan sa mga gradebook ay direktang tumatanggap ng <code>.xlsx</code> o <code>.csv</code>.',
   'export.more': 'Iba pang opsyon',
   'export.myGradebook': 'Ang gradebook ko ay',

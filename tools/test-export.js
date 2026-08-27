@@ -130,6 +130,44 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
         box.hidden === false, 'hidden=' + box.hidden);
     }
 
+    // ---- a missing page scored as zero must not vanish in five of six
+    // formats ----
+    {
+      QG.App.route('scan');
+      await new Promise(r => setTimeout(r, 200));
+      const pages = QG.Sheet.layoutTest(T);
+      const answers = {}; pages[0].mc.forEach(it => { answers[it.q] = T.mc.key[it.q]; });
+      const sheet = Sy.renderSynthetic(T, 0, { sid: '9', name: 'Missing Page', answers });
+      const photo = Sy.simulateCamera(sheet, {
+        w: 980, h: 1110, noise: 8, vignette: 0.2,
+        corners: [[150, 96], [880, 88], [905, 1010], [128, 1022]]
+      });
+      await QG.DB.put('students', { sid: '9', name: 'Missing Page', cls: T.className.split(',')[0].trim() });
+      await QG.Scanner.importFiles([await Sy.canvasToFile(photo, 'missingpage.jpg')], { quiet: true });
+      QG.App.recompute();
+      ok('the setup produced a student missing a page to test against',
+        QG.App.State.results.rows.some(r => r.sid === '9' && r.scanned && r.missing.length),
+        JSON.stringify(QG.App.State.results.rows.find(r => r.sid === '9')));
+
+      QG.App.route('export');
+      await new Promise(r => setTimeout(r, 400));
+      const pick = document.getElementById('fmtPick');
+
+      pick.value = 'full';
+      pick.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      const withIssues = document.getElementById('exMissingPageWarn');
+      ok('the full gradebook, which shows Issues, raises no warning',
+        withIssues.hidden === true, 'hidden=' + withIssues.hidden);
+
+      pick.value = 'sis';
+      pick.dispatchEvent(new Event('change', { bubbles: true }));
+      await new Promise(r => setTimeout(r, 400));
+      ok('a format with no Issues column warns that a page is missing',
+        withIssues.hidden === false && /missing a page/i.test(withIssues.textContent),
+        withIssues.hidden === false ? JSON.stringify(withIssues.textContent.trim().slice(0, 70)) : 'no warning');
+    }
+
     // ---- sending is the one path that leaves the device ----
     //
     // A no-cors POST resolves as soon as the bytes are DISPATCHED: opaque

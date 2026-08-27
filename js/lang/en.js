@@ -154,6 +154,8 @@ I.packs.en = {
   'export.h1': 'Export',
   'export.unmatchedWarn.one': '<b>1 scanned sheet is not in this export.</b> It could not be matched to a student and is sitting in Review. Match it there, or turn off “leave out students who have nothing scanned” below.',
   'export.unmatchedWarn.other': '<b>{n} scanned sheets are not in this export.</b> They could not be matched to a student and are sitting in Review. Match them there, or turn off “leave out students who have nothing scanned” below.',
+  'export.missingPageWarn.one': '<b>1 student is missing a page.</b> That page is scored zero, and this gradebook format does not show which student or why. Switch to “QuickGrade full gradebook” to see it, or check Review.',
+  'export.missingPageWarn.other': '<b>{n} students are missing a page.</b> Those pages are scored zero, and this gradebook format does not show which students or why. Switch to “QuickGrade full gradebook” to see it, or check Review.',
   'export.hint': 'Downloads an Excel file. Most gradebooks import <code>.xlsx</code> or <code>.csv</code> directly.',
   'export.more': 'More options',
   'export.myGradebook': 'My gradebook is',

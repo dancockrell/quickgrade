@@ -3233,8 +3233,35 @@ function renderExportUnmatchedWarn() {
   box.hidden = false;
 }
 
+/* A missing page is scored zero for every question on it - the bias is
+ * always downward, never up - and "full" is the only preset whose Issues
+ * column says so. The other five show a number with nothing marking it as
+ * incomplete, and "Name and percent only", the format this screen describes
+ * as the smallest thing most gradebooks will accept, is exactly the one most
+ * likely to be picked in a hurry. Found alongside the unmatched-sheet defect,
+ * same shape: Review already knows about this, Export did not say so.
+ *
+ * This does not change how a missing page is scored. Whether it should count
+ * as zero or be left out of the denominator is a pedagogical call this app
+ * should not make silently in either direction; what it must not do is make
+ * the two indistinguishable in the output. */
+function renderExportMissingPageWarn() {
+  var box = $('#exMissingPageWarn');
+  if (!box) return;
+  var r = State.results, f = fmt();
+  var showsIssues = (f.cols || []).indexOf('issues') >= 0;
+  var n = (r ? r.rows : []).filter(function (row) {
+    return row.scanned && row.missing && row.missing.length;
+  }).length;
+  if (showsIssues || !n) { box.hidden = true; return; }
+  box.innerHTML = '';
+  box.appendChild(el('span', { html: T('export.missingPageWarn', { n: n }) }));
+  box.hidden = false;
+}
+
 function renderPreview() {
   renderExportUnmatchedWarn();
+  renderExportMissingPageWarn();
   var host = $('#fmtPreview');
   host.innerHTML = '';
   if (!State.test) return;
