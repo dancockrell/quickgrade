@@ -3241,15 +3241,25 @@ function sendToEndpoint() {
       onclick: function () {
         var u = inp.value.trim();
         if (!/^https:\/\//i.test(u)) { out.textContent = T('send.needHttps'); return; }
-        Q.Prefs.set('endpoint', u);
         var payload = X2.buildPayload(fmt(), exportCtx(), { onlyScanned: $('#fmtOnlyScanned').checked });
         out.textContent = T('send.sending', { n: payload.rows.length });
+        /* The address is remembered only once something has confirmed it
+         * accepted the rows. It used to be saved before the request went out,
+         * so a mistyped address was kept and offered again next time - and a
+         * typo that happens to be somebody else's real domain would be sent a
+         * class list every week. An opaque reply is not confirmation: the
+         * bytes left the machine, which is not the same as arriving somewhere
+         * they were meant to go. */
+        var remember = function () { Q.Prefs.set('endpoint', u); };
         /* text/plain keeps this a simple request, so no CORS preflight is
          * needed against endpoints that do not handle OPTIONS. */
         fetch(u, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                    body: JSON.stringify(payload) })
-          .then(function (r) { out.textContent = r.ok ? T('send.accepted')
-                                                      : T('send.replied', { status: r.status }); })
+          .then(function (r) {
+            if (r.ok) { remember(); }
+            out.textContent = r.ok ? T('send.accepted')
+                                   : T('send.replied', { status: r.status });
+          })
           .catch(function () {
             return fetch(u, { method: 'POST', mode: 'no-cors',
                               headers: { 'Content-Type': 'text/plain;charset=utf-8' },

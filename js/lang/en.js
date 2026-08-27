@@ -478,7 +478,7 @@ I.packs.en = {
   'send.hint': 'Optional, and not needed for normal use — the download and the paste-into-Sheets button cover almost everyone. This is here for a school that already has somewhere to receive results automatically.',
   'send.label': 'Web address to send to',
   'send.needHttps': 'Use an https:// address.',
-  'send.opaque': 'Sent. The address did not reply in a way we can read, so check on that end that it arrived.',
+  'send.opaque': 'Delivered, but not confirmed. The address did not reply in a way we can read, so check at that end that it arrived. It has not been saved as your address until something confirms it.',
   'send.replied': 'Sent, but it replied {status}.',
   'send.sending': 'Sending {n} rows…',
   'send.warning': 'QuickGrade will POST the same rows you see in the preview, as JSON. Ask whoever runs the receiving end for the address — do not paste one you were sent by someone you do not know.',

@@ -462,7 +462,7 @@ I.packs.tl = {
   'send.hint': 'Opsyonal, at hindi kailangan sa karaniwang paggamit — sapat na sa halos lahat ang download at ang pindutang pang-paste sa Sheets. Nandito ito para sa paaralang may kinalalagyan na ng resulta nang awtomatiko.',
   'send.label': 'Web address na padadalhan',
   'send.needHttps': 'Gumamit ng address na https://.',
-  'send.opaque': 'Naipadala. Hindi sumagot ang address sa paraang mababasa namin, kaya tingnan sa kabilang dulo kung nakarating ito.',
+  'send.opaque': 'Naipadala ngunit hindi nakumpirma. Hindi sumagot ang address sa paraang mababasa namin, kaya tingnan sa dulong iyon kung dumating ito. Hindi pa ito na-save bilang address mo hanggang may kumumpirma nito.',
   'send.replied': 'Naipadala, pero sumagot ito ng {status}.',
   'send.sending': 'Nagpapadala ng {n} row…',
   'send.warning': 'Ipapadala ng QuickGrade bilang JSON ang parehong row na nakikita ninyo sa preview. Hingin ang address sa kung sinuman ang nagpapatakbo ng tumatanggap na dulo — huwag mag-paste ng address na ipinadala sa inyo ng hindi ninyo kilala.',

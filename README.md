@@ -425,9 +425,12 @@ a border, and don't write over the corner squares or fold across them.
 
 Written for the person who has to sign off on it, and short enough to read.
 
-- **Nothing is transmitted anywhere.** QuickGrade is a web page with no back end.
-  It has no login, no analytics, no error reporting and no update check. There is
-  no address it could send data to.
+- **Nothing is transmitted unless a teacher sets up an address and presses send.**
+  QuickGrade is a web page with no back end. It has no login, no analytics, no
+  error reporting and no update check, and it ships with nowhere to send anything.
+  The one exception is Export's optional "send scores to a web address", for a
+  school that already has somewhere to receive results automatically. It starts
+  switched off and does nothing until someone types an address in.
 - **Everything stays in the browser** on the teacher's own device, in that
   browser's local storage: the roster, the scanned images, the scores.
 - **It keeps working with the network switched off.** That is the simplest way to
@@ -448,9 +451,11 @@ answer to that, and the app reminds you if it has been a while.
 ## For the person who has to approve it
 
 - **No account, no backend, no telemetry.** The app is static files. Nothing is
-  transmitted anywhere — there is nowhere for it to go.
+  sent anywhere by default, and there is no address built into it.
 - **Student data stays on the teacher's device**, in that browser's storage.
-  Names, scores and scanned images never leave it.
+  Names, scores and scanned images leave it only if a teacher enters a web
+  address under Export and presses send. That feature starts switched off; if
+  nobody opens it, nothing is ever transmitted.
 - **Works fully offline** once loaded.
 - **No per-scan or per-teacher licensing.** Nothing expires.
 - Scan results are announced to screen readers, every control is labelled, and

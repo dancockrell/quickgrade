@@ -88,6 +88,73 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('renamed headings substitute the test title',
       cu.head[1].indexOf('Unit 7 Quiz') > 0);
 
+    // ---- sending is the one path that leaves the device ----
+    //
+    // A no-cors POST resolves as soon as the bytes are DISPATCHED: opaque
+    // response, status 0, no way to tell a 200 from a 404 from a server that
+    // took the rows and binned them. So the address must not be remembered on
+    // the strength of it, and the message must not lead with a word that
+    // reads as success.
+    {
+      const before = QG.Prefs.get('endpoint', '');
+      QG.Prefs.set('endpoint', '');
+
+      const opaque = QG.I18N.t('send.opaque');
+      const accepted = QG.I18N.t('send.accepted');
+      ok('the confirmed and unconfirmed outcomes do not open with the same word',
+        opaque.split(/[\s,.]+/)[0].toLowerCase() !==
+        accepted.split(/[\s,.]+/)[0].toLowerCase(),
+        JSON.stringify(opaque.slice(0, 34)) + ' vs ' + JSON.stringify(accepted.slice(0, 34)));
+      ok('the unconfirmed outcome tells the teacher to check the far end',
+        /check|confirm/i.test(opaque), JSON.stringify(opaque.slice(0, 60)));
+
+      /* Drive the dialog with fetch stubbed, because the question is what the
+       * flow LEAVES BEHIND, and only running it can answer that. */
+      const realFetch = window.fetch;
+      const drive = async (stub, address) => {
+        window.fetch = stub;
+        QG.Prefs.set('endpoint', '');
+        document.getElementById('exSend').click();
+        await new Promise(r => setTimeout(r, 250));
+        const box = [...document.querySelectorAll('input')]
+          .filter(i => (i.placeholder || '').indexOf('https') >= 0).pop();
+        const go = [...document.querySelectorAll('button')]
+          .filter(b => b.textContent.trim() === QG.I18N.t('send.go')).pop();
+        if (!box || !go) return { opened: false };
+        box.value = address;
+        go.click();
+        await new Promise(r => setTimeout(r, 700));
+        const saved = QG.Prefs.get('endpoint', '');
+        [...document.querySelectorAll('button')]
+          .filter(b => b.textContent.trim() === QG.I18N.t('common.close')).pop()?.click();
+        await new Promise(r => setTimeout(r, 150));
+        return { opened: true, saved };
+      };
+
+      const unreachable = await drive(
+        () => Promise.reject(new Error('nope')), 'https://not-a-real-host.invalid/x');
+      ok('the send dialog opens and can be driven', unreachable.opened,
+        unreachable.opened ? 'opened' : 'could not find the field or the button');
+      ok('an address that could not be reached is not remembered',
+        unreachable.saved === '', JSON.stringify(unreachable.saved));
+
+      const confirmed = await drive(
+        () => Promise.resolve({ ok: true, status: 200 }), 'https://school.example/results');
+      ok('an address that confirmed it accepted the rows is remembered',
+        confirmed.saved === 'https://school.example/results', JSON.stringify(confirmed.saved));
+
+      const dispatched = await drive(
+        (u, o) => (o && o.mode === 'no-cors')
+          ? Promise.resolve({ type: 'opaque', status: 0 })
+          : Promise.reject(new Error('cors')),
+        'https://typo.example/results');
+      ok('an address that only took the bytes is NOT remembered',
+        dispatched.saved === '', JSON.stringify(dispatched.saved));
+
+      window.fetch = realFetch;
+      QG.Prefs.set('endpoint', before);
+    }
+
     // ---- endpoint payload is self-describing ----
     const pay = X2.buildPayload(byId('simple'), ctx, { onlyScanned: true });
     ok('endpoint payload identifies itself and carries the data',
