@@ -15,7 +15,7 @@
  * a stale name ships an update nobody receives, and a stale list leaves a
  * file the app needs simply missing when offline.
  */
-var CACHE = 'quickgrade-756f6527fa2d';
+var CACHE = 'quickgrade-cfe267ac0c4b';
 var SHELL = [
   './',
   './index.html',

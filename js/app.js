@@ -232,7 +232,7 @@ function route(name) {
   if (name === 'review') { renderReview(); renderStorage(); }
   if (name === 'written') renderWrittenGrading();
   if (name === 'export') renderExport();
-  if (name === 'scan') { Q.Audio2.unlock(); updateCtx(); }
+  if (name === 'scan') { Q.Audio2.unlock(); updateCtx(); if (Scanner.setOpen) Scanner.setOpen(); }
 }
 
 /* ============================================================ results */
@@ -1643,6 +1643,20 @@ Scanner.hooks = {
       /* A page carrying a class number opens that file. */
       State.openSid = S.normId(record.sid);
       State.openFor = t.id;
+    } else if (!record.sid) {
+      /* A page that asked for a class number and did not get one - smudged,
+       * half-erased, never filled in - means a new student has started and
+       * nobody knows who. That closes the open file.
+       *
+       * Leaving it open is worse than it sounds. The next page carries no
+       * class number of its own, so it would go to whoever came BEFORE the
+       * unreadable sheet, land there with no flag, and be announced by that
+       * student's name as though it were right. The clash guard only catches
+       * it when that student already has the page; where there is room it
+       * files silently. The sample class reproduces this every time, because
+       * one sheet in it has a deliberately unreadable class number. */
+      State.openSid = null;
+      State.openFor = null;
     }
 
     var known = record.sid && State.byId[S.normId(record.sid)];

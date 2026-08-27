@@ -164,7 +164,7 @@
           <input id="f_lblSamples" data-i18n-ph="sheet.samples" placeholder="correct|too light|do not cross"></label>
       </div>
       <label data-i18n="tests.words.tips">Advice line under the examples
-        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
+        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully"></label>
         </div>
       </details>
       <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
@@ -222,7 +222,7 @@
           <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
       </div>
     </details>
-    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.</p>
+    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.</p>
   </div>
 </section>
 
@@ -239,7 +239,7 @@
       <div class="sicon" aria-hidden="true"></div>
       <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
       <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
-        soon as it can see all four corner squares. One beep per sheet.</p>
+        soon as it can see the whole page border. One beep per sheet.</p>
       <div class="row gap" style="justify-content:center;margin-top:18px">
         <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
         <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
@@ -262,6 +262,11 @@
       <div class="hudrow">
         <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
         <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
+        <!-- Which student file the next page will join. Pages after the first
+             carry no class number, so this is the only thing on screen that
+             says where they are going. Without it the teacher finds out at the
+             end, when the pages are already filed. -->
+        <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
         <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
       </div>
     </div>

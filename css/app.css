@@ -374,17 +374,19 @@ tbody tr:last-child td{border-bottom:0}
   width:96px;height:76px;margin-bottom:16px;border-radius:8px;
   border:2px dashed rgba(255,255,255,.32);position:relative;
 }
-/* the four corner squares, which is what the reader is actually looking for */
-#scanIdle .sicon::before,#scanIdle .sicon::after{
-  content:"";position:absolute;width:13px;height:13px;background:rgba(255,255,255,.8);
+/* The ruled border, which is what the reader is actually looking for. It drew
+   four corner squares until the reader stopped using them, and went on drawing
+   them beside text that had been corrected to say "the whole page border" - so
+   the picture was teaching the opposite of the words. The heavier bottom edge
+   is the one the reader takes the page's orientation from. */
+#scanIdle .sicon::before{
+  content:"";position:absolute;inset:9px;
+  border:2px solid rgba(255,255,255,.8);border-bottom-width:5px;border-radius:2px;
 }
-#scanIdle .sicon::before{top:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
-#scanIdle .sicon::after{bottom:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
 @media(max-width:560px){
   #scanIdle h2{font-size:18px}
   #scanIdle .sicon{width:76px;height:60px}
-  #scanIdle .sicon::before{box-shadow:44px 0 0 rgba(255,255,255,.8)}
-  #scanIdle .sicon::after{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+  #scanIdle .sicon::before{inset:7px}
 }
 
 #scanHud{

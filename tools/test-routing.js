@@ -126,17 +126,87 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       S.normId(s.sid) === '102' && s.page === 2 && s.routedTo).length;
     ok('the student still has exactly one page 2', filedTwice === 1, filedTwice + ' filed');
 
-    /* ---- 5. the teacher is told, in words, whose file it went into ---- */
-    const line = QG.I18N.t('scan.filedInto', { name: 'Ploy Sirikul', n: 2 });
-    ok('the confirmation names the student and the page',
-      line.indexOf('Ploy Sirikul') >= 0 && line.indexOf('2') >= 0 && line.indexOf('{') < 0,
-      JSON.stringify(line));
-
-    /* ---- 6. the pages end up together under one name ---- */
+    /* the first student's two pages are still together under one name */
     const marked = St.scans.filter(s => S.normId(s.sid) === '101');
     ok('both of the first student pages are under one name',
       marked.length === 2 && marked.map(s => s.page).sort().join(',') === '1,2',
       marked.length + ' pages: ' + marked.map(s => s.page).join(','));
+
+    /* ---- 5. an unreadable page 1 must close the open file, not leave the
+     * previous student holding it open.
+     *
+     * A page 1 that cannot be read means a new student has started and nobody
+     * knows who. That is the moment the previous student's file has to close:
+     * if it stays open, the next anonymous page is aimed at the wrong child
+     * and lands there quietly, announced by name as though it were right.
+     * The sample class hits this every time - one sheet in it has a
+     * deliberately unreadable class number - and it only showed up as a clash
+     * because the previous student already had that page. Given room, it
+     * misfiles instead of complaining. */
+    St.scans.length = 0; St.openSid = null; St.openFor = null;
+
+    /* a student with page 1 only, so there is room for someone else's page 2 */
+    await QG.Scanner.importFiles([await shot(roster[0], 0, 'nan-alone')]);
+    QG.App.recompute();
+    ok('a student is open with room for a page 2',
+      S.normId(St.openSid) === '101', 'open=' + St.openSid);
+
+    /* the next student's page 1, with no class number filled in at all */
+    await QG.Scanner.importFiles([await shot({ sid: null, name: 'Unreadable' }, 0, 'smudged')]);
+    QG.App.recompute();
+    const smudged = St.scans[St.scans.length - 1];
+    ok('a page 1 with no readable class number is not filed',
+      !smudged.sid, 'sid=' + smudged.sid + ' flags=' + JSON.stringify(smudged.flags || []));
+    ok('an unreadable page 1 closes the open file rather than leaving it open',
+      !St.openSid, 'open=' + St.openSid);
+
+    /* that student's page 2 must be held, not posted to the student before */
+    await QG.Scanner.importFiles([await shot({ sid: null, name: 'Unreadable' }, 1, 'smudged2')]);
+    QG.App.recompute();
+    const stray = St.scans[St.scans.length - 1];
+    ok('the page after an unreadable page 1 is held, not filed to the student before',
+      !stray.routedTo && S.normId(stray.sid || '') !== '101',
+      'sid=' + stray.sid + ' routedTo=' + stray.routedTo +
+      ' flags=' + JSON.stringify(stray.flags || []));
+    const nanPages = St.scans.filter(s => S.normId(s.sid) === '101').length;
+    ok('the earlier student did not silently gain a page',
+      nanPages === 1, nanPages + ' pages under the earlier student');
+
+    /* ---- 5b. the same thing, with the previous student already complete.
+     *
+     * This is the shape the sample class actually produces: a student who
+     * holds both their pages, then a sheet whose class number cannot be read,
+     * then that student's page 2. It is worth its own case because the guard
+     * that catches the misfile here is a different one - the previous student
+     * has no room, so a stale open file shows up as a clash rather than as a
+     * silent filing - and a clash tells the teacher to rescan a class number
+     * that was never readable, which is advice that cannot work. */
+    St.scans.length = 0; St.openSid = null; St.openFor = null;
+    await QG.Scanner.importFiles([await shot(roster[0], 0, 'complete1')]);
+    await QG.Scanner.importFiles([await shot(roster[0], 1, 'complete2')]);
+    QG.App.recompute();
+    ok('the previous student holds both pages',
+      St.scans.filter(s => S.normId(s.sid) === '101').length === 2,
+      St.scans.filter(s => S.normId(s.sid) === '101').length + ' pages');
+
+    await QG.Scanner.importFiles([await shot({ sid: null, name: 'Unreadable' }, 0, 'smudgedB')]);
+    QG.App.recompute();
+    ok('the unreadable page 1 closed the file even though the previous student was complete',
+      !St.openSid, 'open=' + St.openSid);
+
+    await QG.Scanner.importFiles([await shot({ sid: null, name: 'Unreadable' }, 1, 'smudgedB2')]);
+    QG.App.recompute();
+    const orphanB = St.scans[St.scans.length - 1];
+    ok('its page 2 is held as having no owner, not reported as a clash',
+      (orphanB.flags || []).indexOf('no-owner') >= 0 &&
+      (orphanB.flags || []).indexOf('owner-clash') < 0,
+      'flags=' + JSON.stringify(orphanB.flags || []));
+
+    /* ---- 6. the teacher is told, in words, whose file it went into ---- */
+    const line = QG.I18N.t('scan.filedInto', { name: 'Ploy Sirikul', n: 2 });
+    ok('the confirmation names the student and the page',
+      line.indexOf('Ploy Sirikul') >= 0 && line.indexOf('2') >= 0 && line.indexOf('{') < 0,
+      JSON.stringify(line));
 
     return res;
   });

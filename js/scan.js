@@ -130,6 +130,29 @@ function setStatus(t, kind) {
   p.textContent = t;
   p.className = 'pill' + (kind ? ' ' + kind : '');
 }
+/* Which student file the next page will join.
+ *
+ * Pages after the first carry no class number, so they are filed by whichever
+ * class number was read last. That rule is easy to follow and impossible to
+ * see: without this pill the teacher learns where the pages went only after
+ * they have gone. It reads the state rather than being told about it, so it
+ * cannot drift out of step with what the router will actually do. */
+function setOpen() {
+  var p = $('#pillOpen');
+  if (!p) return;
+  var St = global.QG.App && global.QG.App.State;
+  var sid = St && St.openSid;
+  var stale = St && St.test && St.openFor !== St.test.id;
+  if (!sid || stale) {
+    p.textContent = T('scan.pill.openNone');
+    p.className = 'pill';
+    return;
+  }
+  var stu = St.byId && St.byId[sid];
+  p.textContent = T('scan.pill.open', { name: (stu && stu.name) || sid });
+  p.className = 'pill ok';
+}
+Scanner.setOpen = setOpen;
 function flash(kind) {
   var f = $('#flash');
   if (!f) return;
@@ -463,8 +486,13 @@ function accept(ctx) {
   return Scanner.hooks.saveScan(record, blobs).then(function (res) {
     Scanner.sessionCount++;
     var pill = $('#pillCount');
-    if (pill) pill.textContent = Scanner.sessionCount + ' sheet' + (Scanner.sessionCount === 1 ? '' : 's');
+    /* Was building "3 sheets" in English by hand, so the count reverted to
+     * English after every scan while the rest of the screen stayed translated.
+     * resetSession already had this right. */
+    if (pill) pill.textContent = T('scan.sheetCount', { n: Scanner.sessionCount });
+    setOpen();
     report(res, record, test);
+    return res;
   });
 }
 
@@ -568,7 +596,10 @@ Scanner.importFiles = function (files, opts) {
   if (!test) { Q.toast(T('toast.pickTest'), 'err'); return Promise.resolve(); }
   var pages = Scanner.hooks.getPages();
   var list = Array.prototype.slice.call(files);
-  var okCount = 0, failCount = 0;
+  var okCount = 0, failCount = 0, needy = 0;
+  /* Statuses that mean the sheet was read but is not filed to a student. They
+   * are the ones the teacher still has to do something about. */
+  var NEEDS_A_STUDENT = { 'no-id': 1, 'unknown-id': 1, 'no-owner': 1, 'owner-clash': 1 };
   setStatus(T('scan.importing', { n: list.length }));
 
   return list.reduce(function (chain, file) {
@@ -605,15 +636,27 @@ Scanner.importFiles = function (files, opts) {
         var ans = V.decodeAnswers(capGray.g, capW, capH, H, white, pageDesc);
         return accept({ test: test, pages: pages, pageDesc: pageDesc, ident: ident, ans: ans,
                         form: form, capImg: capImg, H: H, capW: capW, capH: capH })
-          .then(function () { okCount++; });
+          .then(function (res) {
+            okCount++;
+            if (res && NEEDS_A_STUDENT[res.status]) needy++;
+          });
       }).catch(function (e) { failCount++; console.error(e); });
     });
   }, Promise.resolve()).then(function () {
-    setStatus(T('scan.importedStatus', { n: okCount, total: list.length }), failCount ? 'bad' : 'ok');
+    /* "Imported 15 of 15", in green, while two of the fifteen are filed to
+     * nobody. That counted sheets the reader managed to read, which is a fact
+     * about the reader, not about the job being done - and it is the number a
+     * teacher takes as permission to stop looking. Say how many still need a
+     * student, and do not colour it as success while any do. */
+    setStatus(needy
+        ? T('scan.importedNeedy', { n: okCount, total: list.length, needy: needy })
+        : T('scan.importedStatus', { n: okCount, total: list.length }),
+      (failCount || needy) ? 'bad' : 'ok');
     if (!quiet) {
       Q.toast(T('scan.imported', { n: okCount }) +
-              (failCount ? T('scan.importedFailed', { n: failCount }) : ''),
-              failCount ? 'err' : 'good', 5000);
+              (failCount ? T('scan.importedFailed', { n: failCount }) : '') +
+              (needy ? T('scan.importedNeedyToast', { n: needy }) : ''),
+              (failCount || needy) ? 'err' : 'good', 5000);
     }
     if (Scanner.hooks.refresh) Scanner.hooks.refresh();
   });
@@ -625,6 +668,7 @@ Scanner.resetSession = function () {
   Scanner.pending = null;
   var strip = $('#scanStrip'); if (strip) strip.innerHTML = '';
   var pill = $('#pillCount'); if (pill) pill.textContent = T('scan.sheetCount', { n: 0 });
+  setOpen();
 };
 
 global.QG.Scanner = Scanner;

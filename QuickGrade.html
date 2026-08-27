@@ -388,17 +388,19 @@ tbody tr:last-child td{border-bottom:0}
   width:96px;height:76px;margin-bottom:16px;border-radius:8px;
   border:2px dashed rgba(255,255,255,.32);position:relative;
 }
-/* the four corner squares, which is what the reader is actually looking for */
-#scanIdle .sicon::before,#scanIdle .sicon::after{
-  content:"";position:absolute;width:13px;height:13px;background:rgba(255,255,255,.8);
+/* The ruled border, which is what the reader is actually looking for. It drew
+   four corner squares until the reader stopped using them, and went on drawing
+   them beside text that had been corrected to say "the whole page border" - so
+   the picture was teaching the opposite of the words. The heavier bottom edge
+   is the one the reader takes the page's orientation from. */
+#scanIdle .sicon::before{
+  content:"";position:absolute;inset:9px;
+  border:2px solid rgba(255,255,255,.8);border-bottom-width:5px;border-radius:2px;
 }
-#scanIdle .sicon::before{top:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
-#scanIdle .sicon::after{bottom:9px;left:9px;box-shadow:64px 0 0 rgba(255,255,255,.8)}
 @media(max-width:560px){
   #scanIdle h2{font-size:18px}
   #scanIdle .sicon{width:76px;height:60px}
-  #scanIdle .sicon::before{box-shadow:44px 0 0 rgba(255,255,255,.8)}
-  #scanIdle .sicon::after{box-shadow:44px 0 0 rgba(255,255,255,.8)}
+  #scanIdle .sicon::before{inset:7px}
 }
 
 #scanHud{
@@ -992,7 +994,7 @@ body[data-view="written"]{--toast-bottom:150px}
           <input id="f_lblSamples" data-i18n-ph="sheet.samples" placeholder="correct|too light|do not cross"></label>
       </div>
       <label data-i18n="tests.words.tips">Advice line under the examples
-        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully &middot; keep the four corner squares clean"></label>
+        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully"></label>
         </div>
       </details>
       <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
@@ -1050,7 +1052,7 @@ body[data-view="written"]{--toast-bottom:150px}
           <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
       </div>
     </details>
-    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the four corner squares.</p>
+    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.</p>
   </div>
 </section>
 
@@ -1067,7 +1069,7 @@ body[data-view="written"]{--toast-bottom:150px}
       <div class="sicon" aria-hidden="true"></div>
       <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
       <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
-        soon as it can see all four corner squares. One beep per sheet.</p>
+        soon as it can see the whole page border. One beep per sheet.</p>
       <div class="row gap" style="justify-content:center;margin-top:18px">
         <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
         <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
@@ -1090,6 +1092,11 @@ body[data-view="written"]{--toast-bottom:150px}
       <div class="hudrow">
         <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
         <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
+        <!-- Which student file the next page will join. Pages after the first
+             carry no class number, so this is the only thing on screen that
+             says where they are going. Without it the teacher finds out at the
+             end, when the pages are already filed. -->
+        <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
         <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
       </div>
     </div>
@@ -2293,7 +2300,7 @@ I.packs.en = {
   'roster.print.blank': 'Print the answer sheet',
   'roster.print.check': 'Check my printing',
   'roster.print.h2': 'Print answer sheets',
-  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the the page border.',
+  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.',
   'roster.print.key': 'Answer-key sheet',
   'roster.print.keyHint': 'for setting the key by scanning',
   'roster.print.other': 'Other kinds of sheet',
@@ -2364,6 +2371,10 @@ I.packs.en = {
   'scan.looking': 'Looking for a sheet…',
   'scan.noCamera': 'This browser cannot open a camera here. Use "Import photos", or open the app over https:// (see README).',
   'scan.noNameAnnounce': 'Problem. No name on this sheet. Saved for review.',
+  'scan.importedNeedy': '{n} of {total} read · {needy} still need a student',
+  'scan.importedNeedyToast': ' — {n} still need a student',
+  'scan.pill.openNone': 'No student open',
+  'scan.pill.open': 'Filing into {name}',
   'scan.noOwnerBig': 'Start with page 1',
   'scan.noOwnerSub': 'This is page {n}. Scan the page with the class number on it first.',
   'scan.noOwnerStatus': 'No student open — scan page 1 of this test first',
@@ -2715,7 +2726,7 @@ I.packs.en = {
   'wlist.rubricN': 'Rubric · {n}',
   'wlist.short': 'Short answer',
   'scan.idle.h2': 'Hold a sheet up to the camera',
-  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see all the page border. One beep per sheet.',
+  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see the whole page border. One beep per sheet.',
   'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
   'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip',
   'ts.opt.scoreBand': 'Score summary band',
@@ -3178,6 +3189,10 @@ I.packs.ar = {
   'scan.looking': 'جارٍ البحث عن ورقة…',
   'scan.noCamera': 'هذا المتصفح لا يستطيع فتح كاميرا هنا. استخدم «استيراد صور»، أو افتح التطبيق عبر https:// (راجع ملف README).',
   'scan.noNameAnnounce': 'مشكلة. لا اسم على هذه الورقة. حُفظت للمراجعة.',
+  'scan.importedNeedy': 'تمت قراءة {n} من {total} · {needy} بلا طالب',
+  'scan.importedNeedyToast': ' — {n} بلا طالب',
+  'scan.pill.openNone': 'لا يوجد طالب مفتوح',
+  'scan.pill.open': 'يُحفظ في ملف {name}',
   'scan.noOwnerBig': 'ابدأ بالصفحة 1',
   'scan.noOwnerSub': 'هذه الصفحة {n}. امسح أولاً الصفحة التي تحمل رقم الطالب.',
   'scan.noOwnerStatus': 'لا يوجد طالب مفتوح — امسح الصفحة 1 أولاً',
@@ -3989,6 +4004,10 @@ I.packs.hi = {
   'scan.looking': 'पत्रक खोजा जा रहा है…',
   'scan.noCamera': 'यह ब्राउज़र यहाँ कैमरा नहीं खोल सकता। “फ़ोटो आयात करें” का उपयोग कीजिए, या ऐप को https:// पर खोलिए (README देखिए)।',
   'scan.noNameAnnounce': 'समस्या। इस पत्रक पर नाम नहीं है। समीक्षा के लिए सहेजा गया।',
+  'scan.importedNeedy': '{total} में से {n} पढ़े · {needy} को छात्र चाहिए',
+  'scan.importedNeedyToast': ' — {n} को छात्र चाहिए',
+  'scan.pill.openNone': 'कोई छात्र खुला नहीं',
+  'scan.pill.open': '{name} की फ़ाइल में जा रहा है',
   'scan.noOwnerBig': 'पेज 1 से शुरू करें',
   'scan.noOwnerSub': 'यह पेज {n} है। पहले वह पेज स्कैन करें जिस पर छात्र संख्या है।',
   'scan.noOwnerStatus': 'कोई छात्र खुला नहीं — पहले पेज 1 स्कैन करें',
@@ -4800,6 +4819,10 @@ I.packs.tl = {
   'scan.looking': 'Naghahanap ng papel…',
   'scan.noCamera': 'Hindi makakapagbukas ng kamera ang browser na ito dito. Gamitin ang “Mag-import ng litrato”, o buksan ang app sa https:// (tingnan ang README).',
   'scan.noNameAnnounce': 'Problema. Walang pangalan sa papel na ito. Naka-save para suriin.',
+  'scan.importedNeedy': '{n} sa {total} ang nabasa · {needy} ang walang mag-aaral',
+  'scan.importedNeedyToast': ' — {n} ang walang mag-aaral',
+  'scan.pill.openNone': 'Walang bukas na mag-aaral',
+  'scan.pill.open': 'Isinasama sa file ni {name}',
   'scan.noOwnerBig': 'Magsimula sa pahina 1',
   'scan.noOwnerSub': 'Ito ay pahina {n}. I-scan muna ang pahinang may numero ng mag-aaral.',
   'scan.noOwnerStatus': 'Walang bukas na mag-aaral — i-scan muna ang pahina 1',
@@ -5641,6 +5664,10 @@ I.packs.ru = {
   'scan.looking': 'Ищем бланк…',
   'scan.noCamera': 'Этот браузер не может открыть здесь камеру. Используйте «Импорт фотографий» или откройте приложение по https:// (см. README).',
   'scan.noNameAnnounce': 'Проблема. На этом бланке нет имени. Сохранён для просмотра.',
+  'scan.importedNeedy': 'Прочитано {n} из {total} · {needy} без ученика',
+  'scan.importedNeedyToast': ' — {n} без ученика',
+  'scan.pill.openNone': 'Ученик не открыт',
+  'scan.pill.open': 'В файл: {name}',
   'scan.noOwnerBig': 'Начните со страницы 1',
   'scan.noOwnerSub': 'Это страница {n}. Сначала отсканируйте страницу с номером ученика.',
   'scan.noOwnerStatus': 'Ученик не открыт — сначала отсканируйте страницу 1',
@@ -6483,6 +6510,10 @@ I.packs.th = {
   'scan.looking': 'กำลังมองหากระดาษ…',
   'scan.noCamera': 'เบราว์เซอร์นี้เปิดกล้องที่นี่ไม่ได้ ใช้ “นำเข้ารูปภาพ” หรือเปิดแอปผ่าน https:// (ดู README)',
   'scan.noNameAnnounce': 'มีปัญหา กระดาษแผ่นนี้ไม่มีชื่อ บันทึกไว้เพื่อทบทวน',
+  'scan.importedNeedy': 'อ่านแล้ว {n} จาก {total} · {needy} ยังไม่มีนักเรียน',
+  'scan.importedNeedyToast': ' — {n} ยังไม่มีนักเรียน',
+  'scan.pill.openNone': 'ยังไม่ได้เปิดแฟ้มนักเรียน',
+  'scan.pill.open': 'เก็บเข้าแฟ้มของ {name}',
   'scan.noOwnerBig': 'เริ่มที่หน้า 1',
   'scan.noOwnerSub': 'นี่คือหน้า {n} กรุณาสแกนหน้าที่มีเลขที่นักเรียนก่อน',
   'scan.noOwnerStatus': 'ยังไม่ได้เปิดแฟ้มนักเรียน — สแกนหน้า 1 ก่อน',
@@ -7268,6 +7299,10 @@ I.packs.ko = {
   'scan.looking': '용지를 찾는 중…',
   'scan.noCamera': '이 브라우저에서는 여기서 카메라를 열 수 없습니다. “사진 가져오기”를 쓰시거나 https://로 앱을 여세요 (README 참고).',
   'scan.noNameAnnounce': '문제가 있습니다. 이 용지에 이름이 없습니다. 검토용으로 저장했습니다.',
+  'scan.importedNeedy': '{total}장 중 {n}장 읽음 · {needy}장은 학생 미지정',
+  'scan.importedNeedyToast': ' — {n}장은 학생 미지정',
+  'scan.pill.openNone': '열린 학생 없음',
+  'scan.pill.open': '{name} 파일에 저장',
   'scan.noOwnerBig': '1쪽부터 스캔하세요',
   'scan.noOwnerSub': '이것은 {n}쪽입니다. 번호가 적힌 쪽을 먼저 스캔하세요.',
   'scan.noOwnerStatus': '열린 학생이 없습니다 — 1쪽을 먼저 스캔하세요',
@@ -10696,6 +10731,29 @@ function setStatus(t, kind) {
   p.textContent = t;
   p.className = 'pill' + (kind ? ' ' + kind : '');
 }
+/* Which student file the next page will join.
+ *
+ * Pages after the first carry no class number, so they are filed by whichever
+ * class number was read last. That rule is easy to follow and impossible to
+ * see: without this pill the teacher learns where the pages went only after
+ * they have gone. It reads the state rather than being told about it, so it
+ * cannot drift out of step with what the router will actually do. */
+function setOpen() {
+  var p = $('#pillOpen');
+  if (!p) return;
+  var St = global.QG.App && global.QG.App.State;
+  var sid = St && St.openSid;
+  var stale = St && St.test && St.openFor !== St.test.id;
+  if (!sid || stale) {
+    p.textContent = T('scan.pill.openNone');
+    p.className = 'pill';
+    return;
+  }
+  var stu = St.byId && St.byId[sid];
+  p.textContent = T('scan.pill.open', { name: (stu && stu.name) || sid });
+  p.className = 'pill ok';
+}
+Scanner.setOpen = setOpen;
 function flash(kind) {
   var f = $('#flash');
   if (!f) return;
@@ -11029,8 +11087,13 @@ function accept(ctx) {
   return Scanner.hooks.saveScan(record, blobs).then(function (res) {
     Scanner.sessionCount++;
     var pill = $('#pillCount');
-    if (pill) pill.textContent = Scanner.sessionCount + ' sheet' + (Scanner.sessionCount === 1 ? '' : 's');
+    /* Was building "3 sheets" in English by hand, so the count reverted to
+     * English after every scan while the rest of the screen stayed translated.
+     * resetSession already had this right. */
+    if (pill) pill.textContent = T('scan.sheetCount', { n: Scanner.sessionCount });
+    setOpen();
     report(res, record, test);
+    return res;
   });
 }
 
@@ -11134,7 +11197,10 @@ Scanner.importFiles = function (files, opts) {
   if (!test) { Q.toast(T('toast.pickTest'), 'err'); return Promise.resolve(); }
   var pages = Scanner.hooks.getPages();
   var list = Array.prototype.slice.call(files);
-  var okCount = 0, failCount = 0;
+  var okCount = 0, failCount = 0, needy = 0;
+  /* Statuses that mean the sheet was read but is not filed to a student. They
+   * are the ones the teacher still has to do something about. */
+  var NEEDS_A_STUDENT = { 'no-id': 1, 'unknown-id': 1, 'no-owner': 1, 'owner-clash': 1 };
   setStatus(T('scan.importing', { n: list.length }));
 
   return list.reduce(function (chain, file) {
@@ -11171,15 +11237,27 @@ Scanner.importFiles = function (files, opts) {
         var ans = V.decodeAnswers(capGray.g, capW, capH, H, white, pageDesc);
         return accept({ test: test, pages: pages, pageDesc: pageDesc, ident: ident, ans: ans,
                         form: form, capImg: capImg, H: H, capW: capW, capH: capH })
-          .then(function () { okCount++; });
+          .then(function (res) {
+            okCount++;
+            if (res && NEEDS_A_STUDENT[res.status]) needy++;
+          });
       }).catch(function (e) { failCount++; console.error(e); });
     });
   }, Promise.resolve()).then(function () {
-    setStatus(T('scan.importedStatus', { n: okCount, total: list.length }), failCount ? 'bad' : 'ok');
+    /* "Imported 15 of 15", in green, while two of the fifteen are filed to
+     * nobody. That counted sheets the reader managed to read, which is a fact
+     * about the reader, not about the job being done - and it is the number a
+     * teacher takes as permission to stop looking. Say how many still need a
+     * student, and do not colour it as success while any do. */
+    setStatus(needy
+        ? T('scan.importedNeedy', { n: okCount, total: list.length, needy: needy })
+        : T('scan.importedStatus', { n: okCount, total: list.length }),
+      (failCount || needy) ? 'bad' : 'ok');
     if (!quiet) {
       Q.toast(T('scan.imported', { n: okCount }) +
-              (failCount ? T('scan.importedFailed', { n: failCount }) : ''),
-              failCount ? 'err' : 'good', 5000);
+              (failCount ? T('scan.importedFailed', { n: failCount }) : '') +
+              (needy ? T('scan.importedNeedyToast', { n: needy }) : ''),
+              (failCount || needy) ? 'err' : 'good', 5000);
     }
     if (Scanner.hooks.refresh) Scanner.hooks.refresh();
   });
@@ -11191,6 +11269,7 @@ Scanner.resetSession = function () {
   Scanner.pending = null;
   var strip = $('#scanStrip'); if (strip) strip.innerHTML = '';
   var pill = $('#pillCount'); if (pill) pill.textContent = T('scan.sheetCount', { n: 0 });
+  setOpen();
 };
 
 global.QG.Scanner = Scanner;
@@ -11584,7 +11663,7 @@ function route(name) {
   if (name === 'review') { renderReview(); renderStorage(); }
   if (name === 'written') renderWrittenGrading();
   if (name === 'export') renderExport();
-  if (name === 'scan') { Q.Audio2.unlock(); updateCtx(); }
+  if (name === 'scan') { Q.Audio2.unlock(); updateCtx(); if (Scanner.setOpen) Scanner.setOpen(); }
 }
 
 /* ============================================================ results */
@@ -12995,6 +13074,20 @@ Scanner.hooks = {
       /* A page carrying a class number opens that file. */
       State.openSid = S.normId(record.sid);
       State.openFor = t.id;
+    } else if (!record.sid) {
+      /* A page that asked for a class number and did not get one - smudged,
+       * half-erased, never filled in - means a new student has started and
+       * nobody knows who. That closes the open file.
+       *
+       * Leaving it open is worse than it sounds. The next page carries no
+       * class number of its own, so it would go to whoever came BEFORE the
+       * unreadable sheet, land there with no flag, and be announced by that
+       * student's name as though it were right. The clash guard only catches
+       * it when that student already has the page; where there is room it
+       * files silently. The sample class reproduces this every time, because
+       * one sheet in it has a deliberately unreadable class number. */
+      State.openSid = null;
+      State.openFor = null;
     }
 
     var known = record.sid && State.byId[S.normId(record.sid)];
