@@ -454,7 +454,8 @@ I.packs.tl = {
   'scan.wrongTest': 'Hindi ito ang pagsusulit — kodigo ng papel ay {code}',
 
   /* --- send to an endpoint --- */
-  'offline.unavailable': 'Hindi na-set up ang offline mode sa device na ito, kaya kailangan ng network para mabuksan ang QuickGrade. Gumagana pa rin ang lahat ng iba, at nasa device pa rin ang datos mo.',
+  'offline.headsUp': '<b>Paalala:</b> {msg}',
+  'offline.unavailable': 'Hindi na-set up ang offline mode sa device na ito, kaya kailangan ng network para mabuksan ang QuickGrade. Gumagana pa rin ang lahat ng iba, at nasa device pa rin ang datos mo. Hinaharangan ito ng private o incognito window, kaya subukan ang karaniwang window.',
   'offline.unknown': 'Hindi pa nakumpirma na handa ang offline mode. Kung mawala ang network, baka hindi mabuksan ang QuickGrade hanggang bumalik ito.',
   'send.accepted': 'Naipadala — tinanggap ng address.',
   'send.aria': 'Web address',

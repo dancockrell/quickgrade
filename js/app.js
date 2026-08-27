@@ -129,7 +129,16 @@ function offlineBanner() {
     if (!box || !box.hidden) return;
     var msg = state === 'failed' ? T('offline.unavailable') : T('offline.unknown');
     box.innerHTML = '';
-    box.appendChild(el('span', { html: T('storage.headsUp', { msg: Q.esc(msg) }) }));
+    /* offline.headsUp, not storage.headsUp: that wrapper ends by telling the
+     * reader to run Start QuickGrade.bat, which is the fix for the file://
+     * storage problem and the wrong advice here. Registration only runs on
+     * http(s), so everyone reading THIS banner is already on a hosted page -
+     * and the locked-down laptops that block .bat are the likeliest place for
+     * a policy to block service workers too. Found by re-verification, not by
+     * me: it told the audience it exists for to do the one thing their
+     * machine forbids, and if they somehow could, they would land on file://
+     * where the camera cannot open either. */
+    box.appendChild(el('span', { html: T('offline.headsUp', { msg: Q.esc(msg) }) }));
     box.appendChild(el('button', { text: '×', title: T('storage.dismiss'),
       onclick: function () { box.hidden = true; } }));
     box.hidden = false;

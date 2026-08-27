@@ -470,7 +470,8 @@ I.packs.en = {
   'scan.wrongTest': 'Not this test — sheet is code {code}',
 
   /* --- send --- */
-  'offline.unavailable': 'Offline mode could not be set up on this device, so QuickGrade needs the network to open. Everything else works as normal, and your data is still stored here.',
+  'offline.headsUp': '<b>Heads up:</b> {msg}',
+  'offline.unavailable': 'Offline mode could not be set up on this device, so QuickGrade needs the network to open. Everything else works as normal, and your data is still stored here. Private or incognito windows block this, so an ordinary window may fix it.',
   'offline.unknown': 'Offline mode has not confirmed it is ready. If the network drops, QuickGrade may not open until it is back.',
   'send.accepted': 'Sent — the address accepted it.',
   'send.aria': 'Web address',

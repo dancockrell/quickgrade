@@ -61,6 +61,15 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     banner.hidden === false ? JSON.stringify(banner.text.slice(0, 64)) : 'no banner shown');
   ok('and does not leave an untranslated key on screen',
     banner.text.indexOf('offline.') < 0, JSON.stringify(banner.text.slice(0, 48)));
+  /* Registration only runs on http(s), so everyone who ever sees this banner
+   * is already hosted. It used to borrow storage.headsUp, whose wrapper ends
+   * "Close this and run Start QuickGrade.bat instead" - which sends the exact
+   * teacher this banner exists for, on the locked-down laptop most likely to
+   * block service workers, to run the .bat file that laptop most likely
+   * blocks too. Found by re-verification against a browser where registration
+   * genuinely fails, not by a stub. */
+  ok('the remedy does not point at a launcher a hosted reader cannot use',
+    !/\.bat/i.test(banner.text), JSON.stringify(banner.text));
   ok('the rest of the app still works without it',
     await page.evaluate(() => !!(window.QG && QG.App && QG.App.State)),
     'QG.App present');
