@@ -171,6 +171,40 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('review lists every question with how the class did',
       document.querySelectorAll('#questionBox tbody tr').length === 4,
       document.querySelectorAll('#questionBox tbody tr').length + ' rows');
+
+    /* ---- malformed written-answer points must not silently poison a total.
+     *
+     * A peer session found the same shape in a different app's data:
+     * `String(complexObject)` written a wiki field as the literal text
+     * "[object Object]", sitting beside a dozen correct fields, so the file
+     * read as trustworthy at a glance. A missing key gets caught; a present
+     * but malformed one does not, unless something checks for it.
+     *
+     * scoreStudent's `typeof rec.p === 'number'` guard is where that boundary
+     * is supposed to hold here. `typeof NaN === 'number'` is true in
+     * JavaScript, so the guard alone would not stop an actual NaN from
+     * poisoning wEarned by addition - it depends on nothing upstream ever
+     * writing one. JSON itself cannot smuggle a NaN through a backup
+     * round-trip (NaN is not a JSON literal; JSON.parse throws on it), so
+     * the two shapes worth proving are the ones that CAN survive a backup
+     * file: a numeric-looking string, and a plain object. */
+    let wt = mk();
+    wt.written = [{ label: 'Explain your reasoning.', max: 4, kind: 'essay' }];
+    const wcase = (rec, label) => {
+      const sc = SC.scoreStudent(wt, [0, 1, 2, 3], {}, { 0: rec });
+      return { total: sc.total, wGraded: sc.wGraded, poisoned: Number.isNaN(sc.total) };
+    };
+    const asObject = wcase({ p: {} }, 'object');            // the exact DR-Companion shape
+    const asString = wcase({ p: '3' }, 'string');            // a numeric-looking string
+    const asReal   = wcase({ p: 3 }, 'real');
+    ok('a written score stored as an object does not poison the total',
+      !asObject.poisoned && asObject.wGraded === 0,
+      'total=' + asObject.total + ' wGraded=' + asObject.wGraded);
+    ok('a written score stored as a numeric string is not silently counted',
+      !asString.poisoned && asString.wGraded === 0,
+      'total=' + asString.total + ' wGraded=' + asString.wGraded);
+    ok('a real numeric written score still counts normally',
+      asReal.total === 7 && asReal.wGraded === 1, 'total=' + asReal.total);
     return res;
   });
 
