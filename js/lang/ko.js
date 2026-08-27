@@ -446,6 +446,8 @@ I.packs.ko = {
   'scan.wrongTest': '이 시험이 아닙니다 — 용지 코드는 {code}입니다',
 
   /* --- send to an endpoint --- */
+  'offline.unavailable': '이 기기에서는 오프라인 모드를 설정하지 못했습니다. 열려면 네트워크가 필요합니다. 다른 기능은 정상적으로 작동합니다.',
+  'offline.unknown': '오프라인 모드가 준비되었다고 확인되지 않았습니다. 네트워크가 끊기면 열리지 않을 수 있습니다.',
   'send.accepted': '보냈습니다 — 주소에서 받았습니다.',
   'send.aria': '웹 주소',
   'send.failed': '해당 주소에 연결하지 못했습니다: {msg}',

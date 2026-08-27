@@ -112,6 +112,30 @@ function storageBanner() {
   box.hidden = false;
 }
 
+/* Offline is the feature this app is pitched on, so its absence is worth a
+ * banner rather than a swallowed promise. Checked a few seconds after load,
+ * because registration resolves asynchronously; a state that is still
+ * unresolved is reported as unknown rather than as working, since "we could
+ * not tell" and "it works" are the two that must never print the same.
+ *
+ * A storage warning outranks this one - losing the grades already taken is
+ * worse than losing offline - so it defers if that banner is up. */
+function offlineBanner() {
+  if (!('serviceWorker' in navigator) || location.protocol.indexOf('http') !== 0) return;
+  setTimeout(function () {
+    var state = window.__swState;
+    if (state === 'ok') return;
+    var box = $('#storageWarn');
+    if (!box || !box.hidden) return;
+    var msg = state === 'failed' ? T('offline.unavailable') : T('offline.unknown');
+    box.innerHTML = '';
+    box.appendChild(el('span', { html: T('storage.headsUp', { msg: Q.esc(msg) }) }));
+    box.appendChild(el('button', { text: '×', title: T('storage.dismiss'),
+      onclick: function () { box.hidden = true; } }));
+    box.hidden = false;
+  }, 3000);
+}
+
 /* Browsers may evict IndexedDB under storage pressure. Asking for persistence
  * makes a class set of grades far less likely to vanish on its own. */
 function requestPersistence() {
@@ -147,6 +171,7 @@ function boot() {
     updateCtx();
   });
   Q.DB.ready().then(storageBanner);
+  offlineBanner();
   requestPersistence();
   Promise.all([Q.DB.all('tests'), Q.DB.all('students')]).then(function (r) {
     State.tests = (r[0] || []).map(normalizeTest).sort(function (a, b) { return b.createdAt - a.createdAt; });

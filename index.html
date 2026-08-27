@@ -18,7 +18,18 @@
      from a file:// page there is no service-worker scope, so this no-ops. */
   if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
     window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function () {});
+      /* The headline feature is "it keeps working with the network off", and
+       * this one line is what delivers it. Swallowing the failure meant the
+       * app could render perfectly, every control working, while offline mode
+       * had never installed - on exactly the locked-down district laptops the
+       * README names as the reason to want it. Record it so the app can say
+       * so; the banner is raised once the language pack has loaded. */
+      navigator.serviceWorker.register('sw.js').then(function () {
+        window.__swState = 'ok';
+      }, function (err) {
+        window.__swState = 'failed';
+        window.__swError = (err && err.message) || String(err);
+      });
     });
   }
 </script>

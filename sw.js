@@ -15,7 +15,7 @@
  * a stale name ships an update nobody receives, and a stale list leaves a
  * file the app needs simply missing when offline.
  */
-var CACHE = 'quickgrade-151c5cedba1f';
+var CACHE = 'quickgrade-b16ba2b85aed';
 var SHELL = [
   './',
   './index.html',
@@ -51,11 +51,33 @@ self.addEventListener('install', function (e) {
       // addAll fails the whole install if any one file 404s, so add
       // individually and let the rest succeed.
       .then(function (c) {
+        /* addAll fails the whole install if any one file 404s, so add
+         * individually and keep what landed. Swallowing the rejection is
+         * right; not counting what survived is not. */
         return Promise.all(SHELL.map(function (u) {
-          return c.add(u).catch(function () {});
+          return c.add(u).then(function () { return u; }, function () { return null; });
         }));
       })
-      .then(function () { return self.skipWaiting(); })
+      .then(function (results) {
+        var got = results.filter(Boolean);
+        /* This used to resolve whatever happened, so skipWaiting() ran on a
+         * cache holding 26 files or none, and an active worker with an empty
+         * cache answered navigations from a fallback that was not there.
+         * Failing the install instead leaves the previous worker in place and
+         * the app online, which is a worse offline story and a much better
+         * honest one.
+         *
+         * The floor is the two entries the fetch handler actually depends on,
+         * plus a proportion set well under the real count so it catches a
+         * truncated install without needing to be edited as SHELL grows. */
+        var haveShell = got.indexOf('./index.html') >= 0 && got.indexOf('./') >= 0;
+        if (!haveShell || got.length < Math.ceil(SHELL.length * 0.8)) {
+          throw new Error('offline install incomplete: cached ' + got.length +
+                          ' of ' + SHELL.length +
+                          (haveShell ? '' : ', and the page shell is not among them'));
+        }
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -84,7 +106,21 @@ self.addEventListener('fetch', function (e) {
         caches.open(CACHE).then(function (c) { c.put(req, copy); });
         return res;
       }).catch(function () {
-        return caches.match(req).then(function (r) { return r || caches.match('./index.html'); });
+        return caches.match(req).then(function (r) {
+          return r || caches.match('./index.html');
+        }).then(function (r) {
+          /* respondWith(undefined) is a bare network error with nothing to
+           * read. If the shell is not cached either, say which of the two
+           * things went wrong. */
+          return r || new Response(
+            '<!doctype html><meta charset="utf-8">' +
+            '<title>QuickGrade is offline</title>' +
+            '<p style="font:16px system-ui;margin:3em auto;max-width:34em">' +
+            'QuickGrade cannot load. The network is unavailable and the offline ' +
+            'copy was never stored on this device, so there is nothing to fall ' +
+            'back to. Reconnect once and reload to store it.</p>',
+            { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+        });
       })
     );
     return;
