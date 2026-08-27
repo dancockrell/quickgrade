@@ -651,6 +651,7 @@ I.packs.ko = {
   'unres.deleteConfirm': '이 스캔을 삭제할까요?',
   'unres.h3.other': '⚠ {n}장을 학생과 대응시키지 못했습니다',
   'unres.idUnknown': ' · 번호 {sid} (명단에 없음)',
+  'unres.noOwner': ' · 스캔 당시 열린 학생이 없었습니다',
   'unres.noId': ' · 번호를 칠하지 않음',
   'unres.page': '{n}쪽',
   'unres.viewSheet': '용지 보기',

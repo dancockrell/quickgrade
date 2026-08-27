@@ -680,6 +680,7 @@ I.packs.tl = {
   'unres.h3.one': '⚠ {n} papel ang hindi maitugma sa isang mag-aaral',
   'unres.h3.other': '⚠ {n} papel ang hindi maitugma sa isang mag-aaral',
   'unres.idUnknown': ' · ID {sid} (wala sa listahan)',
+  'unres.noOwner': ' · walang bukas na mag-aaral nang i-scan ito',
   'unres.noId': ' · walang binilugang ID',
   'unres.page': 'pahina {n}',
   'unres.viewSheet': 'Tingnan ang papel',

@@ -651,6 +651,7 @@ I.packs.th = {
   'unres.deleteConfirm': 'ลบการสแกนนี้หรือไม่',
   'unres.h3.other': '⚠ {n} แผ่นจับคู่กับนักเรียนไม่ได้',
   'unres.idUnknown': ' · เลขที่ {sid} (ไม่อยู่ในรายชื่อ)',
+  'unres.noOwner': ' · ไม่ได้เปิดแฟ้มนักเรียนขณะสแกน',
   'unres.noId': ' · ไม่ได้ฝนเลขที่',
   'unres.page': 'หน้า {n}',
   'unres.viewSheet': 'ดูกระดาษ',

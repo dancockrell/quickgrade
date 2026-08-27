@@ -687,6 +687,7 @@ I.packs.ar = {
   'unres.h3.one': '⚠ {n} ورقة تعذّرت مطابقتها بطالب',
   'unres.h3.other': '⚠ {n} ورقة تعذّرت مطابقتها بطلاب',
   'unres.idUnknown': ' · الرقم {sid} (ليس في القائمة)',
+  'unres.noOwner': ' · لم يكن هناك طالب مفتوح عند المسح',
   'unres.noId': ' · لم يُظلَّل رقم',
   'unres.page': 'صفحة {n}',
   'unres.viewSheet': 'عرض الورقة',

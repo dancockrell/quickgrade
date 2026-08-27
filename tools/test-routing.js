@@ -46,7 +46,15 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     /* two students, so a wrong route has somewhere wrong to go */
     const roster = [{ sid: '101', name: 'Nan Chaiyaphum' }, { sid: '102', name: 'Ploy Sirikul' }];
     for (const r of roster) await QG.DB.put('students', { sid: r.sid, name: r.name, cls: 'M1/1' });
-    if (QG.App.reload) await QG.App.reload();
+    /* The database is not the roster the screen reads - State is, and it is
+     * only loaded at boot. Without this every scan reads as "not on roster"
+     * and the Assign list is empty, which is a fault in the harness and looks
+     * exactly like a fault in the app. */
+    St.students = roster.map(r => ({ sid: r.sid, name: r.name, cls: 'M1/1' }));
+    QG.App.recompute();
+    ok('the roster is loaded, not just stored',
+      !!(St.byId && St.byId['101'] && St.byId['102']),
+      Object.keys(St.byId || {}).join(','));
 
     await new Promise(r => {
       const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r;
@@ -210,6 +218,83 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
     return res;
   });
+
+  /* ---- 8. the teacher can rescue a held page, and the rescue is clean.
+   *
+   * Holding a page is only half the feature. The other half is Review, where
+   * the teacher names the student, and none of it was tested: assigning left
+   * the record carrying the flag that said it had no owner, and the row gave
+   * the reason as "no ID bubbled" for a page that has no ID grid to bubble. */
+  const rescue = await page.evaluate(async () => {
+    const res = {}; const ok = (n, c, d) => res[n] = { pass: !!c, d };
+    const St = QG.App.State, S = QG.Sheet;
+
+    const held = St.scans.filter(s => !s.sid && (s.flags || []).indexOf('no-owner') >= 0)[0];
+    ok('there is a held page to rescue', !!held,
+      held ? 'page ' + held.page : 'none held');
+    if (!held) return res;
+
+    QG.App.route('review');
+    await new Promise(r => setTimeout(r, 500));
+
+    /* The reason shown must describe what happened, not blame the student for
+     * skipping something the paper never asked for. */
+    /* Rows are rendered in the order of the unresolved list, so index by that
+     * rather than by text: several rows say "page 2" and matching on the words
+     * picked a different scan, which made two assertions pass about a sheet
+     * this case is not testing. */
+    const unresolved = St.scans.filter(x => !x.sid);
+    const at = unresolved.findIndex(x => x.id === held.id);
+    const rows = [...document.querySelectorAll('.unrow')];
+    const row = at >= 0 ? rows[at] : null;
+    ok('the held page appears in Review, at its own row',
+      !!row && rows.length === unresolved.length,
+      rows.length + ' rows for ' + unresolved.length + ' unmatched, held at ' + at);
+    if (row) {
+      ok('its reason is that no student was open, not that no ID was bubbled',
+        !/no ID bubbled/i.test(row.textContent),
+        JSON.stringify(row.textContent.trim().slice(0, 70)));
+      ok('no empty name strip is shown for a page that has no name box',
+        row.querySelectorAll('img.uncrop').length === 0,
+        row.querySelectorAll('img.uncrop').length + ' crops');
+    }
+
+    /* Assign it the way the teacher does: choose a name, press the button.
+     * 102 rather than 101, because 101 already holds a page 2 and assigning
+     * onto an occupied slot deletes the sheet that was there - correct
+     * behaviour, but not what this case is about. */
+    const before = St.scans.filter(s => !s.sid).length;
+    if (row) {
+      const sel = row.querySelector('select');
+      const button = [...row.querySelectorAll('button')]
+        .filter(b => /^Assign$/.test(b.textContent.trim()))[0];
+      ok('the row offers a student list and an Assign button', !!sel && !!button,
+        'select=' + !!sel + ' button=' + !!button);
+      const wanted = [...(sel ? sel.options : [])]
+        .filter(o => S.normId(o.value) === '102')[0];
+      ok('the student with nothing scanned is offered', !!wanted,
+        wanted ? wanted.textContent : 'not in the list');
+      if (sel && button && wanted) {
+        sel.value = wanted.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        button.click();
+        await new Promise(r => setTimeout(r, 900));
+      }
+    }
+    QG.App.recompute();
+    const after = St.scans.filter(s => s.id === held.id)[0];
+    ok('assigning gives the page its student',
+      after && S.normId(after.sid) === '102', 'sid=' + (after && after.sid));
+    ok('and clears the flags that said it had none',
+      after && (after.flags || []).indexOf('no-owner') < 0 &&
+               (after.flags || []).indexOf('owner-clash') < 0,
+      'flags=' + JSON.stringify((after && after.flags) || []));
+    ok('so it stops counting as unmatched',
+      St.scans.filter(s => !s.sid).length === before - 1,
+      before + ' unmatched before, ' + St.scans.filter(s => !s.sid).length + ' after');
+    return res;
+  });
+  Object.assign(out, rescue);
 
   let failed = 0;
   for (const [name, r] of Object.entries(out)) {

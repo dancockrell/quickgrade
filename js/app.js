@@ -1787,14 +1787,23 @@ function renderReview() {
     r.unresolved.forEach(function (sc) {
       var row = el('div', { class: 'unrow' });
       row.appendChild(el('img', { class: 'unthumb', src: sc.thumb, alt: T('unres.alt.sheet') }));
-      var crop = el('img', { class: 'uncrop', alt: T('unres.alt.name') });
-      if (sc.nameCrop) {
+      /* Only page one has a name box, so only page one has a name to crop.
+       * Showing the empty strip for a later page reads as a student who left
+       * their name blank, which is the opposite of what happened - they were
+       * never asked. */
+      if (sc.nameCrop && sc.page === 1) {
+        var crop = el('img', { class: 'uncrop', alt: T('unres.alt.name') });
         Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) crop.src = b.data; });
+        row.appendChild(crop);
       }
-      row.appendChild(crop);
+      /* And say what actually went wrong. A later page has no ID grid on it,
+       * so "no ID bubbled" blames the student for skipping something the
+       * paper never asked them for. What happened is that no class number had
+       * been read when this page came through. */
+      var why = sc.sid ? T('unres.idUnknown', { sid: sc.sid })
+        : (sc.continuation ? T('unres.noOwner') : T('unres.noId'));
       row.appendChild(el('span', { class: 'dim',
-        text: T('unres.page', { n: sc.page }) +
-          (sc.sid ? T('unres.idUnknown', { sid: sc.sid }) : T('unres.noId')) }));
+        text: T('unres.page', { n: sc.page }) + why }));
       /* A sheet that could not be matched almost always belongs to someone
        * with nothing scanned at all, so offer those first instead of making
        * the teacher hunt an alphabetical list of thirty names. */
@@ -2279,7 +2288,14 @@ function assignScan(sc, sid, quiet) {
   var chain = dup ? deleteScan(dup) : Promise.resolve();
   return chain.then(function () {
     sc.sid = S.normId(sid);
-    sc.flags = (sc.flags || []).filter(function (f) { return f !== 'no-id' && f !== 'partial-id'; });
+    /* Every flag here describes not knowing whose sheet this is. Giving it
+     * an owner is the answer to all of them, so none may survive the assign:
+     * a record that says "no student open" after a teacher has named the
+     * student is a warning about a situation that no longer exists. */
+    sc.flags = (sc.flags || []).filter(function (f) {
+      return f !== 'no-id' && f !== 'partial-id' &&
+             f !== 'no-owner' && f !== 'owner-clash';
+    });
     return Q.DB.put('scans', sc);
   }).then(function () {
     recompute();

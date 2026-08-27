@@ -2660,6 +2660,7 @@ I.packs.en = {
   'unres.h3.one': '⚠ {n} sheet could not be matched to a student',
   'unres.h3.other': '⚠ {n} sheets could not be matched to a student',
   'unres.idUnknown': ' · ID {sid} (not on roster)',
+  'unres.noOwner': ' · no student was open when this was scanned',
   'unres.noId': ' · no ID bubbled',
   'unres.page': 'page {n}',
   'unres.viewSheet': 'View sheet',
@@ -3463,6 +3464,7 @@ I.packs.ar = {
   'unres.h3.one': '⚠ {n} ورقة تعذّرت مطابقتها بطالب',
   'unres.h3.other': '⚠ {n} ورقة تعذّرت مطابقتها بطلاب',
   'unres.idUnknown': ' · الرقم {sid} (ليس في القائمة)',
+  'unres.noOwner': ' · لم يكن هناك طالب مفتوح عند المسح',
   'unres.noId': ' · لم يُظلَّل رقم',
   'unres.page': 'صفحة {n}',
   'unres.viewSheet': 'عرض الورقة',
@@ -4278,6 +4280,7 @@ I.packs.hi = {
   'unres.h3.one': '⚠ {n} पत्रक किसी विद्यार्थी से नहीं मिलाया जा सका',
   'unres.h3.other': '⚠ {n} पत्रक किसी विद्यार्थी से नहीं मिलाए जा सके',
   'unres.idUnknown': ' · क्रमांक {sid} (सूची में नहीं)',
+  'unres.noOwner': ' · स्कैन के समय कोई छात्र खुला नहीं था',
   'unres.noId': ' · कोई क्रमांक नहीं भरा',
   'unres.page': 'पृष्ठ {n}',
   'unres.viewSheet': 'पत्रक देखें',
@@ -5093,6 +5096,7 @@ I.packs.tl = {
   'unres.h3.one': '⚠ {n} papel ang hindi maitugma sa isang mag-aaral',
   'unres.h3.other': '⚠ {n} papel ang hindi maitugma sa isang mag-aaral',
   'unres.idUnknown': ' · ID {sid} (wala sa listahan)',
+  'unres.noOwner': ' · walang bukas na mag-aaral nang i-scan ito',
   'unres.noId': ' · walang binilugang ID',
   'unres.page': 'pahina {n}',
   'unres.viewSheet': 'Tingnan ang papel',
@@ -5966,6 +5970,7 @@ I.packs.ru = {
   'unres.h3.many': '⚠ {n} бланков не удалось сопоставить с учениками',
   'unres.h3.other': '⚠ {n} бланков не удалось сопоставить с учениками',
   'unres.idUnknown': ' · № {sid} (нет в списке)',
+  'unres.noOwner': ' · при сканировании ученик не был открыт',
   'unres.noId': ' · номер не закрашен',
   'unres.page': 'страница {n}',
   'unres.viewSheet': 'Посмотреть бланк',
@@ -6762,6 +6767,7 @@ I.packs.th = {
   'unres.deleteConfirm': 'ลบการสแกนนี้หรือไม่',
   'unres.h3.other': '⚠ {n} แผ่นจับคู่กับนักเรียนไม่ได้',
   'unres.idUnknown': ' · เลขที่ {sid} (ไม่อยู่ในรายชื่อ)',
+  'unres.noOwner': ' · ไม่ได้เปิดแฟ้มนักเรียนขณะสแกน',
   'unres.noId': ' · ไม่ได้ฝนเลขที่',
   'unres.page': 'หน้า {n}',
   'unres.viewSheet': 'ดูกระดาษ',
@@ -7551,6 +7557,7 @@ I.packs.ko = {
   'unres.deleteConfirm': '이 스캔을 삭제할까요?',
   'unres.h3.other': '⚠ {n}장을 학생과 대응시키지 못했습니다',
   'unres.idUnknown': ' · 번호 {sid} (명단에 없음)',
+  'unres.noOwner': ' · 스캔 당시 열린 학생이 없었습니다',
   'unres.noId': ' · 번호를 칠하지 않음',
   'unres.page': '{n}쪽',
   'unres.viewSheet': '용지 보기',
@@ -13218,14 +13225,23 @@ function renderReview() {
     r.unresolved.forEach(function (sc) {
       var row = el('div', { class: 'unrow' });
       row.appendChild(el('img', { class: 'unthumb', src: sc.thumb, alt: T('unres.alt.sheet') }));
-      var crop = el('img', { class: 'uncrop', alt: T('unres.alt.name') });
-      if (sc.nameCrop) {
+      /* Only page one has a name box, so only page one has a name to crop.
+       * Showing the empty strip for a later page reads as a student who left
+       * their name blank, which is the opposite of what happened - they were
+       * never asked. */
+      if (sc.nameCrop && sc.page === 1) {
+        var crop = el('img', { class: 'uncrop', alt: T('unres.alt.name') });
         Q.DB.get('blobs', sc.nameCrop).then(function (b) { if (b) crop.src = b.data; });
+        row.appendChild(crop);
       }
-      row.appendChild(crop);
+      /* And say what actually went wrong. A later page has no ID grid on it,
+       * so "no ID bubbled" blames the student for skipping something the
+       * paper never asked them for. What happened is that no class number had
+       * been read when this page came through. */
+      var why = sc.sid ? T('unres.idUnknown', { sid: sc.sid })
+        : (sc.continuation ? T('unres.noOwner') : T('unres.noId'));
       row.appendChild(el('span', { class: 'dim',
-        text: T('unres.page', { n: sc.page }) +
-          (sc.sid ? T('unres.idUnknown', { sid: sc.sid }) : T('unres.noId')) }));
+        text: T('unres.page', { n: sc.page }) + why }));
       /* A sheet that could not be matched almost always belongs to someone
        * with nothing scanned at all, so offer those first instead of making
        * the teacher hunt an alphabetical list of thirty names. */
@@ -13710,7 +13726,14 @@ function assignScan(sc, sid, quiet) {
   var chain = dup ? deleteScan(dup) : Promise.resolve();
   return chain.then(function () {
     sc.sid = S.normId(sid);
-    sc.flags = (sc.flags || []).filter(function (f) { return f !== 'no-id' && f !== 'partial-id'; });
+    /* Every flag here describes not knowing whose sheet this is. Giving it
+     * an owner is the answer to all of them, so none may survive the assign:
+     * a record that says "no student open" after a teacher has named the
+     * student is a warning about a situation that no longer exists. */
+    sc.flags = (sc.flags || []).filter(function (f) {
+      return f !== 'no-id' && f !== 'partial-id' &&
+             f !== 'no-owner' && f !== 'owner-clash';
+    });
     return Q.DB.put('scans', sc);
   }).then(function () {
     recompute();

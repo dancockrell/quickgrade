@@ -711,6 +711,7 @@ I.packs.en = {
   'unres.h3.one': '⚠ {n} sheet could not be matched to a student',
   'unres.h3.other': '⚠ {n} sheets could not be matched to a student',
   'unres.idUnknown': ' · ID {sid} (not on roster)',
+  'unres.noOwner': ' · no student was open when this was scanned',
   'unres.noId': ' · no ID bubbled',
   'unres.page': 'page {n}',
   'unres.viewSheet': 'View sheet',
