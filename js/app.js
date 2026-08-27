@@ -8,6 +8,10 @@ var $ = Q.$, $$ = Q.$$, el = Q.el, on = Q.on, T = Q.T;
 
 /* ================================================================ state */
 var State = {
+  /* Whose file the scanner is filing continuation pages into. Set by reading
+   * a class number, used by every page that has none. */
+  openSid: null,
+  openFor: null,
   tests: [], test: null, pages: [],
   students: [], byId: {},
   scans: [], trash: [], grades: {},
@@ -1599,6 +1603,48 @@ Scanner.hooks = {
       return saveTest().then(function () { recompute(); return { status: 'key' }; });
     }
 
+    /* Routing a page that has no class number of its own.
+     *
+     * Only page one carries the grid, because a student fills their number in
+     * once and asking again on every later page gets blanks. So the pages of
+     * one test are kept together and fed together: reading a class number
+     * OPENS that student's file, and every page after it goes into the open
+     * file until the next class number is read.
+     *
+     * Two things make that safe enough to do. The scanner says out loud whose
+     * file each page went into, so a stack fed in the wrong order is visible
+     * on the very next page rather than at the end. And if the open student
+     * already has this page, the stack has changed without a new class number
+     * being seen, which is exactly the situation where guessing would file
+     * somebody's answers under another child's name - so it refuses and asks.
+     */
+    if (!record.sid && record.continuation) {
+      /* Owning a page needs a class number that was actually read, and
+       * nothing else. Requiring a roster entry would break routing for the
+       * teacher who never typed a roster - the one this app is for - and it
+       * would break it while reporting "no student open", which is not what
+       * happened. The test id is checked because a file opened while marking
+       * one test must not swallow a loose page from another. */
+      var open = (State.openSid && State.openFor === t.id) ? State.openSid : null;
+      if (!open) {
+        record.flags = (record.flags || []).concat(['no-owner']);
+      } else {
+        var clash = State.scans.some(function (s) {
+          return S.normId(s.sid) === S.normId(open) && s.page === record.page;
+        });
+        if (clash) {
+          record.flags = (record.flags || []).concat(['owner-clash']);
+        } else {
+          record.sid = S.normId(open);
+          record.routedTo = record.sid;
+        }
+      }
+    } else if (record.sid && !S.isKeySid(record.sid, S.idDigitsOf(t))) {
+      /* A page carrying a class number opens that file. */
+      State.openSid = S.normId(record.sid);
+      State.openFor = t.id;
+    }
+
     var known = record.sid && State.byId[S.normId(record.sid)];
     var replaced = null;
     if (record.sid) {
@@ -1621,7 +1667,15 @@ Scanner.hooks = {
       .then(function () {
         State.scans.push(record);
         recompute();
-        if (!record.sid) return { status: 'no-id' };
+        if (!record.sid) {
+          /* Distinguish the two ways a page can arrive unowned: nothing was
+           * open when a continuation came through, or the open file already
+           * has that page and the stack has plainly changed. A teacher can
+           * act on either; 'no id' tells them nothing. */
+          if ((record.flags || []).indexOf('owner-clash') >= 0) return { status: 'owner-clash' };
+          if ((record.flags || []).indexOf('no-owner') >= 0) return { status: 'no-owner' };
+          return { status: 'no-id' };
+        }
         if (!known) return { status: 'unknown-id' };
         var mine = State.scans.filter(function (s) { return S.normId(s.sid) === S.normId(record.sid); });
         var have = {}; mine.forEach(function (s) { have[s.page] = 1; });

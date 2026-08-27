@@ -645,10 +645,22 @@ function renderPage(test, pages, pageIdx, who) {
       '<span style="font-size:6.4pt;color:#666">' + E(lbl.tips || T('sheet.tips')) + '</span>');
   }
 
-  /* identity bubble grids */
+  /* The class-number grid, on the first page only.
+   *
+   * It used to be on every page, and that was a workflow fault rather than a
+   * layout one. A student fills in their number once, on the sheet in front of
+   * them at the start. Asking for it again on pages two through five gets it
+   * once and blank four times, and every blank one arrives as a scan the
+   * teacher has to identify by hand: four per student, a hundred and sixty for
+   * a class of forty. A grid nobody fills in is worse than no grid, because it
+   * looks like identification and is not.
+   *
+   * Later pages are attributed by the order they are fed instead. That is a
+   * real trade and it is written up where the scanner does it. */
   var nId = idDigitsOf(test);
   var cY = codeY0(nId);
   var sid = digits(who.prefill && who.sid ? who.sid : '', nId);
+  if (first || who.prefill) {
   h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
       '<b style="font-size:7pt;letter-spacing:.05em">' + E(test.options && test.options.idLabel ||
       lbl.id || (nId <= 3 ? T('sheet.classNumber') : T('sheet.studentId'))) + '</b>');
@@ -658,6 +670,14 @@ function renderPage(test, pages, pageIdx, who) {
       h += bubble(L.idX0 + d * L.idPitchX, L.idY0 + r * L.idPitchY, String(d),
                   who.prefill && who.sid ? sid[r] === d : false);
     }
+  }
+  } else {
+    /* Later pages say, in words, which student's papers they belong with, so a
+     * page separated from its stack is still traceable by a person. The
+     * machine has the page number from the strip; this is for the human. */
+    h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
+        '<b style="font-size:7pt;letter-spacing:.05em">' +
+        E(lbl.continues || T('sheet.continues')) + '</b>');
   }
   /* The code strip: ten small marks, machine only. Printed with the number
    * beside it so a person can still tell two versions apart by eye. */
@@ -669,8 +689,10 @@ function renderPage(test, pages, pageIdx, who) {
     h += '<div class="cmark" style="left:' + (L.idX0 + i * stripPitch() - mk / 2) +
          'in;top:' + (cY2 - mk / 2) + 'in;width:' + mk + 'in;height:' + mk + 'in"></div>';
   });
-  h += absDiv('lbl', L.idLabelX - 0.02, cY2 - 0.075, 0.60, 0.15,
-      '<span style="font-size:6.2pt;color:#666">' + E(who.formCode || test.code) + '</span>');
+  /* No code printed beside the strip. The corner already reads "TEST 117 -
+   * PAGE 2 OF 5", which tells a person the same thing and tells them the page
+   * as well, and the label here sat at a page-1 height that ran into the first
+   * question on every later page. */
   /* The page row of ten bubbles is gone. Its number rides on the last four
    * marks of the strip above, and a person reads it from "PAGE n of m" in the
    * corner, which was always there. */

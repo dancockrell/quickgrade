@@ -413,10 +413,8 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
     });
     return { d: digitsOut, conf: conf, blanks: blanks };
   }
-  var idr = readRows(S.idGrid(nId));
-  /* The code is ten marks now, present or absent, not three rows of bubbles.
-   * A mark is read against the page white the same way a bubble is, so the
-   * threshold is the same one the answer reader trusts. */
+  /* The strip is read first, because it says which page this is, and that
+   * decides whether there is a class-number grid to read at all. */
   var codeDk = S.codeBits(nId).map(function (pt) {
     return darkness(gray, w, h, H, pt, white, 0.030);
   });
@@ -430,7 +428,19 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
    * of ten bubbles of its own. Read from the same strip in the same pass. */
   var pageNo = S.bitsToPage(codeBitsRead);
 
-  var sid = idr.blanks ? null : idr.d.join('');
+  /* Only page one carries the class number.
+   *
+   * A student writes their number once, at the start, on the sheet in front of
+   * them. The grid is printed on page one only for that reason, so on any
+   * later page there is nothing there to read and an empty result is the
+   * expected answer rather than a fault. Reading it anyway and flagging the
+   * blanks would put every later page into the review queue, which is the
+   * problem this is here to avoid. */
+  var isFirstPage = pageNo === 1 || pageNo === null;
+  var idr = isFirstPage ? readRows(S.idGrid(nId))
+                        : { d: [], conf: 1, blanks: 0, notAsked: true };
+
+  var sid = (idr.notAsked || idr.blanks) ? null : idr.d.join('');
   /* Padded to the printed width. A code of 042 decodes to the number 42, and
    * every comparison downstream is a string comparison, so an unpadded value
    * makes a correctly read sheet look like it belongs to a different test.
@@ -439,12 +449,17 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
   var codeStr = String(codeVal);
   while (codeStr.length < S.L.codeDigits) codeStr = '0' + codeStr;
   var code = codeSeen ? codeStr : null;
-  if (idr.blanks) flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
+  if (!idr.notAsked && idr.blanks) {
+    flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
+  }
   if (!code) flags.push('no-code');
   if (pageNo === null) flags.push('no-page');
 
   return {
     sid: sid, code: code, page: pageNo,
+    /* True when this page never had a class number to give: the caller has to
+     * route it by which student's file is open, not treat it as unidentified. */
+    continuation: !!idr.notAsked,
     idConf: idr.conf, flags: flags
   };
 }

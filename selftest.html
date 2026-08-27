@@ -343,8 +343,13 @@ log('<h2>Page 2 — written-answer crops</h2>');
   var photo = simulateCamera(sheet1, CASES[1]);
   var r = decode(photo, pages);
   if (!r.ok) { check('page 2 decode', false, r.reason); return; }
-  check('page 2 identity', r.ident.sid === SID && r.ident.page === 2,
-    'sid=' + r.ident.sid + ' page=' + r.ident.page);
+  /* Page 2 carries no class number of its own — only page 1 asks for one,
+   * because a student writes it reliably once and not twice. What page 2 must
+   * still do is say which page it is, and say plainly that it needs an owner. */
+  check('page 2 knows its own page number', r.ident.page === 2, 'page=' + r.ident.page);
+  check('page 2 asks to be routed rather than guessing an owner',
+    r.ident.sid === null && r.ident.continuation === true,
+    'sid=' + r.ident.sid + ' continuation=' + r.ident.continuation);
   var wb = pages[1].written[0];
   if (!wb) { check('page 2 has written boxes', false); return; }
   var crop = V.enhanceCanvas(V.warpRegion(r.capImg, r.H, wb.rect, 700));

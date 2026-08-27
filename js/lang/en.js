@@ -422,6 +422,13 @@ I.packs.en = {
   'scan.looking': 'Looking for a sheet…',
   'scan.noCamera': 'This browser cannot open a camera here. Use "Import photos", or open the app over https:// (see README).',
   'scan.noNameAnnounce': 'Problem. No name on this sheet. Saved for review.',
+  'scan.noOwnerBig': 'Start with page 1',
+  'scan.noOwnerSub': 'This is page {n}. Scan the page with the class number on it first.',
+  'scan.noOwnerStatus': 'No student open — scan page 1 of this test first',
+  'scan.clashBig': 'Whose paper is this?',
+  'scan.clashSub': 'Page {n} is already filed for the student who is open. Scan their page 1 again.',
+  'scan.clashStatus': 'That page is already filed — rescan the class number to say who this is',
+  'scan.filedInto': '{name} · page {n}',
   'scan.noNameBig': 'NAME NOT FOUND',
   'scan.noNameStatus': 'NO NAME on this sheet — fix it in Review',
   'scan.noNameSub': 'Sheet saved — tag it in Review',
@@ -474,6 +481,7 @@ I.packs.en = {
 
   /* --- sheet --- */
   'sheet.class': 'CLASS / PERIOD',
+  'sheet.continues': 'KEEP WITH PAGE 1 OF THIS STUDENT',
   'sheet.classNumber': 'CLASS NUMBER',
   'sheet.docTitle': '{title} — answer sheets',
   'sheet.footer': 'QuickGrade answer sheet · print at 100%',

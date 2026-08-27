@@ -61,23 +61,28 @@ function renderSynthetic(test, pageIdx, opts) {
   ctx.fillText((test.className || '') + ' · ' + (test.date || '') + ' · use pencil, fill bubbles completely',
     inx(0.60), inx(L.subTitleY + 0.12));
   ctx.font = inx(0.09) + 'px Arial'; ctx.fillStyle = '#777';
-  ctx.fillText('QuickGrade answer sheet · print at 100% · keep the four corner squares clean',
+  ctx.fillText('QuickGrade answer sheet · print at 100% · keep the border rule unmarked',
     inx(L.footerX), inx(L.footerY + 0.10));
 
-  ctx.strokeStyle = '#444'; ctx.lineWidth = 1.4;
-  ctx.strokeRect(inx(L.nameBox.x), inx(L.nameBox.y), inx(L.nameBox.w), inx(L.nameBox.h));
-  ctx.strokeRect(inx(L.classBox.x), inx(L.classBox.y), inx(L.classBox.w), inx(L.classBox.h));
-  ctx.fillStyle = '#101040'; ctx.font = inx(0.17) + 'px "Comic Sans MS", cursive';
-  ctx.fillText(opts.name || 'Avery Nguyen', inx(L.nameBox.x + 0.12), inx(L.nameBox.y + 0.36));
-  ctx.font = inx(0.12) + 'px "Comic Sans MS", cursive';
-  ctx.fillText(test.className || '', inx(L.classBox.x + 0.12), inx(L.classBox.y + 0.28));
-
-  /* Must mirror renderPage exactly, including the per-test ID width. */
+  /* The printer asks who you are on page 1 and nowhere else, so the fake
+   * photograph has to stop asking there too. If this kept drawing a name box
+   * and an ID grid on page 2, the reader would be tested against a sheet no
+   * printer produces, and the routing it exists to support would go untested. */
   var nId = S.idDigitsOf(test);
-  var sidD = S.digits(opts.sid, nId);
-  S.idGrid(nId).forEach(function (row, r) {
-    row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
-  });
+  if (pageIdx === 0) {
+    ctx.strokeStyle = '#444'; ctx.lineWidth = 1.4;
+    ctx.strokeRect(inx(L.nameBox.x), inx(L.nameBox.y), inx(L.nameBox.w), inx(L.nameBox.h));
+    ctx.strokeRect(inx(L.classBox.x), inx(L.classBox.y), inx(L.classBox.w), inx(L.classBox.h));
+    ctx.fillStyle = '#101040'; ctx.font = inx(0.17) + 'px "Comic Sans MS", cursive';
+    ctx.fillText(opts.name || 'Avery Nguyen', inx(L.nameBox.x + 0.12), inx(L.nameBox.y + 0.36));
+    ctx.font = inx(0.12) + 'px "Comic Sans MS", cursive';
+    ctx.fillText(test.className || '', inx(L.classBox.x + 0.12), inx(L.classBox.y + 0.28));
+
+    var sidD = S.digits(opts.sid, nId);
+    S.idGrid(nId).forEach(function (row, r) {
+      row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
+    });
+  }
   /* the code strip: a filled square where the bit is set, nothing where it
    * is not, drawn from the same bit order the printer uses */
   var cbits = S.codeToBits(test.code, pageIdx);

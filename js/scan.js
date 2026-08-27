@@ -410,6 +410,9 @@ function accept(ctx) {
     /* store the canonical id so a 3-digit "011" and a roster entry of
      * "11" are the same student everywhere downstream */
     sid: S.normId(ident.sid) || null, page: ident.page,
+    /* A page that never carried a class number. It is routed to whichever
+     * student's file is open rather than treated as unidentified. */
+    continuation: !!ident.continuation,
     answers: ctx.ans.answers, states: ctx.ans.states, confs: ctx.ans.confs,
     flags: ident.flags.slice(), checks: {}, overrides: {},
     code: ident.code,
@@ -486,6 +489,30 @@ function report(res, record, test) {
     addThumb(record.thumb, T('scan.keyTag'));
     return;
   }
+  if (res.status === 'no-owner') {
+    /* A continuation page arrived with no file open. Almost always the first
+     * page of the stack was skipped or missed, so say that rather than
+     * "no name", which sends the teacher looking at the wrong thing. */
+    flash('bad'); Q.Audio2.bad();
+    bigMessage(T('scan.noOwnerBig'), T('scan.noOwnerSub', { n: record.page }), 2600);
+    setStatus(T('scan.noOwnerStatus'), 'bad');
+    announce(T('scan.noOwnerStatus'));
+    addThumb(record.thumb, T('scan.unknownTag'), true);
+    if (speak) Q.speak(T('scan.noOwnerBig'));
+    return;
+  }
+  if (res.status === 'owner-clash') {
+    /* The open student already has this page. The stack has changed without a
+     * class number being read, so filing it would be a guess about whose
+     * answers these are. Refuse and let the teacher say. */
+    flash('bad'); Q.Audio2.bad();
+    bigMessage(T('scan.clashBig'), T('scan.clashSub', { n: record.page }), 2800);
+    setStatus(T('scan.clashStatus'), 'bad');
+    announce(T('scan.clashStatus'));
+    addThumb(record.thumb, T('scan.unknownTag'), true);
+    if (speak) Q.speak(T('scan.clashBig'));
+    return;
+  }
   if (res.status === 'no-id') {
     flash('bad'); Q.Audio2.bad();
     bigMessage(T('scan.noNameBig'), T('scan.noNameSub'), 2400);
@@ -519,6 +546,13 @@ function report(res, record, test) {
           : (res.missingPages && res.missingPages.length
               ? T('scan.stillNeed', { pages: res.missingPages.join(', ') })
               : T('scan.accepted', { page: pageTag }));
+  /* A page with no class number of its own was filed by which student is open,
+   * so say whose file it went into. A stack fed in the wrong order then shows
+   * up on the very next sheet, while the papers are still in the teacher's
+   * hand, instead of at the end when nobody can reconstruct it. */
+  if (record.routedTo) {
+    sub = T('scan.filedInto', { name: res.name, n: record.page }) + '  ·  ' + sub;
+  }
   bigMessage(res.name, sub, 1300);
   setStatus(T('scan.okStatus', { name: res.name, sub: sub }), 'ok');
   announce(T('scan.okAnnounce', { name: res.name, sub: sub }));
