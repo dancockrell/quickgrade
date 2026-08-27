@@ -674,10 +674,20 @@ function renderPage(test, pages, pageIdx, who) {
   } else {
     /* Later pages say, in words, which student's papers they belong with, so a
      * page separated from its stack is still traceable by a person. The
-     * machine has the page number from the strip; this is for the human. */
+     * machine has the page number from the strip; this is for the human.
+     *
+     * The instruction alone states the rule without the reason a teacher
+     * would need to follow it under pressure - found by a session that read
+     * this label, then read the routing tests, and asked what happens to a
+     * page 2 if the page 1s and page 2s get sorted into separate stacks
+     * while a class is being collected. The answer is that this page becomes
+     * unmatchable to anyone, which is worth saying rather than implying. */
     h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
         '<b style="font-size:7pt;letter-spacing:.05em">' +
         E(lbl.continues || T('sheet.continues')) + '</b>');
+    h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.06, 2.8, 0.13,
+        '<span style="font-size:6pt;color:#666">' +
+        E(lbl.continuesWhy || T('sheet.continuesWhy')) + '</span>');
   }
   /* The code strip: ten small marks, machine only. Printed with the number
    * beside it so a person can still tell two versions apart by eye. */

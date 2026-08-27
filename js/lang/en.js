@@ -493,6 +493,7 @@ I.packs.en = {
   /* --- sheet --- */
   'sheet.class': 'CLASS / PERIOD',
   'sheet.continues': 'KEEP WITH PAGE 1 OF THIS STUDENT',
+  'sheet.continuesWhy': 'Sorted apart from page 1, this page cannot be matched to anyone.',
   'sheet.classNumber': 'CLASS NUMBER',
   'sheet.docTitle': '{title} — answer sheets',
   'sheet.footer': 'QuickGrade answer sheet · print at 100%',

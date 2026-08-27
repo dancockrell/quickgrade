@@ -532,6 +532,7 @@ I.packs.tl = {
   'tests.sheet.idDigits': 'Paano magpapakilala ang mga mag-aaral',
   'tests.sheet.idLabel': 'Label sa ibabaw ng mga bilog ng numero',
   'sheet.continues': 'Itago kasama ang pahina 1 ng mag-aaral na ito',
+  'sheet.continuesWhy': 'Kung ihiwalay sa pahina 1, hindi na maaaring itugma ang pahinang ito kaninuman.',
   'sheet.classNumber': 'NUMERO SA KLASE',
   'tests.sheet.instr': 'Panuto sa papel',
   'tests.sheet.instr.ph': 'Gumamit ng lapis. Punuin nang buo ang mga bilog.',

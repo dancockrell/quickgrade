@@ -730,6 +730,7 @@ I.packs.ko = {
   'sheet.samples': '올바름|너무 흐림|X표 금지',
   'sheet.tips': '연필 또는 진한 펜 · 고칠 때는 완전히 지우기 · 네 모서리 사각형을 깨끗이',
   'sheet.continues': '이 학생의 1쪽과 함께 보관하세요',
+  'sheet.continuesWhy': '1쪽과 따로 분류되면 이 페이지는 누구의 것인지 알 수 없게 됩니다.',
   'sheet.classNumber': '반 번호',
   'sheet.id': '번호',
   'sheet.test': '시험',

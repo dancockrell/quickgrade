@@ -539,6 +539,7 @@ I.packs.ar = {
   'tests.sheet.idDigits': 'كيف يعرّف الطلاب عن أنفسهم',
   'tests.sheet.idLabel': 'العنوان فوق خانات الرقم',
   'sheet.continues': 'يُحفظ مع الصفحة 1 لهذا الطالب',
+  'sheet.continuesWhy': 'إذا فُرزِّلت منفصلة عن الصفحة 1، فلن يمكن ربطها بأحد.',
   'sheet.classNumber': 'رقم الطالب في الصف',
   'tests.sheet.instr': 'تعليمات الورقة',
   'tests.sheet.instr.ph': 'استخدم قلم رصاص. ظلّل الدوائر بالكامل.',

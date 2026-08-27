@@ -2478,6 +2478,7 @@ I.packs.en = {
   /* --- sheet --- */
   'sheet.class': 'CLASS / PERIOD',
   'sheet.continues': 'KEEP WITH PAGE 1 OF THIS STUDENT',
+  'sheet.continuesWhy': 'Sorted apart from page 1, this page cannot be matched to anyone.',
   'sheet.classNumber': 'CLASS NUMBER',
   'sheet.docTitle': '{title} — answer sheets',
   'sheet.footer': 'QuickGrade answer sheet · print at 100%',
@@ -3359,6 +3360,7 @@ I.packs.ar = {
   'tests.sheet.idDigits': 'كيف يعرّف الطلاب عن أنفسهم',
   'tests.sheet.idLabel': 'العنوان فوق خانات الرقم',
   'sheet.continues': 'يُحفظ مع الصفحة 1 لهذا الطالب',
+  'sheet.continuesWhy': 'إذا فُرزِّلت منفصلة عن الصفحة 1، فلن يمكن ربطها بأحد.',
   'sheet.classNumber': 'رقم الطالب في الصف',
   'tests.sheet.instr': 'تعليمات الورقة',
   'tests.sheet.instr.ph': 'استخدم قلم رصاص. ظلّل الدوائر بالكامل.',
@@ -4182,6 +4184,7 @@ I.packs.hi = {
   'tests.sheet.idDigits': 'विद्यार्थी अपनी पहचान कैसे देंगे',
   'tests.sheet.idLabel': 'क्रमांक के गोलों के ऊपर का शीर्षक',
   'sheet.continues': 'इस छात्र के पेज 1 के साथ रखें',
+  'sheet.continuesWhy': 'पेज 1 से अलग होने पर यह पेज किसी से मेल नहीं खाया जा सकता।',
   'sheet.classNumber': 'कक्षा क्रमांक',
   'tests.sheet.instr': 'पत्रक पर निर्देश',
   'tests.sheet.instr.ph': 'पेंसिल का उपयोग करें। गोले पूरे भरें।',
@@ -5005,6 +5008,7 @@ I.packs.tl = {
   'tests.sheet.idDigits': 'Paano magpapakilala ang mga mag-aaral',
   'tests.sheet.idLabel': 'Label sa ibabaw ng mga bilog ng numero',
   'sheet.continues': 'Itago kasama ang pahina 1 ng mag-aaral na ito',
+  'sheet.continuesWhy': 'Kung ihiwalay sa pahina 1, hindi na maaaring itugma ang pahinang ito kaninuman.',
   'sheet.classNumber': 'NUMERO SA KLASE',
   'tests.sheet.instr': 'Panuto sa papel',
   'tests.sheet.instr.ph': 'Gumamit ng lapis. Punuin nang buo ang mga bilog.',
@@ -5864,6 +5868,7 @@ I.packs.ru = {
   'tests.sheet.idDigits': 'Как ученики себя обозначают',
   'tests.sheet.idLabel': 'Подпись над кружками номера',
   'sheet.continues': 'Хранить вместе со страницей 1 этого ученика',
+  'sheet.continuesWhy': 'Если отделить от страницы 1, эту страницу нельзя будет сопоставить ни с кем.',
   'sheet.classNumber': 'НОМЕР В КЛАССЕ',
   'tests.sheet.instr': 'Указания на бланке',
   'tests.sheet.instr.ph': 'Пишите карандашом. Закрашивайте кружки полностью.',
@@ -6917,6 +6922,7 @@ I.packs.th = {
   'sheet.samples': 'ถูกต้อง|จางเกินไป|อย่ากากบาท',
   'sheet.tips': 'ดินสอหรือปากกาสีเข้ม · ลบให้สะอาดเมื่อแก้ · รักษาสี่เหลี่ยมมุมทั้งสี่ให้สะอาด',
   'sheet.continues': 'เก็บไว้กับหน้า 1 ของนักเรียนคนนี้',
+  'sheet.continuesWhy': 'หากแยกออกจากหน้า 1 จะไม่สามารถจับคู่กับใครได้',
   'sheet.classNumber': 'เลขที่',
   'sheet.id': 'เลขที่',
   'sheet.test': 'ข้อสอบ',
@@ -7714,6 +7720,7 @@ I.packs.ko = {
   'sheet.samples': '올바름|너무 흐림|X표 금지',
   'sheet.tips': '연필 또는 진한 펜 · 고칠 때는 완전히 지우기 · 네 모서리 사각형을 깨끗이',
   'sheet.continues': '이 학생의 1쪽과 함께 보관하세요',
+  'sheet.continuesWhy': '1쪽과 따로 분류되면 이 페이지는 누구의 것인지 알 수 없게 됩니다.',
   'sheet.classNumber': '반 번호',
   'sheet.id': '번호',
   'sheet.test': '시험',
@@ -9794,10 +9801,20 @@ function renderPage(test, pages, pageIdx, who) {
   } else {
     /* Later pages say, in words, which student's papers they belong with, so a
      * page separated from its stack is still traceable by a person. The
-     * machine has the page number from the strip; this is for the human. */
+     * machine has the page number from the strip; this is for the human.
+     *
+     * The instruction alone states the rule without the reason a teacher
+     * would need to follow it under pressure - found by a session that read
+     * this label, then read the routing tests, and asked what happens to a
+     * page 2 if the page 1s and page 2s get sorted into separate stacks
+     * while a class is being collected. The answer is that this page becomes
+     * unmatchable to anyone, which is worth saying rather than implying. */
     h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.22, 2.8, 0.16,
         '<b style="font-size:7pt;letter-spacing:.05em">' +
         E(lbl.continues || T('sheet.continues')) + '</b>');
+    h += absDiv('lbl', L.idLabelX - 0.02, L.idY0 - 0.06, 2.8, 0.13,
+        '<span style="font-size:6pt;color:#666">' +
+        E(lbl.continuesWhy || T('sheet.continuesWhy')) + '</span>');
   }
   /* The code strip: ten small marks, machine only. Printed with the number
    * beside it so a person can still tell two versions apart by eye. */

@@ -532,6 +532,7 @@ I.packs.hi = {
   'tests.sheet.idDigits': 'विद्यार्थी अपनी पहचान कैसे देंगे',
   'tests.sheet.idLabel': 'क्रमांक के गोलों के ऊपर का शीर्षक',
   'sheet.continues': 'इस छात्र के पेज 1 के साथ रखें',
+  'sheet.continuesWhy': 'पेज 1 से अलग होने पर यह पेज किसी से मेल नहीं खाया जा सकता।',
   'sheet.classNumber': 'कक्षा क्रमांक',
   'tests.sheet.instr': 'पत्रक पर निर्देश',
   'tests.sheet.instr.ph': 'पेंसिल का उपयोग करें। गोले पूरे भरें।',
