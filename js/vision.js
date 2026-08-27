@@ -426,8 +426,9 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
    * strip that reads zero: a real code is never zero. */
   var codeSeen = codeDk.some(function (d) { return d > 0.30; });
 
-  var pageDk = S.pageRow(nId).map(function (pt) { return darkness(gray, w, h, H, pt, white); });
-  var pres = readGroup(pageDk, 0.22, 0.16);
+  /* The page number is four marks on the end of the code strip now, not a row
+   * of ten bubbles of its own. Read from the same strip in the same pass. */
+  var pageNo = S.bitsToPage(codeBitsRead);
 
   var sid = idr.blanks ? null : idr.d.join('');
   /* Padded to the printed width. A code of 042 decodes to the number 42, and
@@ -440,10 +441,10 @@ function decodeIdentity(gray, w, h, H, white, idDigits) {
   var code = codeSeen ? codeStr : null;
   if (idr.blanks) flags.push(idr.blanks === nId ? 'no-id' : 'partial-id');
   if (!code) flags.push('no-code');
-  if (pres.state !== 'ok') flags.push('no-page');
+  if (pageNo === null) flags.push('no-page');
 
   return {
-    sid: sid, code: code, page: pres.state === 'ok' ? pres.index + 1 : null,
+    sid: sid, code: code, page: pageNo,
     idConf: idr.conf, flags: flags
   };
 }

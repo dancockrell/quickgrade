@@ -80,14 +80,13 @@ function renderSynthetic(test, pageIdx, opts) {
   });
   /* the code strip: a filled square where the bit is set, nothing where it
    * is not, drawn from the same bit order the printer uses */
-  var cbits = S.codeToBits(test.code);
+  var cbits = S.codeToBits(test.code, pageIdx);
   S.codeBits(nId).forEach(function (pt, i) {
     if (!cbits[i]) return;
     var xy = uvToPx(pt), m = inx(0.085);
     ctx.fillStyle = '#111';
     ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
   });
-  S.pageRow(nId).forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 
   pg.mc.forEach(function (item) {
     /* answers[q] may be: a choice index (clean mark), [a,b] (double-marked),

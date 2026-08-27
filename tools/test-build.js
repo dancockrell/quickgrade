@@ -85,11 +85,25 @@ ok('the cache name is content-derived, not a hand-typed version',
   /var CACHE = 'quickgrade-[0-9a-f]{12}';/.test(sw),
   (sw.match(/var CACHE = '[^']*'/) || ['?'])[0]);
 
-/* The single file has to be genuinely standalone. */
+/* The single file has to be genuinely standalone.
+ *
+ * What counts is whether the browser would go and fetch something, so this
+ * looks for values that name a place to fetch from and ignores the rest. The
+ * naive version matched any src= or href= in the file, including ones inside
+ * inlined JavaScript: a line building an image tag as
+ *   '<img src="' + E(logo) + '">'
+ * was reported as an external reference to the literal text ' + E(logo) + '.
+ * That is a string being assembled at runtime from a data URI, and there is
+ * nothing there to fetch. */
 const out = read('QuickGrade.html');
 const externals = [...out.matchAll(/(?:src|href)="((?!data:|#)[^"]+)"/g)]
   .map(m => m[1])
-  .filter(u => !/^https:\/\/fonts\./.test(u));
+  .filter(u => !/^https:\/\/fonts\./.test(u))
+  /* a value containing quote-plus or plus-quote is JavaScript concatenation,
+   * not a URL: no path or scheme can contain those */
+  .filter(u => !/['+]/.test(u))
+  /* and an empty or whitespace-only value fetches nothing */
+  .filter(u => u.trim().length > 0);
 ok('the single file has no external references', externals.length === 0,
   externals.slice(0, 4).join(', ') || 'self-contained');
 

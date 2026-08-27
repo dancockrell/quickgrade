@@ -112,7 +112,7 @@ function renderSynthetic(test, pageIdx, opts) {
     row.forEach(function (pt, d) { drawBubble(ctx, pt, opts.sid ? sidD[r] === d : false, String(d)); });
   });
   /* the code strip: marks, not bubbles */
-  var cbits = S.codeToBits(test.code);
+  var cbits = S.codeToBits(test.code, pageIdx);
   S.codeBits().forEach(function (pt, i) {
     if (!cbits[i]) return;
     var xy = uvToPx(pt);
@@ -120,7 +120,6 @@ function renderSynthetic(test, pageIdx, opts) {
     ctx.fillStyle = '#111';
     ctx.fillRect(xy[0] - m / 2, xy[1] - m / 2, m, m);
   });
-  S.pageRow().forEach(function (pt, d) { drawBubble(ctx, pt, d === pageIdx, String(d + 1)); });
 
   /* answers */
   pg.mc.forEach(function (item) {
@@ -403,7 +402,6 @@ var printCheck = new Promise(function (resolve) {
       var pages = S.layoutTest(test);
       var expected = [];
       S.idGrid().forEach(function (r) { r.forEach(function (pt) { expected.push(pt); }); });
-      S.pageRow().forEach(function (pt) { expected.push(pt); });
       pages[0].mc.forEach(function (it) { it.choices.forEach(function (pt) { expected.push(pt); }); });
       var expIn = expected.map(function (pt) {
         return [L.fid.x0 + pt.u * L.W, L.fid.y0 + pt.v * L.H];
