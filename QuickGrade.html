@@ -27429,6 +27429,11 @@ function wireUI() {
     editing.written.push({ label: '', max: 5, kind: 'short', expected: '' });
     renderWrittenList();
   });
+  on($('#btnAddForm'), 'click', function () {
+    editing.forms = editing.forms || [];
+    editing.forms.push({ id: nextFormLetter(), code: unusedCode(), key: [], rules: {} });
+    renderForms();
+  });
   ['#f_mcCount', '#f_choices'].forEach(function (sel) {
     on($(sel), 'change', function () {
       editing.mc.count = Q.clamp(parseInt($('#f_mcCount').value, 10) || 0, 0, 300);
