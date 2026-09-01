@@ -16,39 +16,46 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     F.reset();
     ok('starts with no active packet', F.active === null);
 
-    const p1 = { testId:'t1', code:'042', page:1, sid:'27', packet:{total:4} };
+    const p1 = { testId:'t1', code:'042', form:null, page:1, sid:'27', packet:{total:4} };
     F.observe(p1, { status:'ok', name:'Avery Nguyen', missingPages:[2,3,4] });
     ok('page one opens a four-page packet',
       F.active && F.active.name === 'Avery Nguyen' && F.active.missing.join(',') === '2,3,4',
       F.label());
 
-    const same = F.wouldAdvance({ testId:'t1', code:'042', page:1, sid:'027' });
+    const same = F.wouldAdvance({ testId:'t1', code:'042', form:null, page:1, sid:'027' });
     ok('rescanning the same student page one is not a false warning', same === null);
 
-    const next = F.wouldAdvance({ testId:'t1', code:'042', page:1, sid:'28' });
+    const next = F.wouldAdvance({ testId:'t1', code:'042', form:null, page:1, sid:'28' });
     ok('a different page one warns before the packet is finished',
       next && next.name === 'Avery Nguyen' && next.missingPages.join(',') === '2,3,4',
       next && next.missingPages.join(','));
 
-    F.observe({ testId:'t1', code:'042', page:3, sid:'27' },
+    ok('same version continuation is allowed',
+      F.packetConflict({ testId:'t1', code:'042', form:null, page:2, sid:'27' }) === null);
+    const mixed = F.packetConflict({ testId:'t1', code:'043', form:'B', page:2, sid:'27' });
+    ok('different version continuation is rejected before routing',
+      mixed && mixed.expectedCode === '042' && mixed.gotCode === '043',
+      mixed && mixed.expectedCode + ' vs ' + mixed.gotCode);
+
+    F.observe({ testId:'t1', code:'042', form:null, page:3, sid:'27' },
       { status:'ok', name:'Avery Nguyen', missingPages:[2,4] });
     ok('pages may arrive out of order inside one packet',
       F.active && F.active.missing.join(',') === '2,4', F.label());
 
-    F.observe({ testId:'t1', code:'042', page:2, sid:'27' },
+    F.observe({ testId:'t1', code:'042', form:null, page:2, sid:'27' },
       { status:'ok', name:'Avery Nguyen', missingPages:[4] });
-    F.observe({ testId:'t1', code:'042', page:4, sid:'27' },
+    F.observe({ testId:'t1', code:'042', form:null, page:4, sid:'27' },
       { status:'ok', name:'Avery Nguyen', complete:true, missingPages:[] });
     ok('the packet closes automatically when all pages are present', F.active === null);
 
-    const after = F.wouldAdvance({ testId:'t1', code:'042', page:1, sid:'28' });
+    const after = F.wouldAdvance({ testId:'t1', code:'042', form:null, page:1, sid:'28' });
     ok('the next student starts clean after completion', after === null);
 
-    F.observe({ testId:'t1', code:'042', page:1, sid:null, packet:{total:3} },
+    F.observe({ testId:'t1', code:'042', form:null, page:1, sid:null, packet:{total:3} },
       { status:'no-id' });
     ok('an unidentified page one still opens a packet instead of losing continuity',
       F.active && F.active.sid === null && F.active.missing.join(',') === '2,3', F.label());
-    const unknownNext = F.wouldAdvance({ testId:'t1', code:'042', page:1, sid:null });
+    const unknownNext = F.wouldAdvance({ testId:'t1', code:'042', form:null, page:1, sid:null });
     ok('unknown identity errs toward warning rather than silently abandoning pages',
       unknownNext && unknownNext.missingPages.join(',') === '2,3');
     F.reset();
