@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: quickgrade-qa-${{ github.event.pull_request.number || github.ref }}
+  group: quickgrade-qa-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
