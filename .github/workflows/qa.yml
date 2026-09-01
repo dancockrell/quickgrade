@@ -53,6 +53,7 @@ jobs:
           node check.js anonymous-packet
           node check.js paper
           node check.js forms
+          node check.js firstrun
       - name: Run full QA suite
         working-directory: tools
         run: npm test
