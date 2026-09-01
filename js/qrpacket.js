@@ -172,6 +172,12 @@ function installPacketFlow() {
     if(sameStudent(active.sid,record.sid)&&!active.unassigned)return null;
     return{name:active.name,missingPages:active.missing.slice(),sid:active.sid};
   }
+  function packetConflict(record){
+    if(!active||+record.page===1||active.testId!==record.testId)return null;
+    var form=record.form||null;
+    if(active.code===record.code&&active.form===form)return null;
+    return{expectedCode:active.code,gotCode:record.code,expectedForm:active.form,gotForm:form};
+  }
   function ensurePill(){
     var row=document.querySelector('#scanHud .hudrow:nth-child(2)');
     if(!row||document.getElementById('pillPacket'))return;
@@ -191,6 +197,11 @@ function installPacketFlow() {
     if(!info)return;var who=info.name||T('names.unassigned');
     Q.toast(who+' · '+T('scan.stillNeed',{pages:info.missingPages.join(', ')}),'err',7500);render(true);
   }
+  function warnConflict(info){
+    if(!info)return;
+    Q.toast(T('scan.clashBig')+' · '+String(info.gotCode||'?')+' ≠ '+String(info.expectedCode||'?'),'err',8000);
+    render(true);
+  }
   function start(record,res){
     active={testId:record.testId,code:record.code,form:record.form||null,sid:normSid(record.sid)||null,
       name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[],unassigned:!!record.packetUnassigned};
@@ -198,7 +209,7 @@ function installPacketFlow() {
     active.missing=res&&res.missingPages?cloneMissing(res.missingPages):defaultMissing(record);
   }
   function observe(record,res){
-    if(!record||!res||res.status==='key')return;
+    if(!record||!res||res.status==='key'||record.packetVersionMismatch)return;
     var p=+record.page;
     if(p===1)start(record,res);
     else if(active&&active.testId===record.testId){
@@ -221,13 +232,20 @@ function installPacketFlow() {
 
   var legacySave=Scanner.hooks.saveScan;
   Scanner.hooks.saveScan=function(record,blobs){
-    var packet=decodedFor(record),warning=wouldAdvance(record);
+    var packet=decodedFor(record),warning=wouldAdvance(record),conflict=packetConflict(record);
     if(warning)warnAdvance(warning);
+    if(conflict){
+      warnConflict(conflict);
+      record.packetVersionMismatch=true;
+      record.flags=(record.flags||[]).concat(['packet-version-mismatch']);
+      var St=Q.App&&Q.App.State;
+      if(St){St.openSid=null;St.openFor=null;}
+    }
     if(packet){
       record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper,kind:packet.kind};
       if(!packet.keyMode){
         if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}
-        else if(packet.page>1&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
+        else if(packet.page>1&&!conflict&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
       }
     }
     return legacySave.call(Scanner.hooks,record,blobs).then(function(res){
@@ -237,7 +255,7 @@ function installPacketFlow() {
   var legacyReset=Scanner.resetSession;
   Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};
   ensurePill();
-  Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,observe:observe,reset:reset,label:label};
+  Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,packetConflict:packetConflict,observe:observe,reset:reset,label:label};
 
   /* QG3 paper no longer asks a student to fill a machine identity, so those
    * controls are misleading rather than advanced options. Keep the stored
