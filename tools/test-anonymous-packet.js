@@ -16,7 +16,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const t={id:'anonpacket',title:'Anonymous packet',className:'C',classes:['C'],date:'2026-09-01',code:'511',
       mc:{count:80,choices:5,key:key,points:1,text:[],options:[],topic:[],rules:{}},written:[],curve:{kind:'none',value:0},
       options:{prefillId:false,idDigits:3,paper:'letter',wPerPage:2,instructions:'',scale:[[0,'F']],footer:'',topsheet:{}}};
-    await QG.DB.put('tests',t); await QG.App.selectTest(t); QG.PacketFlow.reset();
+    await QG.DB.put('tests',t);
+    await QG.DB.put('students',{sid:'1',name:'Avery Nguyen',cls:'C',email:''});
+    QG.App.State.students=await QG.DB.all('students');
+    await QG.App.selectTest(t); QG.PacketFlow.reset();
     const pages=S.layoutTest(t);
     ok('fixture is a multi-page packet',pages.length>1,pages.length+' pages');
 
@@ -41,7 +44,26 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       St.scans.map(s=>s.page).sort((a,b)=>a-b).join(','));
     ok('packet closes when its final page arrives',QG.PacketFlow.active===null);
     ok('ownership is still unresolved rather than guessed',
-      St.results.unresolved.length===pages.length,St.results.unresolved.length+' unresolved pages');
+      St.results.unresolved.length===pages.length,St.results.unresolved.length+' unresolved pages internally');
+
+    QG.App.route('review');
+    await new Promise(r=>setTimeout(r,350));
+    const visible=[...document.querySelectorAll('#unresolvedBox .unrow')].filter(r=>!r.hidden);
+    ok('Review shows one unresolved packet, not one row per page',visible.length===1,visible.length+' visible rows');
+    ok('Review does not expose the temporary packet number',
+      visible.length===1&&!visible[0].textContent.includes(ids[0]),visible[0]&&visible[0].textContent.slice(0,100));
+
+    if(visible.length===1){
+      const sel=visible[0].querySelector('select');
+      const assign=visible[0].querySelector('button.go');
+      sel.value='1'; assign.click();
+      await new Promise(r=>setTimeout(r,500));
+      ok('one Review assignment reassigns every page in the packet',
+        St.scans.length===pages.length&&St.scans.every(s=>s.sid==='1'&&!s.packetUnassigned),
+        [...new Set(St.scans.map(s=>s.sid))].join(','));
+      ok('resolved packet leaves no unmatched pages',St.results.unresolved.length===0,
+        St.results.unresolved.length+' unresolved');
+    }
     return R;
   });
   let bad=0;for(const[k,v]of Object.entries(out)){if(!v.pass)bad++;console.log((v.pass?'PASS  ':'FAIL  ')+k+(v.d!=null?' — '+v.d:''));}
