@@ -80,8 +80,16 @@ for (const f of suites) {
       ? '   ' + (out.split('\n').find(l => l.trim()) || '').trim().slice(0, 58)
       : assertedNothing ? '   asserted nothing' : ''));
   if (bad) {
-    out.split('\n').filter(l => /FAIL|error|Error/.test(l)).slice(0, 4)
-      .forEach(l => console.log('        ' + l.trim().slice(0, 130)));
+    const details = out.split('\n').filter(l => /FAIL|error|Error/.test(l)).slice(0, 4);
+    details.forEach(l => console.log('        ' + l.trim().slice(0, 130)));
+    /* Public Actions metadata exposes annotations even when raw job-log
+     * downloads require repository administration. Keep the same concise
+     * failure evidence visible there so a red build is diagnosable. */
+    if (process.env.GITHUB_ACTIONS) {
+      const msg = (details.join(' | ') || 'Suite exited without assertions')
+        .replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
+      console.log('::error title=' + f.replace(/\.js$/, '') + '::' + msg);
+    }
   }
 }
 
