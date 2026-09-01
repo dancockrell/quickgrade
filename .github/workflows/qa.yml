@@ -44,13 +44,15 @@ jobs:
           done
           cat /tmp/quickgrade-server.log
           exit 1
-      - name: Fast QR packet gate
+      - name: Fast scanner regression gate
         working-directory: tools
         run: |
           node check.js qrpacket
+          node check.js qr.js
           node check.js packetflow
           node check.js anonymous-packet
           node check.js paper
+          node check.js forms
       - name: Run full QA suite
         working-directory: tools
         run: npm test
