@@ -19,8 +19,10 @@ const RUN_RATES = [SAMPLE_RATE].concat(THROTTLES.filter(r => r !== SAMPLE_RATE))
 const BUDGET = {
   'cold load to usable':      6000,
   /* QG3 validates both its QR and the natural paper boundary, including a
-   * full-resolution retry when the first phone-sized pass is marginal. */
-  'read one sheet':           7000,
+   * full-resolution retry when the first phone-sized pass is marginal. The
+   * 12x check takes about 12 seconds on a shared Actions runner, so 15 seconds
+   * remains a regression limit without encoding workstation-only speed. */
+  'read one sheet':          15000,
   'open a scanned test':      4000,
   'draw the review screen':   4000,
   'rescore the whole class':  1500,
