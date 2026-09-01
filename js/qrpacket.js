@@ -9,7 +9,7 @@ var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,Sy=Q&&Q.Synth;
 if(!Q||!S||!V||!global.qrcode||!global.jsQR)return;
 
 var GEOMETRY_VERSION=3,PREFIX='QG'+GEOMETRY_VERSION;
-var QR_SIZE=0.64,QR_INSET=0.20,QR_QUIET=0.08,MIN_QR_PX=34;
+var QR_SIZE=0.72,QR_INSET=0.20,QR_QUIET=0.09,MIN_QR_PX=34;
 var lastDecoded=null,lastHint=null,anonCounter=0;
 
 function hex4(n){var s=(n&0xffff).toString(16).toUpperCase();while(s.length<4)s='0'+s;return s;}
