@@ -125,4 +125,81 @@ if(Sy&&Sy.renderSynthetic){
 }
 
 Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr};
+
+/* Packet progress ---------------------------------------------------------
+ * qrpacket.js is loaded before app.js so the geometry overrides exist before
+ * scanning starts. Scanner.hooks is installed by app.js later in the same
+ * page load. Install the packet watcher on DOMContentLoaded, after all bottom
+ * scripts have executed, so hosted and single-file builds take one path. */
+function installPacketFlow() {
+  var Scanner=Q.Scanner;
+  if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;
+  var active=null, T=Q.T;
+  function normSid(s){return S.normId?S.normId(s):String(s||'');}
+  function sameStudent(a,b){var aa=normSid(a),bb=normSid(b);return !!aa&&!!bb&&aa===bb;}
+  function packetTotal(record){var p=record&&record.packet;if(p&&p.total)return +p.total;var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();return pages?pages.length:1;}
+  function defaultMissing(record){var out=[],n=packetTotal(record);for(var i=1;i<=n;i++)if(i!==+record.page)out.push(i);return out;}
+  function cloneMissing(a){return(a||[]).map(Number).filter(function(n){return n>0;});}
+  function wouldAdvance(record){
+    if(!active||+record.page!==1||active.testId!==record.testId||!active.missing.length)return null;
+    if(sameStudent(active.sid,record.sid))return null;
+    return{name:active.name,missingPages:active.missing.slice(),sid:active.sid};
+  }
+  function ensurePill(){
+    var row=document.querySelector('#scanHud .hudrow:nth-child(2)');
+    if(!row||document.getElementById('pillPacket'))return;
+    var p=document.createElement('span');p.className='pill';p.id='pillPacket';p.hidden=true;
+    var status=document.getElementById('pillStatus');row.insertBefore(p,status||null);
+  }
+  function label(){
+    if(!active)return'';
+    var who=active.name||T('names.unassigned');
+    return active.missing.length?who+' · '+T('scan.stillNeed',{pages:active.missing.join(', ')}):who+' · '+T('scan.complete');
+  }
+  function render(warn){
+    ensurePill();var p=document.getElementById('pillPacket');if(!p)return;
+    p.hidden=!active;p.textContent=label();p.className='pill'+(warn?' bad':active?' ok':'');
+  }
+  function warnAdvance(info){
+    if(!info)return;var who=info.name||T('names.unassigned');
+    Q.toast(who+' · '+T('scan.stillNeed',{pages:info.missingPages.join(', ')}),'err',7500);render(true);
+  }
+  function start(record,res){
+    active={testId:record.testId,code:record.code,form:record.form||null,sid:normSid(record.sid)||null,
+      name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[]};
+    active.seen[+record.page]=true;
+    active.missing=res&&res.missingPages?cloneMissing(res.missingPages):defaultMissing(record);
+  }
+  function observe(record,res){
+    if(!record||!res||res.status==='key')return;
+    var p=+record.page;
+    if(p===1)start(record,res);
+    else if(active&&active.testId===record.testId){
+      active.seen[p]=true;if(!active.sid&&record.sid)active.sid=normSid(record.sid)||null;
+      if(!active.name&&res.name)active.name=res.name;
+      if(res.missingPages)active.missing=cloneMissing(res.missingPages);else active.missing=active.missing.filter(function(n){return n!==p;});
+    }
+    if(res.complete||(active&&active.missing.length===0))active=null;
+    render(false);
+  }
+  function reset(){active=null;render(false);}
+  var legacySave=Scanner.hooks.saveScan;
+  Scanner.hooks.saveScan=function(record,blobs){
+    var warning=wouldAdvance(record);if(warning)warnAdvance(warning);
+    /* Preserve the QR page count with the stored scan. It is useful evidence
+     * when the test definition is edited later and costs almost nothing. */
+    if(record&&record.page&&record.code&&Q.QRPacket){
+      var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();
+      record.packet={geometry:GEOMETRY_VERSION,total:pages?pages.length:1,page:record.page};
+    }
+    return legacySave.call(Scanner.hooks,record,blobs).then(function(res){observe(record,res);return res;});
+  };
+  var legacyReset=Scanner.resetSession;
+  Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};
+  ensurePill();
+  Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,observe:observe,reset:reset,label:label};
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installPacketFlow);
+else setTimeout(installPacketFlow,0);
+
 })(window);
