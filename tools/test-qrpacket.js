@@ -8,13 +8,12 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   await page.goto(BASE + '/index.html', { waitUntil: 'networkidle' });
-  await page.addScriptTag({ url: BASE + '/js/qrpacket.js' });
   await page.waitForTimeout(300);
 
   const out = await page.evaluate(async () => {
     const res = {}; const ok = (n, c, d) => res[n] = { pass: !!c, d };
     const S = QG.Sheet, V = QG.Vision, Sy = QG.Synth, P = QG.QRPacket;
-    ok('QR packet module loaded', !!P && P.version === 3, P && P.prefix);
+    ok('QR packet module loaded by the app', !!P && P.version === 3, P && P.prefix);
 
     const key = Array.from({length: 100}, (_, i) => i % 5);
     const test = {
