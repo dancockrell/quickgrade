@@ -1,416 +1,144 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title data-i18n="app.title">QuickGrade — Scan &amp; Grade Paper Tests</title>
-<meta name="description" content="Scan paper tests with a camera, grade them, and export to Excel, Sheets, Word or Docs. Student data stays on the device.">
-<meta name="theme-color" content="#3554d1">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="QuickGrade">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e6a8d">
+<title>QuickGrade — Scan & Grade Paper Tests</title>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png" sizes="192x192" type="image/png">
+<link rel="icon" href="icons/icon-192.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="stylesheet" href="css/app.css">
-<script>
-  /* Installable + fully offline once loaded. Only applies to the hosted copy;
-     from a file:// page there is no service-worker scope, so this no-ops. */
-  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-    window.addEventListener('load', function () {
-      /* The headline feature is "it keeps working with the network off", and
-       * this one line is what delivers it. Swallowing the failure meant the
-       * app could render perfectly, every control working, while offline mode
-       * had never installed - on exactly the locked-down district laptops the
-       * README names as the reason to want it. Record it so the app can say
-       * so; the banner is raised once the language pack has loaded. */
-      navigator.serviceWorker.register('sw.js').then(function () {
-        window.__swState = 'ok';
-      }, function (err) {
-        window.__swState = 'failed';
-        window.__swError = (err && err.message) || String(err);
-      });
-    });
-  }
-</script>
 </head>
 <body>
-
-<div id="storageWarn" hidden></div>
-
-<header id="topbar">
-  <div class="brand" id="brandBtn">Quick<span>Grade</span></div>
-  <nav id="nav">
-    <button data-view="tests"   class="navbtn" data-i18n="nav.tests">Tests</button>
-    <button data-view="roster"  class="navbtn" data-i18n="nav.roster">Roster</button>
-    <button data-view="scan"    class="navbtn primary" data-i18n="nav.scan">Scan</button>
-    <button data-view="review"  class="navbtn"><span data-i18n="nav.review">Review</span> <span class="badge" id="badgeUnres" hidden>0</span></button>
-    <button data-view="written" class="navbtn"><span data-i18n="nav.grade">Grade</span> <span class="badge" id="badgeWritten" hidden>0</span></button>
-    <button data-view="export"  class="navbtn" data-i18n="nav.export">Export</button>
-  </nav>
-  <div class="ctx" id="ctxLabel" data-i18n="hdr.noTest">No test selected</div>
-  <select id="langPick" class="sel sm" data-i18n-aria="hdr.language" aria-label="Language"></select>
-  <button id="btnPrivacy" data-i18n-title="hdr.privacy.title" title="Where student data goes, and how to show that to your school" data-i18n="hdr.privacy">Privacy</button>
+<header class="topbar">
+  <div class="brand"><span class="mark">QG</span><span>QuickGrade</span></div>
+  <div class="topactions">
+    <button id="btnLang" class="iconbtn" title="Language" aria-label="Language">文</button>
+    <button id="btnTheme" class="iconbtn" title="Light / dark" aria-label="Light / dark">◐</button>
+    <button id="btnBackup" class="iconbtn" title="Backup" aria-label="Backup">⇩</button>
+    <input id="backupInput" type="file" accept="application/json,.json" hidden>
+  </div>
 </header>
 
-<main id="main">
+<nav class="navstrip" aria-label="Main navigation">
+  <button class="navbtn" data-view="tests"><span class="navico">▤</span><span data-i18n="nav.tests">Tests</span></button>
+  <button class="navbtn" data-view="roster"><span class="navico">♟</span><span data-i18n="nav.roster">Roster</span></button>
+  <button class="navbtn" data-view="scan"><span class="navico">▣</span><span data-i18n="nav.scan">Scan</span></button>
+  <button class="navbtn" data-view="review"><span class="navico">✓</span><span data-i18n="nav.review">Review</span><span class="badge" id="badgeUnres" hidden></span></button>
+  <button class="navbtn" data-view="written"><span class="navico">✎</span><span data-i18n="nav.grade">Grade</span><span class="badge" id="badgeWritten" hidden></span></button>
+  <button class="navbtn" data-view="export"><span class="navico">⇩</span><span data-i18n="nav.export">Export</span></button>
+</nav>
 
-<!-- ============================ TESTS ============================ -->
+<main>
 <section class="view" id="view-tests">
-  <div class="wrap">
-    <div class="row between">
-      <h1 data-i18n="tests.h1">Tests</h1>
-      <div class="row gap">
-        <button class="btn" id="btnDemo" data-i18n="tests.sample">Sample class</button>
-        <button class="btn" id="btnImportBackup" data-i18n="tests.import">Import backup</button>
-        <input type="file" id="backupInput" accept="application/json,.json" hidden>
-        <button class="btn" id="btnExportBackup" data-i18n="tests.exportBk">Export backup</button>
-        <button class="btn go" id="btnNewTest" data-i18n="tests.new">+ New test</button>
-      </div>
-    </div>
-    <p class="hint" id="storageTotal"></p>
-    <div id="testList" class="cards"></div>
-    <div id="workflow"></div>
-
-    <div id="testEditor" hidden>
-      <hr>
-      <h2 id="editorTitle" data-i18n="tests.editorNew">New test</h2>
-      <div class="grid2">
-        <label data-i18n="tests.f.title">Test title <input id="f_title" data-i18n-ph="tests.f.title.ph" placeholder="Unit 4 — Cell Biology"></label>
-        <label data-i18n="tests.f.class">Class / Period <span class="hint" style="font-weight:400" data-i18n="tests.f.class.hint">&mdash; list several, separated by commas, to give one test to several periods</span><input id="f_class" data-i18n-ph="tests.f.class.ph" placeholder="Biology P3, Biology P5"></label>
-        <label data-i18n="tests.f.date">Date <input id="f_date" type="date"></label>
-        <label data-i18n="tests.f.code">Test code (3 digits, printed on the sheet)
-          <input id="f_code" maxlength="3" inputmode="numeric" data-i18n-ph="tests.f.code.ph" placeholder="042"></label>
-      </div>
-
-      <h3 data-i18n="tests.mc.h">Multiple choice</h3>
-      <div class="grid3">
-        <label data-i18n="tests.mc.count">Number of questions <input id="f_mcCount" type="number" min="0" max="300" value="20"></label>
-        <label data-i18n="tests.mc.choices">Choices per question
-          <select id="f_choices">
-            <option value="2" data-i18n="tests.mc.ch2">2 (T/F)</option><option value="3">3</option>
-            <option value="4" data-i18n="tests.mc.ch4">4 (A&ndash;D)</option><option value="5" selected data-i18n="tests.mc.ch5">5 (A&ndash;E)</option>
-          </select></label>
-        <label data-i18n="tests.mc.points">Points per MC question <input id="f_mcPoints" type="number" min="0" step="0.5" value="1"></label>
-      </div>
-
-      <div class="keybar row gap wrap-row">
-        <strong data-i18n="tests.key.h">Answer key</strong>
-        <button class="btn sm go" id="btnKeyPaste" data-i18n="tests.key.paste">Paste my answer key</button>
-        <button class="btn sm" id="btnKeyFromScan" data-i18n="tests.key.fromScan">Scan a completed sheet</button>
-        <button class="btn sm" id="btnKeyClear" data-i18n="tests.key.clear">Clear key</button>
-        <span class="hint" data-i18n="tests.key.hint">Paste it in whatever form you already have it &mdash; or click letters below.</span>
-      </div>
-      <div id="keyGrid" class="keygrid"></div>
-
-      <details class="more">
-        <summary data-i18n="tests.obj.summary">What each question tests &mdash; standards and objectives</summary>
-        <div class="advbody">
-          <p class="hint" data-i18n="tests.obj.hint">Tag the questions and QuickGrade will tell you what the class has not
-            got, instead of only who scored what.</p>
-          <div id="topicsList" class="topicprev"></div>
-          <button class="btn sm go" id="btnPasteTopics" data-i18n="tests.obj.paste">Paste my objectives</button>
-        </div>
-      </details>
-
-      <details class="more">
-        <summary data-i18n="tests.ver.summary">Versions &mdash; different question orders so neighbours can&rsquo;t copy</summary>
-        <div class="advbody">
-          <p class="hint" data-i18n="tests.ver.hint">Scramble the questions in your own test document, then paste the answer
-            key for each version. Each gets its own printed code, so a mixed pile of sheets sorts
-            itself out while you scan &mdash; you never have to say which is which.</p>
-          <div id="formsList" class="formslist"></div>
-          <button class="btn sm" id="btnAddForm" data-i18n="tests.ver.add">+ Add a second version</button>
-        </div>
-      </details>
-
-      <h3 data-i18n="tests.w.h">Written / short answer / fill-in questions</h3>
-      <p class="hint" data-i18n="tests.w.hint">These get printed answer boxes. After scanning you grade them one question at a time across the whole class.</p>
-      <div id="writtenList"></div>
-      <div class="row gap wrap-row">
-        <button class="btn sm" id="btnAddWritten" data-i18n="tests.w.add">+ Add one</button>
-        <button class="btn sm go" id="btnWrittenPaste" data-i18n="tests.w.paste">Paste my questions</button>
-      </div>
-
-      <details class="more">
-        <summary data-i18n="tests.top.summary">What goes on the sheet students get back</summary>
-        <div class="advbody"><div id="topsheetOpts" class="optgrid"></div></div>
-      </details>
-
-      <h3 data-i18n="tests.sheet.h">Answer-sheet options</h3>
-      <div class="grid3">
-        <label data-i18n="tests.sheet.idDigits">How students identify themselves
-          <select id="f_idDigits">
-            <option value="2" data-i18n="tests.sheet.id2">2-digit class number (1&ndash;99)</option>
-            <option value="3" selected data-i18n="tests.sheet.id3">3-digit class number (1&ndash;999)</option>
-            <option value="4" data-i18n="tests.sheet.id4">4-digit ID</option>
-            <option value="6" data-i18n="tests.sheet.id6">6-digit district ID</option>
-          </select></label>
-        <label data-i18n="tests.sheet.idLabel">Label above the ID bubbles
-          <input id="f_idLabel" data-i18n-ph="sheet.classNumber" placeholder="CLASS NUMBER"></label>
-        <label data-i18n="tests.sheet.paper">Paper size
-          <select id="f_paper">
-            <option value="letter" selected data-i18n="tests.sheet.letter">US Letter (8.5 &times; 11 in)</option>
-            <option value="a4" data-i18n="tests.sheet.a4">A4 (210 &times; 297 mm)</option>
-            <option value="legal" data-i18n="tests.sheet.legal">US Legal (8.5 &times; 14 in)</option>
-          </select></label>
-      </div>
-      <div class="grid3">
-        <label data-i18n="tests.sheet.wPerPage">Written boxes per page <input id="f_wPerPage" type="number" min="1" max="6" value="2"></label>
-        <label data-i18n="tests.sheet.instr">Sheet instructions <input id="f_instr" data-i18n-ph="tests.sheet.instr.ph" placeholder="Use pencil. Fill bubbles completely."></label>
-        <label class="chk" style="margin-top:22px" data-i18n="tests.sheet.prefill"><input type="checkbox" id="f_prefillId">
-          Pre-print each student&rsquo;s ID (only for small runs &mdash; needs a unique page per student)</label>
-      </div>
-      <details class="more">
-        <summary data-i18n="tests.words.summary">Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
-        <div class="advbody">
-      <div class="grid3">
-        <label data-i18n="tests.words.name">Name box <input id="f_lblName" data-i18n-ph="sheet.name" placeholder="NAME"></label>
-        <label data-i18n="tests.words.class">Class box <input id="f_lblClass" data-i18n-ph="sheet.class" placeholder="CLASS / PERIOD"></label>
-        <label data-i18n="tests.words.page">Page row <input id="f_lblPage" data-i18n-ph="sheet.page" placeholder="PAGE"></label>
-      </div>
-      <div class="grid2">
-        <label data-i18n="tests.words.howto">&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" data-i18n-ph="sheet.howto" placeholder="HOW TO FILL THIS IN"></label>
-        <label data-i18n="tests.words.samples">Bubble examples, separated by <code>|</code>
-          <input id="f_lblSamples" data-i18n-ph="sheet.samples" placeholder="correct|too light|do not cross"></label>
-      </div>
-      <label data-i18n="tests.words.tips">Advice line under the examples
-        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully"></label>
-        </div>
-      </details>
-      <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
-        Leave pre-printing <strong>off</strong> so you can print one master sheet and photocopy it for the class.</p>
-
-      <div class="row gap end sticky-actions">
-        <button class="btn" id="btnCancelTest" data-i18n="tests.cancel">Cancel</button>
-        <button class="btn danger" id="btnDeleteTest" hidden data-i18n="tests.delete">Delete test</button>
-        <button class="btn go" id="btnSaveTest" data-i18n="tests.save">Save test</button>
-      </div>
-    </div>
+  <div class="viewhead"><div><h1 data-i18n="tests.h1">Tests</h1><p class="lede" data-i18n="tests.lede">Create a test, paste your answer key, print one master.</p></div>
+    <button class="btn go" id="btnNewTest" data-i18n="tests.new">+ New test</button>
   </div>
+  <div id="storageTotal"></div>
+  <div id="testList" class="cards"></div>
+  <div id="workflow" class="workflow"></div>
 </section>
 
-<!-- ============================ ROSTER ============================ -->
 <section class="view" id="view-roster">
-  <div class="wrap">
-    <h1 data-i18n="roster.h1">Roster</h1>
+  <div class="viewhead"><div><h1 data-i18n="roster.h1">Roster & printing</h1><p class="lede" data-i18n="roster.lede">Paste names once. Print one blank master and photocopy it.</p></div></div>
+  <div class="card">
     <div class="grid2">
-      <div>
-        <label data-i18n="roster.class">Class / Period
-          <input id="rosterClass" list="classChoices" data-i18n-ph="roster.class.ph" placeholder="Type a class name, e.g. Biology P3"
-            autocomplete="off" data-i18n-aria="roster.class.aria" aria-label="Class or period">
-          <datalist id="classChoices"></datalist>
-        </label>
-        <p class="hint" data-i18n-html="roster.pasteHint">Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.</p>
-        <textarea id="rosterPaste" rows="10" data-i18n-ph="roster.paste.ph" placeholder="Avery Nguyen&#10;Ben Carter, 42&#10;Chloe Diaz, 43, chloe.diaz@school.org"></textarea>
-        <div class="row gap">
-          <button class="btn go" id="btnRosterSave" data-i18n="roster.save">Add / update students</button>
-          <button class="btn" id="btnRosterImport" data-i18n="roster.import">Import CSV file</button>
-          <input type="file" id="rosterFile" accept=".csv,.tsv,.txt,text/csv" hidden>
-          <button class="btn" id="btnRosterCsv" data-i18n="roster.csv">Export roster CSV</button>
+      <label><span data-i18n="roster.class">Class</span><input id="rosterClass" list="classList" placeholder="e.g. Biology P3"><datalist id="classList"></datalist></label>
+      <div><span class="labellike" data-i18n="roster.import">Import</span><div class="row gap wrap-row"><button class="btn sm" id="btnRosterCsv" data-i18n="roster.csv">Import CSV file</button><input id="rosterFile" type="file" accept=".csv,text/csv" hidden></div></div>
+    </div>
+    <label><span data-i18n="roster.paste">Paste students</span><textarea id="rosterPaste" rows="8" data-i18n-placeholder="roster.ph" placeholder="Avery Nguyen, 17&#10;Ben Carter, 18&#10;Chloe Diaz"></textarea></label>
+    <p class="hint" data-i18n="roster.hint">One student per line. A number after a comma is kept as their class ID; otherwise QuickGrade assigns one.</p>
+    <div class="row gap wrap-row"><button class="btn go" id="btnSaveRoster" data-i18n="roster.save">Save roster</button><button class="btn" id="btnClearRoster" data-i18n="roster.clear">Clear class</button></div>
+  </div>
+  <div id="rosterList"></div>
+  <div class="card" id="printCard">
+    <h2 data-i18n="print.h2">Print answer sheets</h2>
+    <p class="hint" data-i18n="print.hint">Print one blank master at 100% / Actual size, then photocopy it for the class.</p>
+    <div class="row gap wrap-row">
+      <select id="printForm" hidden aria-label="Version to print"></select>
+      <button class="btn go" id="btnPrintBlank" data-i18n="print.blank">Print blank master</button>
+      <button class="btn" id="btnPrintPersonal" data-i18n="print.personal">Print personalized sheets</button>
+      <button class="btn" id="btnPrintKey" data-i18n="print.key">Print answer-key sheet</button>
+      <button class="btn" id="btnCalibrate" data-i18n="print.check">Check my printing</button>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="view-scan">
+  <div class="viewhead"><div><h1 data-i18n="scan.h1">Scan</h1><p class="lede" id="scanLede" data-i18n="scan.lede">One student's complete paper at a time.</p></div>
+    <div class="row gap wrap-row"><button class="btn" id="btnImportPhotos" data-i18n="scan.import">Import photos</button><input id="photoInput" type="file" accept="image/*" multiple hidden><button class="btn" id="btnCam" data-i18n="scan.camera">Start camera</button></div>
+  </div>
+  <div id="scanArea">
+    <div id="cameraWrap">
+      <video id="video" playsinline muted></video>
+      <canvas id="scanOverlay"></canvas>
+      <div id="scanFlash"></div>
+      <div id="scanIdle">
+        <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
+        <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and keep the bottom-left QR visible.</p>
+        <small data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets with a phone and import the pictures instead.</small>
+      </div>
+      <div id="scanHud">
+        <div class="hudrow">
+          <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
+          <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
+          <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
+          <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
         </div>
       </div>
-      <div>
-        <div class="row between"><h3 data-i18n="roster.students">Students <span class="hint" id="rosterCount"></span></h3>
-          <button class="btn sm danger" id="btnRosterClear" data-i18n="roster.clear">Remove all in class</button></div>
-        <div id="rosterTable" class="scrollbox"></div>
-      </div>
     </div>
-
-    <hr>
-    <h2 data-i18n="roster.print.h2">Print answer sheets</h2>
-    <div class="row gap wrap-row">
-      <select id="printForm" class="sel" data-i18n-aria="roster.print.which" aria-label="Which version to print" hidden></select>
-      <button class="btn go big" id="btnPrintBlank" data-i18n="roster.print.blank">Print the answer sheet</button>
-      <button class="btn big" id="btnPrintCheck" data-i18n="roster.print.check">Check my printing</button>
+    <div id="scanControls" class="row gap wrap-row">
+      <label class="switch"><input type="checkbox" id="scanSound" checked><span data-i18n="scan.sound">Sound</span></label>
+      <label class="switch"><input type="checkbox" id="scanSpeak"><span data-i18n="scan.speak">Speak names</span></label>
+      <button class="btn sm" id="btnResetScan" data-i18n="scan.reset">Reset scan session</button>
     </div>
-    <details class="more">
-      <summary data-i18n="roster.print.other">Other kinds of sheet</summary>
-      <div class="advbody row gap wrap-row">
-        <button class="btn" id="btnPrintKey" data-i18n="roster.print.key">Answer-key sheet
-          <span class="hint" style="margin:0" data-i18n="roster.print.keyHint">for setting the key by scanning</span></button>
-        <button class="btn" id="btnPrintPersonal" data-i18n="roster.print.personal">Personalized sheets
-          <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
-      </div>
-    </details>
-    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.</p>
+    <div id="scanLog"></div>
   </div>
 </section>
 
-<!-- ============================ SCAN ============================ -->
-<section class="view" id="view-scan">
-  <div id="scanStage">
-    <video id="cam" playsinline muted autoplay data-i18n-aria="scan.cam.aria" aria-label="Camera view"></video>
-    <canvas id="overlay" aria-hidden="true"></canvas>
-    <div id="flash" aria-hidden="true"></div>
-
-    <!-- Shown until the camera is live. Without it the most-used screen in
-         the app opens as an unexplained black rectangle. -->
-    <div id="scanIdle">
-      <div class="sicon" aria-hidden="true"></div>
-      <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
-      <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
-        soon as it can see the whole page border. One beep per sheet.</p>
-      <div class="row gap" style="justify-content:center;margin-top:18px">
-        <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
-        <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
-      </div>
-      <p class="sfoot" data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets
-        with a phone and import the pictures instead.</p>
-    </div>
-
-    <div id="scanHud">
-      <div class="hudrow">
-        <button class="btn sm go" id="btnCamStart" data-i18n="scan.start">Start camera</button>
-        <select id="camSelect" class="sel sm" data-i18n-aria="scan.camSel.aria" aria-label="Camera"></select>
-        <button class="btn sm" id="btnTorch" hidden data-i18n="scan.torch">Light</button>
-        <label class="chk sm" data-i18n="scan.speak"><input type="checkbox" id="optSpeak"> Speak</label>
-        <label class="chk sm" data-i18n="scan.sound"><input type="checkbox" id="optSound" checked> Sound</label>
-        <button class="btn sm" id="btnPhotoImport" data-i18n="scan.photos">Import photos</button>
-        <button class="btn sm" id="btnCalibrate" data-i18n="scan.calib">Check my printing</button>
-        <input type="file" id="photoInput" accept="image/*" multiple hidden>
-      </div>
-      <div class="hudrow">
-        <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
-        <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
-        <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
-        <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
-      </div>
-    </div>
-
-    <div id="bigResult"><div id="bigName"></div><div id="bigSub"></div></div>
-
-    <div id="scanStrip"></div>
-  </div>
-</section>
-
-<!-- ============================ REVIEW ============================ -->
 <section class="view" id="view-review">
-  <div class="wrap">
-    <h1 data-i18n="review.h1">Review scans</h1>
-    <div id="trashBox"></div>
-    <div id="unresolvedBox"></div>
-    <div id="checksBox"></div>
-    <div class="row between"><h2 data-i18n="review.students">Students</h2>
-      <div class="row gap">
-        <label class="chk sm" data-i18n="review.problemsOnly"><input type="checkbox" id="showMissingOnly"> Problems only</label>
-        <button class="btn sm" id="btnVerifyNames" data-i18n="review.verifyNames">Check names against handwriting</button>
-        <button class="btn sm danger" id="btnClearScans" data-i18n="review.clearScans">Delete all scans for this test</button>
-      </div>
-    </div>
-    <div id="reviewTable"></div>
-    <div id="masteryBox"></div>
-    <div id="questionBox"></div>
-    <div id="storageBox"></div>
-  </div>
+  <div class="viewhead"><div><h1 data-i18n="review.h1">Review</h1><p class="lede" data-i18n="review.lede">Only things that need your attention.</p></div></div>
+  <div id="trashBox"></div>
+  <div id="unresolvedBox"></div>
+  <div id="checksBox"></div>
+  <div id="masteryBox"></div>
+  <div id="reviewTable"></div>
+  <div id="storageBox"></div>
 </section>
 
-<!-- ============================ WRITTEN GRADING ============================ -->
 <section class="view" id="view-written">
-  <div id="gradeShell">
-    <div id="gradeTop">
-      <div class="row gap wrap-row">
-        <select id="gradeQ" class="sel" data-i18n-aria="grade.q.aria" aria-label="Written question to grade"></select>
-        <span class="pill" id="gradeProgress"></span>
-        <span class="pill" id="gradeStudent"></span>
-        <button class="btn sm" id="btnGradePrev" data-i18n="grade.prev">&#9664; Prev</button>
-        <button class="btn sm" id="btnGradeNext" data-i18n="grade.next">Next &#9654;</button>
-        <label class="chk sm" data-i18n="grade.blind"><input type="checkbox" id="gradeHideName" checked> Blind</label>
-      </div>
-    </div>
-    <div id="gradeImageWrap"><img id="gradeImage" data-i18n-alt="grade.image.alt" alt="Scanned student response for the selected question"></div>
-    <div id="gradeBar">
-      <div id="pointsRow"></div>
-      <div class="row gap">
-        <input id="gradeComment" data-i18n-ph="grade.comment.ph" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
-        <div class="row gap" id="quickComments"></div>
-      </div>
-      <div class="hint" id="gradeKeys"></div>
-    </div>
+  <div class="viewhead"><div><h1 data-i18n="grade.h1">Grade written answers</h1><p class="lede" data-i18n="grade.lede">One question across the class. Keyboard-friendly.</p></div></div>
+  <div id="writtenEmpty" class="card"></div>
+  <div id="writtenWrap">
+    <div id="writtenHead"></div>
+    <div id="writtenAnswer"></div>
+    <div id="gradeBar"></div>
   </div>
 </section>
 
-<!-- ============================ EXPORT ============================ -->
 <section class="view" id="view-export">
-  <div class="wrap">
-    <h1 data-i18n="export.h1">Export</h1>
-
+  <div class="viewhead"><div><h1 data-i18n="export.h1">Export</h1><p class="lede" data-i18n="export.hint">Get scores out in the format your gradebook needs.</p></div></div>
+  <div class="card">
     <h2 data-i18n="export.gradebook.h2">Gradebook (scores)</h2>
-    <p class="hint" data-i18n="export.gradebook.hint">Pick your gradebook once. QuickGrade remembers it and lays the columns out
-      the way that program expects.</p>
-
-    <div class="bigpick">
-      <label data-i18n="export.myGradebook">My gradebook is
-        <select id="fmtPick" class="sel" data-i18n-aria="export.fmtPick.aria" aria-label="Which gradebook do you use"></select>
-      </label>
-      <p class="hint" id="fmtNote"></p>
-    </div>
-
-    <div class="row gap wrap-row" style="margin:14px 0 4px">
-      <button class="btn go big" id="exXlsx" data-i18n="export.xlsx">Download for my gradebook</button>
-      <button class="btn big" id="exTsv" data-i18n="export.tsv">Copy &mdash; paste into Google Sheets</button>
-    </div>
-    <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
-      <code>.xlsx</code> or <code>.csv</code> directly.</p>
-
+    <label><span data-i18n="export.myGradebook">My gradebook is</span><select id="exportPreset"></select></label>
+    <p class="hint" id="exportPresetNote"></p>
+    <div class="row gap wrap-row"><button class="btn go" id="exXlsx" data-i18n="export.xlsx">Download for my gradebook</button><button class="btn" id="exTsv" data-i18n="export.tsv">Copy — paste into Google Sheets</button></div>
+    <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import <code>.xlsx</code> or <code>.csv</code> directly.</p>
     <p class="hint warn" id="exUnmatchedWarn" hidden></p>
     <p class="hint warn" id="exMissingPageWarn" hidden></p>
-
-    <details id="advExport">
-      <summary data-i18n="export.more">More options</summary>
+    <details id="advExport"><summary data-i18n="export.more">More options</summary>
       <div class="advbody">
-        <label class="chk" data-i18n="export.onlyScanned"><input type="checkbox" id="fmtOnlyScanned" checked>
-          Leave out students who have nothing scanned
-          <span class="hint" data-i18n="export.onlyScanned.note">(recommended &mdash; an empty row can wipe an existing grade)</span></label>
-
-        <div class="row gap wrap-row" style="margin:10px 0">
-          <button class="btn sm" id="exCsv" data-i18n="export.csv">Download as .csv instead</button>
-          <button class="btn sm" id="exSend" data-i18n="export.send">Send to a web address&hellip;</button>
-        </div>
-
-        <h3 data-i18n="export.cols.h3">Change the columns</h3>
-        <p class="hint" data-i18n="export.cols.hint">Only needed if your gradebook rejects the file. Drag nothing, break
-          nothing &mdash; use the arrows, and rename a heading by typing over it.</p>
-        <div id="fmtCols" class="fmtcols"></div>
-        <div class="row gap wrap-row" style="margin:10px 0">
-          <select id="fmtAdd" class="sel" data-i18n-aria="export.cols.add.aria" aria-label="Column to add"></select>
-          <button class="btn sm" id="fmtAddBtn" data-i18n="export.cols.add">+ Add column</button>
-          <button class="btn sm" id="fmtSave" data-i18n="export.cols.save">Save as my own layout&hellip;</button>
-          <button class="btn sm danger" id="fmtDelete" hidden data-i18n="export.cols.delete">Delete this layout</button>
-          <button class="btn sm" id="fmtReset" data-i18n="export.cols.reset">Undo my changes</button>
-        </div>
-        <div id="fmtPreview" class="tbl" style="max-height:210px"></div>
+        <label class="switch"><input type="checkbox" id="exOnlyScanned" checked><span data-i18n="export.onlyScanned">Leave out students who have nothing scanned</span></label><span class="hint" data-i18n="export.onlyScanned.note">(recommended — an empty row can wipe an existing grade)</span>
+        <div class="row gap wrap-row"><button class="btn sm" id="exCsv" data-i18n="export.csv">Download as .csv instead</button><button class="btn sm" id="btnCols" data-i18n="export.cols.add">Change columns</button><button class="btn sm" id="btnSend" data-i18n="export.send">Send to a web address…</button></div>
       </div>
     </details>
-
-    <h2 data-i18n="export.top.h2">Graded top sheets (student hand-back pages)</h2>
-    <p class="hint" data-i18n="export.top.hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p>
-    <details class="more">
-      <summary data-i18n="export.top.summary">What goes on the page</summary>
-      <div class="advbody"><div id="topsheetOpts2" class="optgrid"></div></div>
-    </details>
-    <div class="row gap wrap-row" style="margin-top:10px">
-      <button class="btn go" id="exDocx" data-i18n="export.docx">Word document (.docx)</button>
-      <button class="btn" id="exPrintSheets" data-i18n="export.print">Print / Save as PDF</button>
-    </div>
-
-    <h2 data-i18n="export.raw.h2">Raw data</h2>
-    <div class="row gap wrap-row">
-      <button class="btn" id="exRawXlsx" data-i18n="export.raw.xlsx">Item-analysis workbook (.xlsx)</button>
-      <button class="btn" id="exJson" data-i18n="export.raw.json">JSON backup of this test</button>
-    </div>
-    <p class="hint" data-i18n="export.backupHint">The backup is the only copy that outlives this device — keep it
-      somewhere safe. <button class="linky" id="exPrivacy" data-i18n="export.privacyLink">Where does student data go?</button></p>
-
-    <h2 data-i18n="export.curve.h2">Curve</h2>
-    <p class="hint" data-i18n="export.curve.hint">Applies to everyone. The original score is always kept.</p>
-    <div id="curveBox"></div>
-
-    <h2 data-i18n="export.scale.h2">Grading scale</h2>
-    <div id="scaleEditor" class="row gap wrap-row"></div>
   </div>
+  <div class="card"><h2 data-i18n="export.top.h2">Graded top sheets (student hand-back pages)</h2><p class="hint" data-i18n="export.top.hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p><details id="topOpts"><summary data-i18n="export.top.summary">What goes on the page</summary><div id="topOptBody"></div></details><div class="row gap wrap-row"><button class="btn go" id="exDocx" data-i18n="export.docx">Word document (.docx)</button><button class="btn" id="exPrint" data-i18n="export.print">Print / Save as PDF</button></div></div>
+  <div class="card"><h2 data-i18n="export.raw.h2">Raw data</h2><div class="row gap wrap-row"><button class="btn" id="exAnalysis" data-i18n="export.raw.xlsx">Item-analysis workbook (.xlsx)</button><button class="btn" id="exBackup" data-i18n="export.raw.json">JSON backup of this test</button></div></div>
+  <div class="card"><h2 data-i18n="export.curve.h2">Curve</h2><p class="hint" data-i18n="export.curve.hint">Applies to everyone. The original score is always kept.</p><div id="curveBox"></div></div>
+  <div class="card"><h2 data-i18n="export.scale.h2">Grading scale</h2><div id="scaleBox"></div></div>
 </section>
-
 </main>
 
 <div id="srAnnounce" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
@@ -437,6 +165,7 @@
 <script src="js/vision.js"></script>
 <script src="js/synth.js"></script>
 <script src="js/qrpacket.js"></script>
+<script src="js/qrpaper.js"></script>
 <script src="js/scan.js"></script>
 <script src="js/privacy.js"></script>
 <script src="js/app.js"></script>
