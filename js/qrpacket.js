@@ -125,9 +125,6 @@ V.decodeIdentity=function(gray,w,h,H,white,idDigits){
     return {sid:S.keySid(idDigits),code:packet.code,page:packet.page,continuation:false,
       idConf:1,flags:[],qrPacket:packet};
   }
-  /* New QR sheets deliberately ask the student for no machine identity. Page
-   * one may have an ordinary handwritten name, but failure to write it is not
-   * a scan error. Ownership belongs to the packet workflow, not to page ink. */
   return {sid:null,code:packet.code,page:packet.page,continuation:packet.page>1,idConf:1,flags:[],qrPacket:packet};
 };
 
@@ -161,10 +158,6 @@ function newAnonSid(){
 
 Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr};
 
-/* Packet progress ---------------------------------------------------------
- * qrpacket.js is loaded before app.js so geometry is ready before scanning.
- * Scanner.hooks is installed by app.js later in the same page load. Install
- * this watcher on DOMContentLoaded after all bottom scripts have executed. */
 function installPacketFlow() {
   var Scanner=Q.Scanner;
   if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;
@@ -233,10 +226,6 @@ function installPacketFlow() {
     if(packet){
       record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper,kind:packet.kind};
       if(!packet.keyMode){
-        /* No student interaction is required on QG3 paper. Give an anonymous
-         * packet an internal owner so every continuation page stays together.
-         * The id is deliberately not on the roster, so Review/Export continue
-         * to treat ownership as unresolved rather than silently grading a guess. */
         if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}
         else if(packet.page>1&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
       }
@@ -249,6 +238,70 @@ function installPacketFlow() {
   Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};
   ensurePill();
   Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,observe:observe,reset:reset,label:label};
+
+  /* QG3 paper no longer asks a student to fill a machine identity, so those
+   * controls are misleading rather than advanced options. Keep the stored
+   * values for old sheets, but take them out of the normal editor/print UI. */
+  ['f_idDigits','f_idLabel','f_prefillId'].forEach(function(id){
+    var n=document.getElementById(id);if(n&&n.closest('label'))n.closest('label').hidden=true;
+  });
+  var dh=document.querySelector('[data-i18n-html="tests.sheet.digitsHint"]');if(dh)dh.hidden=true;
+  var personal=document.getElementById('btnPrintPersonal');if(personal)personal.hidden=true;
+
+  function groupedUnresolved(){
+    var St=Q.App&&Q.App.State,r=St&&St.results,groups={};
+    if(!r)return groups;
+    (r.unresolved||[]).forEach(function(sc){
+      if(!sc.packetUnassigned||!sc.sid)return;
+      var k=normSid(sc.sid);(groups[k]||(groups[k]=[])).push(sc);
+    });
+    Object.keys(groups).forEach(function(k){groups[k].sort(function(a,b){return a.page-b.page;});});
+    return groups;
+  }
+  function assignPacket(group,target){
+    var St=Q.App.State,targetId=normSid(target),packetId=normSid(group[0].sid),pageSet={};
+    group.forEach(function(sc){pageSet[sc.page]=1;});
+    var dup=St.scans.filter(function(sc){return normSid(sc.sid)===targetId&&pageSet[sc.page]&&normSid(sc.sid)!==packetId;});
+    var now=Date.now();
+    dup.forEach(function(sc){sc.deleted=now;});
+    group.forEach(function(sc){sc.sid=targetId;sc.packetUnassigned=false;sc.packetResolvedAt=now;
+      sc.flags=(sc.flags||[]).filter(function(f){return f!=='no-id'&&f!=='partial-id'&&f!=='no-owner'&&f!=='owner-clash';});});
+    var jobs=[Q.DB.putMany('scans',group)];if(dup.length)jobs.push(Q.DB.putMany('scans',dup));
+    return Promise.all(jobs).then(function(){
+      if(dup.length){St.scans=St.scans.filter(function(sc){return dup.indexOf(sc)<0;});dup.forEach(function(sc){if(St.trash.indexOf(sc)<0)St.trash.push(sc);});}
+      if(active&&normSid(active.sid)===packetId){active.sid=targetId;active.unassigned=false;var stu=St.byId[targetId];active.name=stu&&stu.name||null;}
+      if(St.openSid&&normSid(St.openSid)===packetId){St.openSid=targetId;St.openFor=St.test&&St.test.id;}
+      Q.App.recompute();Q.App.route('review');
+      var stu=St.byId[targetId];Q.toast(T('toast.assignedTo',{name:stu&&stu.name||targetId}),'good');
+    });
+  }
+  function collapseReview(){
+    var St=Q.App&&Q.App.State,r=St&&St.results,host=document.getElementById('unresolvedBox');
+    if(!r||!host)return;
+    var rows=[].slice.call(host.querySelectorAll('.unrow')),un=r.unresolved||[];
+    if(rows.length!==un.length)return;
+    var groups=groupedUnresolved(),indexByScan={};un.forEach(function(sc,i){indexByScan[sc.id]=i;});
+    Object.keys(groups).forEach(function(k){
+      var group=groups[k],first=rows[indexByScan[group[0].id]];if(!first)return;
+      group.slice(1).forEach(function(sc){var row=rows[indexByScan[sc.id]];if(row)row.hidden=true;});
+      if(first.dataset.qgPacket==='1')return;first.dataset.qgPacket='1';
+      var dim=first.querySelector('.dim');if(dim)dim.textContent=T('names.unassigned')+' · '+group.map(function(sc){return T('scan.pageTag',{n:sc.page});}).join(', ');
+      var sel=first.querySelector('select'),assign=first.querySelector('button.go');
+      if(assign&&sel)assign.addEventListener('click',function(e){
+        e.preventDefault();e.stopImmediatePropagation();
+        if(!sel.value){Q.toast(T('toast.pickStudent'),'err');return;}
+        assignPacket(group,sel.value);
+      },true);
+    });
+    var normal=0,seen={};un.forEach(function(sc){if(sc.packetUnassigned&&sc.sid)seen[normSid(sc.sid)]=1;else normal++;});
+    var badge=document.getElementById('badgeUnres'),count=normal+Object.keys(seen).length;
+    if(badge){badge.hidden=!count;badge.textContent=count;}
+  }
+  var review=document.getElementById('unresolvedBox');
+  if(review&&global.MutationObserver){
+    var mo=new MutationObserver(function(){setTimeout(collapseReview,0);});mo.observe(review,{childList:true,subtree:true});
+  }
+  collapseReview();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installPacketFlow);
 else setTimeout(installPacketFlow,0);
