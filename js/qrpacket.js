@@ -23,25 +23,27 @@ function crc16(text) {
 }
 function paperCode() { return S.L.paper === 'a4' ? 'A' : S.L.paper === 'legal' ? 'G' : 'L'; }
 function qrRect() { return { x: QR_INSET, y: S.L.page.h - QR_INSET - QR_SIZE, size: QR_SIZE }; }
-function makePayload(code, page, total, paper) {
+function makePayload(code, page, total, paper, kind) {
   var c = String(code == null ? '' : code).replace(/\D/g, '');
   while (c.length < S.L.codeDigits) c = '0' + c;
   c = c.slice(-S.L.codeDigits);
-  var base = [PREFIX, c, String(page), String(total), paper || paperCode()].join('|');
+  kind = kind === 'K' ? 'K' : 'N';
+  var base = [PREFIX, c, String(page), String(total), paper || paperCode(), kind].join('|');
   return base + '|' + hex4(crc16(base));
 }
 function parsePayload(data) {
-  var m = /^(QG\d+)\|(\d{3})\|(\d{1,2})\|(\d{1,2})\|([LAG])\|([0-9A-Fa-f]{4})$/.exec(String(data || ''));
+  var m = /^(QG\d+)\|(\d{3})\|(\d{1,2})\|(\d{1,2})\|([LAG])\|([NK])\|([0-9A-Fa-f]{4})$/.exec(String(data || ''));
   if (!m || m[1] !== PREFIX) return null;
-  var base = [m[1], m[2], m[3], m[4], m[5]].join('|');
-  if (hex4(crc16(base)) !== m[6].toUpperCase()) return null;
+  var base = [m[1], m[2], m[3], m[4], m[5], m[6]].join('|');
+  if (hex4(crc16(base)) !== m[7].toUpperCase()) return null;
   var page = parseInt(m[3], 10), total = parseInt(m[4], 10);
   if (!page || !total || page > total || total > 99) return null;
-  return { geometry: GEOMETRY_VERSION, code: m[2], page: page, total: total, paper: m[5], raw: String(data) };
+  return { geometry: GEOMETRY_VERSION, code: m[2], page: page, total: total,
+           paper: m[5], kind: m[6], keyMode: m[6] === 'K', raw: String(data) };
 }
-function makeQr(code, pageIdx, total) { var q = global.qrcode(0, 'M'); q.addData(makePayload(code, pageIdx + 1, total)); q.make(); return q; }
-function qrModulesHtml(code, pageIdx, total) {
-  var qb = qrRect(), qr = makeQr(code, pageIdx, total), mod = qr.getModuleCount();
+function makeQr(code, pageIdx, total, kind) { var q = global.qrcode(0, 'M'); q.addData(makePayload(code, pageIdx + 1, total, null, kind)); q.make(); return q; }
+function qrModulesHtml(code, pageIdx, total, kind) {
+  var qb = qrRect(), qr = makeQr(code, pageIdx, total, kind), mod = qr.getModuleCount();
   var cell = (qb.size - QR_QUIET * 2) / mod;
   var h = '<div class="qgqrbox" style="left:' + qb.x + 'in;top:' + qb.y + 'in;width:' + qb.size + 'in;height:' + qb.size + 'in"></div>';
   for (var y = 0; y < mod; y++) for (var x = 0; x < mod; x++) if (qr.isDark(y, x))
@@ -61,12 +63,12 @@ function cleanupHtml(test) {
 var legacyRenderSheets = S.renderSheets;
 S.renderSheets = function (test, people, opts) {
   var html = legacyRenderSheets.apply(S, arguments), pages = S.layoutTest(test), total = pages.length;
-  var code = opts && opts.form ? opts.form.code : test.code, i = 0;
+  var code = opts && opts.form ? opts.form.code : test.code, kind = opts && opts.keyMode ? 'K' : 'N', i = 0;
   html = html.replace(/<div class="edge"[^>]*><\/div>/g, '').replace(/<div class="qrmod"[^>]*><\/div>/g, '');
   html = html.replace('</style>', '.qgclean,.qgqrbox,.qgqrmod{position:absolute}.qgclean{background:#fff;z-index:2}.qgqrbox{background:#fff;z-index:3}.qgqrmod{background:#000;z-index:4}\n</style>');
   return html.replace(/<div class="page">/g, function (m) {
     var pageIdx = i++ % total;
-    return m + cleanupHtml(test) + qrModulesHtml(code, pageIdx, total);
+    return m + cleanupHtml(test) + qrModulesHtml(code, pageIdx, total, kind);
   });
 };
 
@@ -119,6 +121,10 @@ V.decodeIdentity=function(gray,w,h,H,white,idDigits){
   var packet=decodePacketFromWarp(gray,w,h,H);
   if(!packet){lastDecoded=null;return legacyDecodeIdentity(gray,w,h,H,white,idDigits);}
   lastDecoded={packet:packet,at:Date.now()};
+  if(packet.keyMode){
+    return {sid:S.keySid(idDigits),code:packet.code,page:packet.page,continuation:false,
+      idConf:1,flags:[],qrPacket:packet};
+  }
   /* New QR sheets deliberately ask the student for no machine identity. Page
    * one may have an ordinary handwritten name, but failure to write it is not
    * a scan error. Ownership belongs to the packet workflow, not to page ink. */
@@ -134,7 +140,9 @@ if(Sy&&Sy.renderSynthetic){
     wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,S.L.W+0.15,0.15); wipe(S.L.fid.x0-0.075,S.L.fid.y1-0.13,S.L.W+0.15,0.22);
     var clean=cleanupRect(test);wipe(clean.x,clean.y,clean.w,clean.h);
     var oldQr=S.qrRect(S.idDigitsOf(test)); wipe(oldQr.x-0.02,oldQr.y-0.02,oldQr.size+0.04,oldQr.size+0.04);
-    var pages=S.layoutTest(test),qb=qrRect(),qr=makeQr(test.code,pageIdx,pages.length),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
+    var pages=S.layoutTest(test),qb=qrRect();
+    var kind=opts&&S.isKeySid(opts.sid,S.idDigitsOf(test))?'K':'N';
+    var qr=makeQr(test.code,pageIdx,pages.length,kind),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
     ctx.fillStyle='#fff';ctx.fillRect(qb.x*dpi,qb.y*dpi,qb.size*dpi,qb.size*dpi);ctx.fillStyle='#000';
     for(var y=0;y<mod;y++)for(var x=0;x<mod;x++)if(qr.isDark(y,x))ctx.fillRect((qb.x+QR_QUIET+x*cell)*dpi,(qb.y+QR_QUIET+y*cell)*dpi,cell*dpi+0.25,cell*dpi+0.25);
     return cv;
@@ -223,13 +231,15 @@ function installPacketFlow() {
     var packet=decodedFor(record),warning=wouldAdvance(record);
     if(warning)warnAdvance(warning);
     if(packet){
-      record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper};
-      /* No student interaction is required on QG3 paper. Give an anonymous
-       * packet an internal owner so every continuation page stays together.
-       * The id is deliberately not on the roster, so Review/Export continue
-       * to treat ownership as unresolved rather than silently grading a guess. */
-      if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}
-      else if(packet.page>1&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
+      record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper,kind:packet.kind};
+      if(!packet.keyMode){
+        /* No student interaction is required on QG3 paper. Give an anonymous
+         * packet an internal owner so every continuation page stays together.
+         * The id is deliberately not on the roster, so Review/Export continue
+         * to treat ownership as unresolved rather than silently grading a guess. */
+        if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}
+        else if(packet.page>1&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
+      }
     }
     return legacySave.call(Scanner.hooks,record,blobs).then(function(res){
       res=anonymousResult(record,res);observe(record,res);return res;
