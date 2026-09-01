@@ -7,17 +7,24 @@ on:
       - qr-packet-scanning
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   browser-qa:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: tools/package-lock.json
+      - name: Rebuild generated files
+        run: python3 build.py
       - name: Install test dependencies
         working-directory: tools
         run: npm ci
@@ -36,3 +43,13 @@ jobs:
       - name: Run full QA suite
         working-directory: tools
         run: npm test
+      - name: Commit rebuilt generated files
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add QuickGrade.html sw.js
+          if ! git diff --cached --quiet; then
+            git commit -m "Rebuild generated QuickGrade bundle"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
