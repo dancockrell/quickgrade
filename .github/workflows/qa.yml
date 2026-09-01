@@ -1,0 +1,38 @@
+name: QuickGrade QA
+
+on:
+  push:
+    branches:
+      - main
+      - qr-packet-scanning
+  pull_request:
+
+jobs:
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tools/package-lock.json
+      - name: Install test dependencies
+        working-directory: tools
+        run: npm ci
+      - name: Install Chromium
+        working-directory: tools
+        run: npx playwright install --with-deps chromium
+      - name: Start QuickGrade
+        run: |
+          python3 serve.py --port 5200 --no-browser > /tmp/quickgrade-server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:5200/index.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/quickgrade-server.log
+          exit 1
+      - name: Run full QA suite
+        working-directory: tools
+        run: npm test
