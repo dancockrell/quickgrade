@@ -12,9 +12,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   const out = await page.evaluate(async () => {
     const R={}; const ok=(n,c,d)=>R[n]={pass:!!c,d};
     const S=QG.Sheet,Sy=QG.Synth;
-    const key=Array.from({length:80},(_,i)=>i%5);
+    const key=Array.from({length:180},(_,i)=>i%5);
     const t={id:'anonpacket',title:'Anonymous packet',className:'C',classes:['C'],date:'2026-09-01',code:'511',
-      mc:{count:80,choices:5,key:key,points:1,text:[],options:[],topic:[],rules:{}},written:[],curve:{kind:'none',value:0},
+      mc:{count:180,choices:5,key:key,points:1,text:[],options:[],topic:[],rules:{}},written:[],curve:{kind:'none',value:0},
       options:{prefillId:false,idDigits:3,paper:'letter',wPerPage:2,instructions:'',scale:[[0,'F']],footer:'',topsheet:{}}};
     await QG.DB.put('tests',t);
     await QG.DB.put('students',{sid:'1',name:'Avery Nguyen',cls:'C',email:''});
