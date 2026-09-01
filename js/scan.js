@@ -617,6 +617,13 @@ Scanner.importFiles = function (files, opts) {
         S.usePaper(test);
         var gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
         var found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+        if (!found && capW > detW) {
+          detW = capW; detH = capH;
+          Scanner.det.width = detW; Scanner.det.height = detH;
+          Scanner.detCtx.drawImage(Scanner.cap, 0, 0, detW, detH);
+          gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
+          found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+        }
         if (!found) { failCount++; Q.toast(T('scan.noSheetIn', { file: file.name }), 'err'); return; }
 
         var H = V.scaleH(found.H, capW / detW);

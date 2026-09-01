@@ -26,13 +26,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     await QG.DB.put('tests', T);
     await QG.App.selectTest(T);
     await QG.DB.put('students', { sid: '55', name: 'Reads Fine', cls: 'M1/1' });
-    await new Promise(r => {
-      const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r;
-      document.head.appendChild(s);
-    });
     const Sy = QG.Synth;
-    const CAM = { w: 980, h: 1110, noise: 8, vignette: 0.2,
-                  corners: [[150, 96], [880, 88], [905, 1010], [128, 1022]] };
+    const CAM = { w: 1280, h: 1450, noise: 8, vignette: 0.18,
+                  corners: [[190, 120], [1080, 94], [1110, 1330], [160, 1350]] };
     const pages = S.layoutTest(T);
     const answers = {}; pages[0].mc.forEach(it => { answers[it.q] = T.mc.key[it.q]; });
 
