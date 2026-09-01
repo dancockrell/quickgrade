@@ -130,6 +130,16 @@ function setStatus(t, kind) {
   p.textContent = t;
   p.className = 'pill' + (kind ? ' ' + kind : '');
 }
+
+function scanQualityText(hint) {
+  if (hint === 'showQr') return T('scan.quality.showQr');
+  if (hint === 'closer') return T('scan.quality.closer');
+  if (hint === 'wholePage') return T('scan.quality.wholePage');
+  if (hint === 'straight') return T('scan.quality.straight');
+  if (hint === 'steady') return T('scan.quality.steady');
+  if (hint === 'flat') return T('scan.quality.flat');
+  return null;
+}
 /* Which student file the next page will join.
  *
  * Pages after the first carry no class number, so they are filed by whichever
@@ -260,7 +270,7 @@ function tick() {
     Scanner.pending = null;
     drawOverlay(null);
     var qrHint = Q.QRPacket && Q.QRPacket.getHint && Q.QRPacket.getHint();
-    setStatus(qrHint ? T('scan.quality.' + qrHint) : T('scan.looking'));
+    setStatus(scanQualityText(qrHint) || T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);
