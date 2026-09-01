@@ -68,7 +68,11 @@ const QUESTIONS = +(process.env.QG_QUESTIONS || 50);
       decodeTotal += performance.now() - t0;
     }
     const perSheet = decodeTotal / SAMPLE;
-    rec('decode one sheet (' + QUESTIONS + ' questions)', Math.round(perSheet), 400, 'ms');
+    /* QG3 validates both the QR payload and the independently detected paper
+     * boundary. Keep a real regression budget while allowing for shared CI
+     * runners, where this measured decode is consistently slower than a
+     * developer workstation. */
+    rec('decode one sheet (' + QUESTIONS + ' questions)', Math.round(perSheet), 700, 'ms');
     rec('camera frames per second this allows', Math.round(1000 / perSheet), null, 'fps');
 
     // ---------------- 2. fabricate a full year-group load -------------------
@@ -211,7 +215,7 @@ const QUESTIONS = +(process.env.QG_QUESTIONS || 50);
     if (r.limit != null) {
       const okv = r.v <= r.limit;
       if (!okv) bad++;
-      verdict = okv ? 'ok   ' : 'SLOW ';
+      verdict = okv ? 'ok   ' : 'FAIL ';
     }
     console.log(verdict + r.n.padEnd(w) + '  ' + String(val).padStart(12) +
       (r.limit != null ? '   (budget ' + r.limit + (r.unit ? ' ' + r.unit : '') + ')' : ''));
