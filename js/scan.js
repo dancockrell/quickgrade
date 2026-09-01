@@ -281,6 +281,14 @@ function tick() {
   var capGray = V.toGray(capImg);
   var white = V.whiteLevel(capGray.g, capW, capH, Hcap);
   var ident = V.decodeIdentity(capGray.g, capW, capH, Hcap, white, S.idDigitsOf(test));
+  if (found.qrPacket) {
+    ident.sid = null;
+    ident.code = found.qrPacket.code;
+    ident.page = found.qrPacket.page;
+    ident.continuation = found.qrPacket.page > 1;
+    ident.flags = [];
+    ident.qrPacket = found.qrPacket;
+  }
 
   if (ident.page == null) { setStatus(T('scan.pageUnclear')); Scanner.pending = null; return; }
 
@@ -450,6 +458,7 @@ function accept(ctx) {
     answers: ctx.ans.answers, states: ctx.ans.states, confs: ctx.ans.confs,
     flags: ident.flags.slice(), checks: {}, overrides: {},
     code: ident.code,
+    qrPacket: ident.qrPacket || null,
     form: ctx.form && !ctx.form.primary ? ctx.form.id : null,
     ts: Date.now(), thumb: thumb, written: {}, nameCrop: null, classCrop: null, pageImg: null
   };
@@ -627,12 +636,16 @@ Scanner.importFiles = function (files, opts) {
         S.usePaper(test);
         var gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
         var found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
-        if (!found && capW > detW) {
+        if ((!found || !found.qrPacket) && capW > detW) {
+          var lowFound = found, lowW = detW, lowH = detH;
           detW = capW; detH = capH;
           Scanner.det.width = detW; Scanner.det.height = detH;
           Scanner.detCtx.drawImage(Scanner.cap, 0, 0, detW, detH);
           gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
-          found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+          var highFound = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+          if (highFound && highFound.qrPacket) found = highFound;
+          else if (lowFound) { found = lowFound; detW = lowW; detH = lowH; }
+          else found = highFound;
         }
         if (!found) { failCount++; Q.toast(T('scan.noSheetIn', { file: file.name }), 'err'); return; }
 
@@ -641,6 +654,14 @@ Scanner.importFiles = function (files, opts) {
         var capGray = V.toGray(capImg);
         var white = V.whiteLevel(capGray.g, capW, capH, H);
         var ident = V.decodeIdentity(capGray.g, capW, capH, H, white, S.idDigitsOf(test));
+        if (found.qrPacket) {
+          ident.sid = null;
+          ident.code = found.qrPacket.code;
+          ident.page = found.qrPacket.page;
+          ident.continuation = found.qrPacket.page > 1;
+          ident.flags = [];
+          ident.qrPacket = found.qrPacket;
+        }
         if (ident.page == null || ident.page > pages.length) {
           failCount++; Q.toast(T('scan.pageUnreadableIn', { file: file.name }), 'err'); return;
         }

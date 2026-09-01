@@ -193,7 +193,7 @@ if(Sy&&Sy.renderSynthetic){
   };
 }
 
-function decodedFor(record){if(!lastDecoded||Date.now()-lastDecoded.at>5000||!record)return null;var p=lastDecoded.packet;return p.code===record.code&&p.page===+record.page?p:null;}
+function decodedFor(record){if(!record)return null;var p=record.qrPacket||(lastDecoded&&Date.now()-lastDecoded.at<5000?lastDecoded.packet:null);return p&&p.code===record.code&&p.page===+record.page?p:null;}
 function newAnonSid(){anonCounter=(anonCounter+1)%100;return'9700'+String(Date.now()%100000000)+('0'+anonCounter).slice(-2);}
 Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,quiet:QR_QUIET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr,tryDecode:tryDecode,classifyHint:qualityHint,setHint:function(h){lastHint=h;},getHint:function(){return lastHint;}};
 
