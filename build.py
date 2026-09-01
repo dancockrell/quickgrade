@@ -105,7 +105,13 @@ def sync_service_worker(script_paths):
         f = os.path.join(ROOT, rel[2:]) if rel != "./" else os.path.join(ROOT, "index.html")
         if os.path.exists(f):
             with open(f, "rb") as fh:
-                h.update(fh.read())
+                data = fh.read()
+            # Git may check text out as CRLF on Windows and LF in Actions.
+            # Hash the logical source, not the platform-specific checkout,
+            # or an otherwise identical CI rebuild creates a new cache name.
+            if not f.lower().endswith(".png"):
+                data = data.replace(b"\r\n", b"\n")
+            h.update(rel.encode("utf-8") + b"\0" + data)
     version = "quickgrade-" + h.hexdigest()[:12]
 
     new_sw, n1 = re.subn(r"var CACHE = '[^']*';",
