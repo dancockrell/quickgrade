@@ -10,7 +10,7 @@ if(!Q||!S||!V||!global.qrcode||!global.jsQR)return;
 
 var GEOMETRY_VERSION=3,PREFIX='QG'+GEOMETRY_VERSION;
 var QR_SIZE=0.64,QR_INSET=0.20,QR_QUIET=0.08,MIN_QR_PX=34;
-var lastDecoded=null,anonCounter=0;
+var lastDecoded=null,lastHint=null,anonCounter=0;
 
 function hex4(n){var s=(n&0xffff).toString(16).toUpperCase();while(s.length<4)s='0'+s;return s;}
 function crc16(text){var crc=0xffff;for(var i=0;i<text.length;i++){crc^=text.charCodeAt(i)<<8;for(var b=0;b<8;b++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff;}return crc;}
@@ -80,6 +80,14 @@ function hom(M){var z=M[2][2];if(!isFinite(z)||Math.abs(z)<1e-12)return null;ret
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
 function pdist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
 function quadArea(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
+function qualityHint(m){
+  if(!m||!m.decoded)return'showQr';
+  if(m.pixels<MIN_QR_PX)return'closer';
+  if(m.sideRatio>2.35)return'straight';
+  if(m.pageOutside)return'wholePage';
+  if(m.refined===false)return'flat';
+  return null;
+}
 function sheetHFromQr(loc){
   if(!loc||!loc.topLeftCorner||!loc.topRightCorner||!loc.bottomRightCorner||!loc.bottomLeftCorner)return null;
   var Hq=V.homography([loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]);if(!Hq)return null;
@@ -139,12 +147,23 @@ function refineFromPaperEdges(gray,w,h,H0,loc,qrPx){
   return{H:H,pageQuad:corners,residual:residual};
 }
 function findPacketQr(gray,w,h){
+  lastHint=qualityHint(null);
   var result=tryDecode(gray,w,h);if(!result)return null;var packet=parsePayload(result.data);if(!packet)return null;
   var loc=result.location||{},sides=loc.topLeftCorner&&loc.topRightCorner&&loc.bottomRightCorner&&loc.bottomLeftCorner?[dist(loc.topLeftCorner,loc.topRightCorner),dist(loc.topRightCorner,loc.bottomRightCorner),dist(loc.bottomRightCorner,loc.bottomLeftCorner),dist(loc.bottomLeftCorner,loc.topLeftCorner)]:[];
-  var qrPx=sides.length?sides.reduce(function(a,b){return a+b;},0)/sides.length:0;if(qrPx<MIN_QR_PX)return null;
-  var H0=sheetHFromQr(loc);if(!H0)return null;
-  var refined=refineFromPaperEdges(gray,w,h,H0,loc,qrPx);if(!refined)return null;
+  var qrPx=sides.length?sides.reduce(function(a,b){return a+b;},0)/sides.length:0;
+  if(qrPx<MIN_QR_PX){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:1});return null;}
+  var sideMin=Math.min.apply(Math,sides),sideMax=Math.max.apply(Math,sides);
+  if(sideMin&&sideMax/sideMin>2.35){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin});return null;}
+  var H0=sheetHFromQr(loc);if(!H0){lastHint='steady';return null;}
+  var refined=refineFromPaperEdges(gray,w,h,H0,loc,qrPx);
+  if(!refined){
+    var pq=S.rect(0,0,S.L.page.w,S.L.page.h),rough=[V.project(H0,pq.u0,pq.v0),V.project(H0,pq.u1,pq.v0),V.project(H0,pq.u1,pq.v1),V.project(H0,pq.u0,pq.v1)];
+    var outside=rough.some(function(p){return p[0]<-4||p[1]<-4||p[0]>w+4||p[1]>h+4;});
+    lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin,pageOutside:outside,refined:false});
+    return null;
+  }
   var H=refined.H,quad=[V.project(H,0,0),V.project(H,1,0),V.project(H,1,1),V.project(H,0,1)];
+  lastHint=null;
   return{H:H,quad:quad,pageQuad:refined.pageQuad,white:V.whiteLevel(gray,w,h,H),markers:1,qrPacket:packet,
     qrQuality:{pixels:Math.round(qrPx),area:quadArea(refined.pageQuad)/(w*h),edgeResidual:+refined.residual.toFixed(2)}};
 }
@@ -176,7 +195,7 @@ if(Sy&&Sy.renderSynthetic){
 
 function decodedFor(record){if(!lastDecoded||Date.now()-lastDecoded.at>5000||!record)return null;var p=lastDecoded.packet;return p.code===record.code&&p.page===+record.page?p:null;}
 function newAnonSid(){anonCounter=(anonCounter+1)%100;return'9700'+String(Date.now()%100000000)+('0'+anonCounter).slice(-2);}
-Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,quiet:QR_QUIET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr,tryDecode:tryDecode};
+Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,quiet:QR_QUIET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr,tryDecode:tryDecode,classifyHint:qualityHint,setHint:function(h){lastHint=h;},getHint:function(){return lastHint;}};
 
 function installPacketFlow(){
   var Scanner=Q.Scanner;if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;var active=null,T=Q.T;

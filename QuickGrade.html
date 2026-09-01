@@ -1,15 +1,13 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title data-i18n="app.title">QuickGrade — Scan &amp; Grade Paper Tests</title>
-<meta name="description" content="Scan paper tests with a camera, grade them, and export to Excel, Sheets, Word or Docs. Student data stays on the device.">
-<meta name="theme-color" content="#3554d1">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="QuickGrade">
-<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFZElEQVR4nO3dTXLbRhAGUEjl88Qr5yTOKeOTxCvnQs4iRZdEiyRAzE/39Htrlzio+r7pASjBL1swX77++Dl7DfTz/dvnl9lreGvqYoSdbZtbiuEfLPTcM7oMwz5M8DliVBG6f4jgc0bvInT74YJPS72K0PyHCj49tS7Ca8sfJvz01jpjTdok+MzQYhqcngDCzywtsneqAMLPbGcz+HQBhJ8ozmTxqQIIP9E8m8nDBRB+onomm4cKIPxEdzSjuwsg/GRxJKu7CiD8ZLM3sw8LIPxktSe7TX8VArK5WwC7P9k9yvDNAgg/q7iX5U8jF9LCP3//sfvf/vnXvx1Xwgo+/G26SLv/kcA/ohC1ffTbo2EnQMvgX/9MReDit0bM3v17BP8WRajnegqEmQAjg3/9mYpQ17unQLN2/xnhj/T5jHOd8elfhEUJX5R1MNav89Do3T9y4ByJ1ne5F5gyASKHf9vir492hhcgS7iyrJNzXrdt/qNPGO2S+aETINuumm29HDesAFnDlHXd7DOkANlDlH393Db9ewCY6aX3DfBKu6fvB9ZjAlBa1wKstPtv23rXgwlAcd0KsOpuuep1VWUCUJoCUJoCUFqXAqx+Tl79+ioxAShNAShNAShNAShNAShNAShNAShNAShNAShNASitSwFW/9PB1a+vEhOA0hSA0hSA0roVYNVz8qrXVZUJQGldC7Dabrna9WACUFz3Aqyya65yHbxnAlDakAJk3z2zr5/bhk2ArCHKum72GXoEyhambOvlOPcAlDa8AFl21Szr5JwpEyB6uKKvj3a6/xdJj0R6zaDg1zP9HiBK6KKsg7GmF2Db5odv9uczz/Qj0LWRRyLBJ1wBLnoWQfC5CFuAi5ZFEHyuhS/AtSOFEHgeSVcAaCnEUyCYRQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEo7dPsBdCfFwnc5o/iF+RVMvspwEK8TOw4BViA10k+TwESm/lq+VWK4ClQUrP/X4XZn9+KAiQUJXxR1nGGI1AikQOX9UhkAiQROfzbFn99tyhAAlnClWWdbykApSlAcNl21WzrVYDAsoXpItO6FSCoTCH6SJb1KwClKUBAWXbPRzJchwJQmgIEk2HXPCL69SgApSlAINF3y2dFvi4FoDQFoDQFoDQFCCLyObmFqNenAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAEFkfbXgXlGvTwEoTQEoTQEoTQECiXpOPivydSkApSlAMJF3y2dEvx4FoDQFCCj6rrlXhutQAEpTgKAy7J73ZFm/AgSWJUTXMq1bAYLLFKZty7deBaA0BUggy66aZZ1vKUAS0cMVfX23vHz5+uPn7EVwTKTXDGYN/oUJkFCU0EVZxxkKkNTs8M3+/FYcgRYw8ki0SvAvFGAhPYuwWvAvFGBBLYuwavAvFKCAI4VYPfDXFIDSXr9/+/wyexEww/dvn188BqU0BaA0BaA0BaC01237/2Zg9kJgpEvmTQBKUwBK+1UAxyCqeJt1E4DS3hXAFGB11xk3ASjttwKYAqzqo2ybAJT2YQFMAVZzK9MmAKXdLIApwCruZfnuBFACsnuUYUcgSntYAFOArPZkd9cEUAKy2ZvZ3UcgJSCLI1k9dA+gBER3NKOHb4KVgKieyeZTT4GUgGiezeTTj0GVgCjOZPHU9wBKwGxnM3j6izAlYJYW2WsaXi/aZYSWm27TX4UwDeitdca6BdY0oKVem2v3HVsROKP3qWLYkUUROGLUcXr4mV0RuGf0feTUm1ZlYNvmPjwJ99RGKdYW7Unhf7t2ue5dsbIfAAAAAElFTkSuQmCC" sizes="192x192" type="image/png">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1e6a8d">
+<!-- QuickGrade single-file build. Source lives alongside this file;
+     rebuild with: python build.py -->
+<title>QuickGrade — Scan & Grade Paper Tests</title>
+<link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFZElEQVR4nO3dTXLbRhAGUEjl88Qr5yTOKeOTxCvnQs4iRZdEiyRAzE/39Htrlzio+r7pASjBL1swX77++Dl7DfTz/dvnl9lreGvqYoSdbZtbiuEfLPTcM7oMwz5M8DliVBG6f4jgc0bvInT74YJPS72K0PyHCj49tS7Ca8sfJvz01jpjTdok+MzQYhqcngDCzywtsneqAMLPbGcz+HQBhJ8ozmTxqQIIP9E8m8nDBRB+onomm4cKIPxEdzSjuwsg/GRxJKu7CiD8ZLM3sw8LIPxktSe7TX8VArK5WwC7P9k9yvDNAgg/q7iX5U8jF9LCP3//sfvf/vnXvx1Xwgo+/G26SLv/kcA/ohC1ffTbo2EnQMvgX/9MReDit0bM3v17BP8WRajnegqEmQAjg3/9mYpQ17unQLN2/xnhj/T5jHOd8elfhEUJX5R1MNav89Do3T9y4ByJ1ne5F5gyASKHf9vir492hhcgS7iyrJNzXrdt/qNPGO2S+aETINuumm29HDesAFnDlHXd7DOkANlDlH393Db9ewCY6aX3DfBKu6fvB9ZjAlBa1wKstPtv23rXgwlAcd0KsOpuuep1VWUCUJoCUJoCUFqXAqx+Tl79+ioxAShNAShNAShNAShNAShNAShNAShNAShNAShNASitSwFW/9PB1a+vEhOA0hSA0hSA0roVYNVz8qrXVZUJQGldC7Dabrna9WACUFz3Aqyya65yHbxnAlDakAJk3z2zr5/bhk2ArCHKum72GXoEyhambOvlOPcAlDa8AFl21Szr5JwpEyB6uKKvj3a6/xdJj0R6zaDg1zP9HiBK6KKsg7GmF2Db5odv9uczz/Qj0LWRRyLBJ1wBLnoWQfC5CFuAi5ZFEHyuhS/AtSOFEHgeSVcAaCnEUyCYRQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEo7dPsBdCfFwnc5o/iF+RVMvspwEK8TOw4BViA10k+TwESm/lq+VWK4ClQUrP/X4XZn9+KAiQUJXxR1nGGI1AikQOX9UhkAiQROfzbFn99tyhAAlnClWWdbykApSlAcNl21WzrVYDAsoXpItO6FSCoTCH6SJb1KwClKUBAWXbPRzJchwJQmgIEk2HXPCL69SgApSlAINF3y2dFvi4FoDQFoDQFoDQFCCLyObmFqNenAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAEFkfbXgXlGvTwEoTQEoTQEoTQECiXpOPivydSkApSlAMJF3y2dEvx4FoDQFCCj6rrlXhutQAEpTgKAy7J73ZFm/AgSWJUTXMq1bAYLLFKZty7deBaA0BUggy66aZZ1vKUAS0cMVfX23vHz5+uPn7EVwTKTXDGYN/oUJkFCU0EVZxxkKkNTs8M3+/FYcgRYw8ki0SvAvFGAhPYuwWvAvFGBBLYuwavAvFKCAI4VYPfDXFIDSXr9/+/wyexEww/dvn188BqU0BaA0BaA0BaC01237/2Zg9kJgpEvmTQBKUwBK+1UAxyCqeJt1E4DS3hXAFGB11xk3ASjttwKYAqzqo2ybAJT2YQFMAVZzK9MmAKXdLIApwCruZfnuBFACsnuUYUcgSntYAFOArPZkd9cEUAKy2ZvZ3UcgJSCLI1k9dA+gBER3NKOHb4KVgKieyeZTT4GUgGiezeTTj0GVgCjOZPHU9wBKwGxnM3j6izAlYJYW2WsaXi/aZYSWm27TX4UwDeitdca6BdY0oKVem2v3HVsROKP3qWLYkUUROGLUcXr4mV0RuGf0feTUm1ZlYNvmPjwJ99RGKdYW7Unhf7t2ue5dsbIfAAAAAElFTkSuQmCC">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAAFZElEQVR4nO3dTXLbRhAGUEjl88Qr5yTOKeOTxCvnQs4iRZdEiyRAzE/39Htrlzio+r7pASjBL1swX77++Dl7DfTz/dvnl9lreGvqYoSdbZtbiuEfLPTcM7oMwz5M8DliVBG6f4jgc0bvInT74YJPS72K0PyHCj49tS7Ca8sfJvz01jpjTdok+MzQYhqcngDCzywtsneqAMLPbGcz+HQBhJ8ozmTxqQIIP9E8m8nDBRB+onomm4cKIPxEdzSjuwsg/GRxJKu7CiD8ZLM3sw8LIPxktSe7TX8VArK5WwC7P9k9yvDNAgg/q7iX5U8jF9LCP3//sfvf/vnXvx1Xwgo+/G26SLv/kcA/ohC1ffTbo2EnQMvgX/9MReDit0bM3v17BP8WRajnegqEmQAjg3/9mYpQ17unQLN2/xnhj/T5jHOd8elfhEUJX5R1MNav89Do3T9y4ByJ1ne5F5gyASKHf9vir492hhcgS7iyrJNzXrdt/qNPGO2S+aETINuumm29HDesAFnDlHXd7DOkANlDlH393Db9ewCY6aX3DfBKu6fvB9ZjAlBa1wKstPtv23rXgwlAcd0KsOpuuep1VWUCUJoCUJoCUFqXAqx+Tl79+ioxAShNAShNAShNAShNAShNAShNAShNAShNAShNASitSwFW/9PB1a+vEhOA0hSA0hSA0roVYNVz8qrXVZUJQGldC7Dabrna9WACUFz3Aqyya65yHbxnAlDakAJk3z2zr5/bhk2ArCHKum72GXoEyhambOvlOPcAlDa8AFl21Szr5JwpEyB6uKKvj3a6/xdJj0R6zaDg1zP9HiBK6KKsg7GmF2Db5odv9uczz/Qj0LWRRyLBJ1wBLnoWQfC5CFuAi5ZFEHyuhS/AtSOFEHgeSVcAaCnEUyCYRQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEoTQEo7dPsBdCfFwnc5o/iF+RVMvspwEK8TOw4BViA10k+TwESm/lq+VWK4ClQUrP/X4XZn9+KAiQUJXxR1nGGI1AikQOX9UhkAiQROfzbFn99tyhAAlnClWWdbykApSlAcNl21WzrVYDAsoXpItO6FSCoTCH6SJb1KwClKUBAWXbPRzJchwJQmgIEk2HXPCL69SgApSlAINF3y2dFvi4FoDQFoDQFoDQFCCLyObmFqNenAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAJSmAEFkfbXgXlGvTwEoTQEoTQEoTQECiXpOPivydSkApSlAMJF3y2dEvx4FoDQFCCj6rrlXhutQAEpTgKAy7J73ZFm/AgSWJUTXMq1bAYLLFKZty7deBaA0BUggy66aZZ1vKUAS0cMVfX23vHz5+uPn7EVwTKTXDGYN/oUJkFCU0EVZxxkKkNTs8M3+/FYcgRYw8ki0SvAvFGAhPYuwWvAvFGBBLYuwavAvFKCAI4VYPfDXFIDSXr9/+/wyexEww/dvn188BqU0BaA0BaA0BaC01237/2Zg9kJgpEvmTQBKUwBK+1UAxyCqeJt1E4DS3hXAFGB11xk3ASjttwKYAqzqo2ybAJT2YQFMAVZzK9MmAKXdLIApwCruZfnuBFACsnuUYUcgSntYAFOArPZkd9cEUAKy2ZvZ3UcgJSCLI1k9dA+gBER3NKOHb4KVgKieyeZTT4GUgGiezeTTj0GVgCjOZPHU9wBKwGxnM3j6izAlYJYW2WsaXi/aZYSWm27TX4UwDeitdca6BdY0oKVem2v3HVsROKP3qWLYkUUROGLUcXr4mV0RuGf0feTUm1ZlYNvmPjwJ99RGKdYW7Unhf7t2ue5dsbIfAAAAAElFTkSuQmCC">
 <style>
 /* QuickGrade — app.css
@@ -853,423 +851,138 @@ body[data-view="written"]{--toast-bottom:150px}
 }
 
 </style>
-<script>
-  /* Installable + fully offline once loaded. Only applies to the hosted copy;
-     from a file:// page there is no service-worker scope, so this no-ops. */
-  if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
-    window.addEventListener('load', function () {
-      /* The headline feature is "it keeps working with the network off", and
-       * this one line is what delivers it. Swallowing the failure meant the
-       * app could render perfectly, every control working, while offline mode
-       * had never installed - on exactly the locked-down district laptops the
-       * README names as the reason to want it. Record it so the app can say
-       * so; the banner is raised once the language pack has loaded. */
-      navigator.serviceWorker.register('sw.js').then(function () {
-        window.__swState = 'ok';
-      }, function (err) {
-        window.__swState = 'failed';
-        window.__swError = (err && err.message) || String(err);
-      });
-    });
-  }
-</script>
 </head>
 <body>
-
-<div id="storageWarn" hidden></div>
-
-<header id="topbar">
-  <div class="brand" id="brandBtn">Quick<span>Grade</span></div>
-  <nav id="nav">
-    <button data-view="tests"   class="navbtn" data-i18n="nav.tests">Tests</button>
-    <button data-view="roster"  class="navbtn" data-i18n="nav.roster">Roster</button>
-    <button data-view="scan"    class="navbtn primary" data-i18n="nav.scan">Scan</button>
-    <button data-view="review"  class="navbtn"><span data-i18n="nav.review">Review</span> <span class="badge" id="badgeUnres" hidden>0</span></button>
-    <button data-view="written" class="navbtn"><span data-i18n="nav.grade">Grade</span> <span class="badge" id="badgeWritten" hidden>0</span></button>
-    <button data-view="export"  class="navbtn" data-i18n="nav.export">Export</button>
-  </nav>
-  <div class="ctx" id="ctxLabel" data-i18n="hdr.noTest">No test selected</div>
-  <select id="langPick" class="sel sm" data-i18n-aria="hdr.language" aria-label="Language"></select>
-  <button id="btnPrivacy" data-i18n-title="hdr.privacy.title" title="Where student data goes, and how to show that to your school" data-i18n="hdr.privacy">Privacy</button>
+<header class="topbar">
+  <div class="brand"><span class="mark">QG</span><span>QuickGrade</span></div>
+  <div class="topactions">
+    <button id="btnLang" class="iconbtn" title="Language" aria-label="Language">文</button>
+    <button id="btnTheme" class="iconbtn" title="Light / dark" aria-label="Light / dark">◐</button>
+    <button id="btnBackup" class="iconbtn" title="Backup" aria-label="Backup">⇩</button>
+    <input id="backupInput" type="file" accept="application/json,.json" hidden>
+  </div>
 </header>
 
-<main id="main">
+<nav class="navstrip" aria-label="Main navigation">
+  <button class="navbtn" data-view="tests"><span class="navico">▤</span><span data-i18n="nav.tests">Tests</span></button>
+  <button class="navbtn" data-view="roster"><span class="navico">♟</span><span data-i18n="nav.roster">Roster</span></button>
+  <button class="navbtn" data-view="scan"><span class="navico">▣</span><span data-i18n="nav.scan">Scan</span></button>
+  <button class="navbtn" data-view="review"><span class="navico">✓</span><span data-i18n="nav.review">Review</span><span class="badge" id="badgeUnres" hidden></span></button>
+  <button class="navbtn" data-view="written"><span class="navico">✎</span><span data-i18n="nav.grade">Grade</span><span class="badge" id="badgeWritten" hidden></span></button>
+  <button class="navbtn" data-view="export"><span class="navico">⇩</span><span data-i18n="nav.export">Export</span></button>
+</nav>
 
-<!-- ============================ TESTS ============================ -->
+<main>
 <section class="view" id="view-tests">
-  <div class="wrap">
-    <div class="row between">
-      <h1 data-i18n="tests.h1">Tests</h1>
-      <div class="row gap">
-        <button class="btn" id="btnDemo" data-i18n="tests.sample">Sample class</button>
-        <button class="btn" id="btnImportBackup" data-i18n="tests.import">Import backup</button>
-        <input type="file" id="backupInput" accept="application/json,.json" hidden>
-        <button class="btn" id="btnExportBackup" data-i18n="tests.exportBk">Export backup</button>
-        <button class="btn go" id="btnNewTest" data-i18n="tests.new">+ New test</button>
-      </div>
-    </div>
-    <p class="hint" id="storageTotal"></p>
-    <div id="testList" class="cards"></div>
-    <div id="workflow"></div>
-
-    <div id="testEditor" hidden>
-      <hr>
-      <h2 id="editorTitle" data-i18n="tests.editorNew">New test</h2>
-      <div class="grid2">
-        <label data-i18n="tests.f.title">Test title <input id="f_title" data-i18n-ph="tests.f.title.ph" placeholder="Unit 4 — Cell Biology"></label>
-        <label data-i18n="tests.f.class">Class / Period <span class="hint" style="font-weight:400" data-i18n="tests.f.class.hint">&mdash; list several, separated by commas, to give one test to several periods</span><input id="f_class" data-i18n-ph="tests.f.class.ph" placeholder="Biology P3, Biology P5"></label>
-        <label data-i18n="tests.f.date">Date <input id="f_date" type="date"></label>
-        <label data-i18n="tests.f.code">Test code (3 digits, printed on the sheet)
-          <input id="f_code" maxlength="3" inputmode="numeric" data-i18n-ph="tests.f.code.ph" placeholder="042"></label>
-      </div>
-
-      <h3 data-i18n="tests.mc.h">Multiple choice</h3>
-      <div class="grid3">
-        <label data-i18n="tests.mc.count">Number of questions <input id="f_mcCount" type="number" min="0" max="300" value="20"></label>
-        <label data-i18n="tests.mc.choices">Choices per question
-          <select id="f_choices">
-            <option value="2" data-i18n="tests.mc.ch2">2 (T/F)</option><option value="3">3</option>
-            <option value="4" data-i18n="tests.mc.ch4">4 (A&ndash;D)</option><option value="5" selected data-i18n="tests.mc.ch5">5 (A&ndash;E)</option>
-          </select></label>
-        <label data-i18n="tests.mc.points">Points per MC question <input id="f_mcPoints" type="number" min="0" step="0.5" value="1"></label>
-      </div>
-
-      <div class="keybar row gap wrap-row">
-        <strong data-i18n="tests.key.h">Answer key</strong>
-        <button class="btn sm go" id="btnKeyPaste" data-i18n="tests.key.paste">Paste my answer key</button>
-        <button class="btn sm" id="btnKeyFromScan" data-i18n="tests.key.fromScan">Scan a completed sheet</button>
-        <button class="btn sm" id="btnKeyClear" data-i18n="tests.key.clear">Clear key</button>
-        <span class="hint" data-i18n="tests.key.hint">Paste it in whatever form you already have it &mdash; or click letters below.</span>
-      </div>
-      <div id="keyGrid" class="keygrid"></div>
-
-      <details class="more">
-        <summary data-i18n="tests.obj.summary">What each question tests &mdash; standards and objectives</summary>
-        <div class="advbody">
-          <p class="hint" data-i18n="tests.obj.hint">Tag the questions and QuickGrade will tell you what the class has not
-            got, instead of only who scored what.</p>
-          <div id="topicsList" class="topicprev"></div>
-          <button class="btn sm go" id="btnPasteTopics" data-i18n="tests.obj.paste">Paste my objectives</button>
-        </div>
-      </details>
-
-      <details class="more">
-        <summary data-i18n="tests.ver.summary">Versions &mdash; different question orders so neighbours can&rsquo;t copy</summary>
-        <div class="advbody">
-          <p class="hint" data-i18n="tests.ver.hint">Scramble the questions in your own test document, then paste the answer
-            key for each version. Each gets its own printed code, so a mixed pile of sheets sorts
-            itself out while you scan &mdash; you never have to say which is which.</p>
-          <div id="formsList" class="formslist"></div>
-          <button class="btn sm" id="btnAddForm" data-i18n="tests.ver.add">+ Add a second version</button>
-        </div>
-      </details>
-
-      <h3 data-i18n="tests.w.h">Written / short answer / fill-in questions</h3>
-      <p class="hint" data-i18n="tests.w.hint">These get printed answer boxes. After scanning you grade them one question at a time across the whole class.</p>
-      <div id="writtenList"></div>
-      <div class="row gap wrap-row">
-        <button class="btn sm" id="btnAddWritten" data-i18n="tests.w.add">+ Add one</button>
-        <button class="btn sm go" id="btnWrittenPaste" data-i18n="tests.w.paste">Paste my questions</button>
-      </div>
-
-      <details class="more">
-        <summary data-i18n="tests.top.summary">What goes on the sheet students get back</summary>
-        <div class="advbody"><div id="topsheetOpts" class="optgrid"></div></div>
-      </details>
-
-      <h3 data-i18n="tests.sheet.h">Answer-sheet options</h3>
-      <div class="grid3">
-        <label data-i18n="tests.sheet.idDigits">How students identify themselves
-          <select id="f_idDigits">
-            <option value="2" data-i18n="tests.sheet.id2">2-digit class number (1&ndash;99)</option>
-            <option value="3" selected data-i18n="tests.sheet.id3">3-digit class number (1&ndash;999)</option>
-            <option value="4" data-i18n="tests.sheet.id4">4-digit ID</option>
-            <option value="6" data-i18n="tests.sheet.id6">6-digit district ID</option>
-          </select></label>
-        <label data-i18n="tests.sheet.idLabel">Label above the ID bubbles
-          <input id="f_idLabel" data-i18n-ph="sheet.classNumber" placeholder="CLASS NUMBER"></label>
-        <label data-i18n="tests.sheet.paper">Paper size
-          <select id="f_paper">
-            <option value="letter" selected data-i18n="tests.sheet.letter">US Letter (8.5 &times; 11 in)</option>
-            <option value="a4" data-i18n="tests.sheet.a4">A4 (210 &times; 297 mm)</option>
-            <option value="legal" data-i18n="tests.sheet.legal">US Legal (8.5 &times; 14 in)</option>
-          </select></label>
-      </div>
-      <div class="grid3">
-        <label data-i18n="tests.sheet.wPerPage">Written boxes per page <input id="f_wPerPage" type="number" min="1" max="6" value="2"></label>
-        <label data-i18n="tests.sheet.instr">Sheet instructions <input id="f_instr" data-i18n-ph="tests.sheet.instr.ph" placeholder="Use pencil. Fill bubbles completely."></label>
-        <label class="chk" style="margin-top:22px" data-i18n="tests.sheet.prefill"><input type="checkbox" id="f_prefillId">
-          Pre-print each student&rsquo;s ID (only for small runs &mdash; needs a unique page per student)</label>
-      </div>
-      <details class="more">
-        <summary data-i18n="tests.words.summary">Wording on the printed sheet &mdash; for another language, or your school&rsquo;s terms</summary>
-        <div class="advbody">
-      <div class="grid3">
-        <label data-i18n="tests.words.name">Name box <input id="f_lblName" data-i18n-ph="sheet.name" placeholder="NAME"></label>
-        <label data-i18n="tests.words.class">Class box <input id="f_lblClass" data-i18n-ph="sheet.class" placeholder="CLASS / PERIOD"></label>
-        <label data-i18n="tests.words.page">Page row <input id="f_lblPage" data-i18n-ph="sheet.page" placeholder="PAGE"></label>
-      </div>
-      <div class="grid2">
-        <label data-i18n="tests.words.howto">&ldquo;How to fill this in&rdquo; heading <input id="f_lblHowto" data-i18n-ph="sheet.howto" placeholder="HOW TO FILL THIS IN"></label>
-        <label data-i18n="tests.words.samples">Bubble examples, separated by <code>|</code>
-          <input id="f_lblSamples" data-i18n-ph="sheet.samples" placeholder="correct|too light|do not cross"></label>
-      </div>
-      <label data-i18n="tests.words.tips">Advice line under the examples
-        <input id="f_lblTips" data-i18n-ph="sheet.tips" placeholder="Pencil or dark pen &middot; erase changes fully"></label>
-        </div>
-      </details>
-      <p class="hint" data-i18n-html="tests.sheet.digitsHint">Fewer digits means less for a student to bubble and fewer misreads.
-        Leave pre-printing <strong>off</strong> so you can print one master sheet and photocopy it for the class.</p>
-
-      <div class="row gap end sticky-actions">
-        <button class="btn" id="btnCancelTest" data-i18n="tests.cancel">Cancel</button>
-        <button class="btn danger" id="btnDeleteTest" hidden data-i18n="tests.delete">Delete test</button>
-        <button class="btn go" id="btnSaveTest" data-i18n="tests.save">Save test</button>
-      </div>
-    </div>
+  <div class="viewhead"><div><h1 data-i18n="tests.h1">Tests</h1><p class="lede" data-i18n="tests.lede">Create a test, paste your answer key, print one master.</p></div>
+    <button class="btn go" id="btnNewTest" data-i18n="tests.new">+ New test</button>
   </div>
+  <div id="storageTotal"></div>
+  <div id="testList" class="cards"></div>
+  <div id="workflow" class="workflow"></div>
 </section>
 
-<!-- ============================ ROSTER ============================ -->
 <section class="view" id="view-roster">
-  <div class="wrap">
-    <h1 data-i18n="roster.h1">Roster</h1>
+  <div class="viewhead"><div><h1 data-i18n="roster.h1">Roster & printing</h1><p class="lede" data-i18n="roster.lede">Paste names once. Print one blank master and photocopy it.</p></div></div>
+  <div class="card">
     <div class="grid2">
-      <div>
-        <label data-i18n="roster.class">Class / Period
-          <input id="rosterClass" list="classChoices" data-i18n-ph="roster.class.ph" placeholder="Type a class name, e.g. Biology P3"
-            autocomplete="off" data-i18n-aria="roster.class.aria" aria-label="Class or period">
-          <datalist id="classChoices"></datalist>
-        </label>
-        <p class="hint" data-i18n-html="roster.pasteHint">Paste one student per line: <code>Name</code>, <code>Name, ID</code> or <code>Name, ID, email</code>. Numbers are assigned automatically if omitted. You can also import a CSV exported from your gradebook &mdash; a header row and extra columns are fine.</p>
-        <textarea id="rosterPaste" rows="10" data-i18n-ph="roster.paste.ph" placeholder="Avery Nguyen&#10;Ben Carter, 42&#10;Chloe Diaz, 43, chloe.diaz@school.org"></textarea>
-        <div class="row gap">
-          <button class="btn go" id="btnRosterSave" data-i18n="roster.save">Add / update students</button>
-          <button class="btn" id="btnRosterImport" data-i18n="roster.import">Import CSV file</button>
-          <input type="file" id="rosterFile" accept=".csv,.tsv,.txt,text/csv" hidden>
-          <button class="btn" id="btnRosterCsv" data-i18n="roster.csv">Export roster CSV</button>
-        </div>
-      </div>
-      <div>
-        <div class="row between"><h3 data-i18n="roster.students">Students <span class="hint" id="rosterCount"></span></h3>
-          <button class="btn sm danger" id="btnRosterClear" data-i18n="roster.clear">Remove all in class</button></div>
-        <div id="rosterTable" class="scrollbox"></div>
-      </div>
+      <label><span data-i18n="roster.class">Class</span><input id="rosterClass" list="classList" placeholder="e.g. Biology P3"><datalist id="classList"></datalist></label>
+      <div><span class="labellike" data-i18n="roster.import">Import</span><div class="row gap wrap-row"><button class="btn sm" id="btnRosterCsv" data-i18n="roster.csv">Import CSV file</button><input id="rosterFile" type="file" accept=".csv,text/csv" hidden></div></div>
     </div>
-
-    <hr>
-    <h2 data-i18n="roster.print.h2">Print answer sheets</h2>
+    <label><span data-i18n="roster.paste">Paste students</span><textarea id="rosterPaste" rows="8" data-i18n-placeholder="roster.ph" placeholder="Avery Nguyen, 17&#10;Ben Carter, 18&#10;Chloe Diaz"></textarea></label>
+    <p class="hint" data-i18n="roster.hint">One student per line. A number after a comma is kept as their class ID; otherwise QuickGrade assigns one.</p>
+    <div class="row gap wrap-row"><button class="btn go" id="btnSaveRoster" data-i18n="roster.save">Save roster</button><button class="btn" id="btnClearRoster" data-i18n="roster.clear">Clear class</button></div>
+  </div>
+  <div id="rosterList"></div>
+  <div class="card" id="printCard">
+    <h2 data-i18n="print.h2">Print answer sheets</h2>
+    <p class="hint" data-i18n="print.hint">Print one blank master at 100% / Actual size, then photocopy it for the class.</p>
     <div class="row gap wrap-row">
-      <select id="printForm" class="sel" data-i18n-aria="roster.print.which" aria-label="Which version to print" hidden></select>
-      <button class="btn go big" id="btnPrintBlank" data-i18n="roster.print.blank">Print the answer sheet</button>
-      <button class="btn big" id="btnPrintCheck" data-i18n="roster.print.check">Check my printing</button>
+      <select id="printForm" hidden aria-label="Version to print"></select>
+      <button class="btn go" id="btnPrintBlank" data-i18n="print.blank">Print blank master</button>
+      <button class="btn" id="btnPrintPersonal" data-i18n="print.personal">Print personalized sheets</button>
+      <button class="btn" id="btnPrintKey" data-i18n="print.key">Print answer-key sheet</button>
+      <button class="btn" id="btnCalibrate" data-i18n="print.check">Check my printing</button>
     </div>
-    <details class="more">
-      <summary data-i18n="roster.print.other">Other kinds of sheet</summary>
-      <div class="advbody row gap wrap-row">
-        <button class="btn" id="btnPrintKey" data-i18n="roster.print.key">Answer-key sheet
-          <span class="hint" style="margin:0" data-i18n="roster.print.keyHint">for setting the key by scanning</span></button>
-        <button class="btn" id="btnPrintPersonal" data-i18n="roster.print.personal">Personalized sheets
-          <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
-      </div>
-    </details>
-    <p class="hint" data-i18n-html="roster.print.hint">Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.</p>
   </div>
 </section>
 
-<!-- ============================ SCAN ============================ -->
 <section class="view" id="view-scan">
-  <div id="scanStage">
-    <video id="cam" playsinline muted autoplay data-i18n-aria="scan.cam.aria" aria-label="Camera view"></video>
-    <canvas id="overlay" aria-hidden="true"></canvas>
-    <div id="flash" aria-hidden="true"></div>
-
-    <!-- Shown until the camera is live. Without it the most-used screen in
-         the app opens as an unexplained black rectangle. -->
-    <div id="scanIdle">
-      <div class="sicon" aria-hidden="true"></div>
-      <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
-      <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and QuickGrade reads it as
-        soon as it can see the whole page border. One beep per sheet.</p>
-      <div class="row gap" style="justify-content:center;margin-top:18px">
-        <button class="btn go big" id="btnCamStart2" data-i18n="scan.start">Start camera</button>
-        <button class="btn big" id="btnPhotoImport2" data-i18n="scan.photos">Import photos</button>
+  <div class="viewhead"><div><h1 data-i18n="scan.h1">Scan</h1><p class="lede" id="scanLede" data-i18n="scan.lede">One student's complete paper at a time.</p></div>
+    <div class="row gap wrap-row"><button class="btn" id="btnImportPhotos" data-i18n="scan.import">Import photos</button><input id="photoInput" type="file" accept="image/*" multiple hidden><button class="btn" id="btnCam" data-i18n="scan.camera">Start camera</button></div>
+  </div>
+  <div id="scanArea">
+    <div id="cameraWrap">
+      <video id="video" playsinline muted></video>
+      <canvas id="scanOverlay"></canvas>
+      <div id="scanFlash"></div>
+      <div id="scanIdle">
+        <h2 data-i18n="scan.idle.h2">Hold a sheet up to the camera</h2>
+        <p data-i18n="scan.idle.p">Fill the frame, keep it flat, and keep the bottom-left QR visible.</p>
+        <small data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets with a phone and import the pictures instead.</small>
       </div>
-      <p class="sfoot" data-i18n="scan.idle.foot">No camera on this device? Photograph the sheets
-        with a phone and import the pictures instead.</p>
-    </div>
-
-    <div id="scanHud">
-      <div class="hudrow">
-        <button class="btn sm go" id="btnCamStart" data-i18n="scan.start">Start camera</button>
-        <select id="camSelect" class="sel sm" data-i18n-aria="scan.camSel.aria" aria-label="Camera"></select>
-        <button class="btn sm" id="btnTorch" hidden data-i18n="scan.torch">Light</button>
-        <label class="chk sm" data-i18n="scan.speak"><input type="checkbox" id="optSpeak"> Speak</label>
-        <label class="chk sm" data-i18n="scan.sound"><input type="checkbox" id="optSound" checked> Sound</label>
-        <button class="btn sm" id="btnPhotoImport" data-i18n="scan.photos">Import photos</button>
-        <button class="btn sm" id="btnCalibrate" data-i18n="scan.calib">Check my printing</button>
-        <input type="file" id="photoInput" accept="image/*" multiple hidden>
-      </div>
-      <div class="hudrow">
-        <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
-        <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
-        <!-- Which student file the next page will join. Pages after the first
-             carry no class number, so this is the only thing on screen that
-             says where they are going. Without it the teacher finds out at the
-             end, when the pages are already filed. -->
-        <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
-        <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
+      <div id="scanHud">
+        <div class="hudrow">
+          <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
+          <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
+          <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
+          <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
+        </div>
       </div>
     </div>
-
-    <div id="bigResult"><div id="bigName"></div><div id="bigSub"></div></div>
-
-    <div id="scanStrip"></div>
+    <div id="scanControls" class="row gap wrap-row">
+      <label class="switch"><input type="checkbox" id="scanSound" checked><span data-i18n="scan.sound">Sound</span></label>
+      <label class="switch"><input type="checkbox" id="scanSpeak"><span data-i18n="scan.speak">Speak names</span></label>
+      <button class="btn sm" id="btnResetScan" data-i18n="scan.reset">Reset scan session</button>
+    </div>
+    <div id="scanLog"></div>
   </div>
 </section>
 
-<!-- ============================ REVIEW ============================ -->
 <section class="view" id="view-review">
-  <div class="wrap">
-    <h1 data-i18n="review.h1">Review scans</h1>
-    <div id="trashBox"></div>
-    <div id="unresolvedBox"></div>
-    <div id="checksBox"></div>
-    <div class="row between"><h2 data-i18n="review.students">Students</h2>
-      <div class="row gap">
-        <label class="chk sm" data-i18n="review.problemsOnly"><input type="checkbox" id="showMissingOnly"> Problems only</label>
-        <button class="btn sm" id="btnVerifyNames" data-i18n="review.verifyNames">Check names against handwriting</button>
-        <button class="btn sm danger" id="btnClearScans" data-i18n="review.clearScans">Delete all scans for this test</button>
-      </div>
-    </div>
-    <div id="reviewTable"></div>
-    <div id="masteryBox"></div>
-    <div id="questionBox"></div>
-    <div id="storageBox"></div>
-  </div>
+  <div class="viewhead"><div><h1 data-i18n="review.h1">Review</h1><p class="lede" data-i18n="review.lede">Only things that need your attention.</p></div></div>
+  <div id="trashBox"></div>
+  <div id="unresolvedBox"></div>
+  <div id="checksBox"></div>
+  <div id="masteryBox"></div>
+  <div id="reviewTable"></div>
+  <div id="storageBox"></div>
 </section>
 
-<!-- ============================ WRITTEN GRADING ============================ -->
 <section class="view" id="view-written">
-  <div id="gradeShell">
-    <div id="gradeTop">
-      <div class="row gap wrap-row">
-        <select id="gradeQ" class="sel" data-i18n-aria="grade.q.aria" aria-label="Written question to grade"></select>
-        <span class="pill" id="gradeProgress"></span>
-        <span class="pill" id="gradeStudent"></span>
-        <button class="btn sm" id="btnGradePrev" data-i18n="grade.prev">&#9664; Prev</button>
-        <button class="btn sm" id="btnGradeNext" data-i18n="grade.next">Next &#9654;</button>
-        <label class="chk sm" data-i18n="grade.blind"><input type="checkbox" id="gradeHideName" checked> Blind</label>
-      </div>
-    </div>
-    <div id="gradeImageWrap"><img id="gradeImage" data-i18n-alt="grade.image.alt" alt="Scanned student response for the selected question"></div>
-    <div id="gradeBar">
-      <div id="pointsRow"></div>
-      <div class="row gap">
-        <input id="gradeComment" data-i18n-ph="grade.comment.ph" placeholder="Comment for this answer (optional) — Enter saves &amp; advances">
-        <div class="row gap" id="quickComments"></div>
-      </div>
-      <div class="hint" id="gradeKeys"></div>
-    </div>
+  <div class="viewhead"><div><h1 data-i18n="grade.h1">Grade written answers</h1><p class="lede" data-i18n="grade.lede">One question across the class. Keyboard-friendly.</p></div></div>
+  <div id="writtenEmpty" class="card"></div>
+  <div id="writtenWrap">
+    <div id="writtenHead"></div>
+    <div id="writtenAnswer"></div>
+    <div id="gradeBar"></div>
   </div>
 </section>
 
-<!-- ============================ EXPORT ============================ -->
 <section class="view" id="view-export">
-  <div class="wrap">
-    <h1 data-i18n="export.h1">Export</h1>
-
+  <div class="viewhead"><div><h1 data-i18n="export.h1">Export</h1><p class="lede" data-i18n="export.hint">Get scores out in the format your gradebook needs.</p></div></div>
+  <div class="card">
     <h2 data-i18n="export.gradebook.h2">Gradebook (scores)</h2>
-    <p class="hint" data-i18n="export.gradebook.hint">Pick your gradebook once. QuickGrade remembers it and lays the columns out
-      the way that program expects.</p>
-
-    <div class="bigpick">
-      <label data-i18n="export.myGradebook">My gradebook is
-        <select id="fmtPick" class="sel" data-i18n-aria="export.fmtPick.aria" aria-label="Which gradebook do you use"></select>
-      </label>
-      <p class="hint" id="fmtNote"></p>
-    </div>
-
-    <div class="row gap wrap-row" style="margin:14px 0 4px">
-      <button class="btn go big" id="exXlsx" data-i18n="export.xlsx">Download for my gradebook</button>
-      <button class="btn big" id="exTsv" data-i18n="export.tsv">Copy &mdash; paste into Google Sheets</button>
-    </div>
-    <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
-      <code>.xlsx</code> or <code>.csv</code> directly.</p>
-
-    <!-- "Leave out students who have nothing scanned" is checked by default,
-         and a sheet sitting in Review under "could not be matched" reads as
-         nothing scanned even though the paper is right there with the
-         student's name in the handwriting crop. Without this, that student
-         drops out of every exported gradebook with nothing on this screen
-         saying so. -->
+    <label><span data-i18n="export.myGradebook">My gradebook is</span><select id="exportPreset"></select></label>
+    <p class="hint" id="exportPresetNote"></p>
+    <div class="row gap wrap-row"><button class="btn go" id="exXlsx" data-i18n="export.xlsx">Download for my gradebook</button><button class="btn" id="exTsv" data-i18n="export.tsv">Copy — paste into Google Sheets</button></div>
+    <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import <code>.xlsx</code> or <code>.csv</code> directly.</p>
     <p class="hint warn" id="exUnmatchedWarn" hidden></p>
-
-    <!-- A missing page is scored zero for the questions on it, which can only
-         ever cost points. Only the "full" preset has an Issues column that
-         says so; the other five gradebooks show a number with no sign that a
-         page was never scanned. Warn when the selected format is one of the
-         five and it matters for someone in the class. -->
     <p class="hint warn" id="exMissingPageWarn" hidden></p>
-
-    <details id="advExport">
-      <summary data-i18n="export.more">More options</summary>
+    <details id="advExport"><summary data-i18n="export.more">More options</summary>
       <div class="advbody">
-        <label class="chk" data-i18n="export.onlyScanned"><input type="checkbox" id="fmtOnlyScanned" checked>
-          Leave out students who have nothing scanned
-          <span class="hint" data-i18n="export.onlyScanned.note">(recommended &mdash; an empty row can wipe an existing grade)</span></label>
-
-        <div class="row gap wrap-row" style="margin:10px 0">
-          <button class="btn sm" id="exCsv" data-i18n="export.csv">Download as .csv instead</button>
-          <button class="btn sm" id="exSend" data-i18n="export.send">Send to a web address&hellip;</button>
-        </div>
-
-        <h3 data-i18n="export.cols.h3">Change the columns</h3>
-        <p class="hint" data-i18n="export.cols.hint">Only needed if your gradebook rejects the file. Drag nothing, break
-          nothing &mdash; use the arrows, and rename a heading by typing over it.</p>
-        <div id="fmtCols" class="fmtcols"></div>
-        <div class="row gap wrap-row" style="margin:10px 0">
-          <select id="fmtAdd" class="sel" data-i18n-aria="export.cols.add.aria" aria-label="Column to add"></select>
-          <button class="btn sm" id="fmtAddBtn" data-i18n="export.cols.add">+ Add column</button>
-          <button class="btn sm" id="fmtSave" data-i18n="export.cols.save">Save as my own layout&hellip;</button>
-          <button class="btn sm danger" id="fmtDelete" hidden data-i18n="export.cols.delete">Delete this layout</button>
-          <button class="btn sm" id="fmtReset" data-i18n="export.cols.reset">Undo my changes</button>
-        </div>
-        <div id="fmtPreview" class="tbl" style="max-height:210px"></div>
+        <label class="switch"><input type="checkbox" id="exOnlyScanned" checked><span data-i18n="export.onlyScanned">Leave out students who have nothing scanned</span></label><span class="hint" data-i18n="export.onlyScanned.note">(recommended — an empty row can wipe an existing grade)</span>
+        <div class="row gap wrap-row"><button class="btn sm" id="exCsv" data-i18n="export.csv">Download as .csv instead</button><button class="btn sm" id="btnCols" data-i18n="export.cols.add">Change columns</button><button class="btn sm" id="btnSend" data-i18n="export.send">Send to a web address…</button></div>
       </div>
     </details>
-
-    <h2 data-i18n="export.top.h2">Graded top sheets (student hand-back pages)</h2>
-    <p class="hint" data-i18n="export.top.hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p>
-    <details class="more">
-      <summary data-i18n="export.top.summary">What goes on the page</summary>
-      <div class="advbody"><div id="topsheetOpts2" class="optgrid"></div></div>
-    </details>
-    <div class="row gap wrap-row" style="margin-top:10px">
-      <button class="btn go" id="exDocx" data-i18n="export.docx">Word document (.docx)</button>
-      <button class="btn" id="exPrintSheets" data-i18n="export.print">Print / Save as PDF</button>
-    </div>
-
-    <h2 data-i18n="export.raw.h2">Raw data</h2>
-    <div class="row gap wrap-row">
-      <button class="btn" id="exRawXlsx" data-i18n="export.raw.xlsx">Item-analysis workbook (.xlsx)</button>
-      <button class="btn" id="exJson" data-i18n="export.raw.json">JSON backup of this test</button>
-    </div>
-    <p class="hint" data-i18n="export.backupHint">The backup is the only copy that outlives this device — keep it
-      somewhere safe. <button class="linky" id="exPrivacy" data-i18n="export.privacyLink">Where does student data go?</button></p>
-
-    <h2 data-i18n="export.curve.h2">Curve</h2>
-    <p class="hint" data-i18n="export.curve.hint">Applies to everyone. The original score is always kept.</p>
-    <div id="curveBox"></div>
-
-    <h2 data-i18n="export.scale.h2">Grading scale</h2>
-    <div id="scaleEditor" class="row gap wrap-row"></div>
   </div>
+  <div class="card"><h2 data-i18n="export.top.h2">Graded top sheets (student hand-back pages)</h2><p class="hint" data-i18n="export.top.hint">One page per student: every question, what they answered, what was correct, points, plus the extras you enable.</p><details id="topOpts"><summary data-i18n="export.top.summary">What goes on the page</summary><div id="topOptBody"></div></details><div class="row gap wrap-row"><button class="btn go" id="exDocx" data-i18n="export.docx">Word document (.docx)</button><button class="btn" id="exPrint" data-i18n="export.print">Print / Save as PDF</button></div></div>
+  <div class="card"><h2 data-i18n="export.raw.h2">Raw data</h2><div class="row gap wrap-row"><button class="btn" id="exAnalysis" data-i18n="export.raw.xlsx">Item-analysis workbook (.xlsx)</button><button class="btn" id="exBackup" data-i18n="export.raw.json">JSON backup of this test</button></div></div>
+  <div class="card"><h2 data-i18n="export.curve.h2">Curve</h2><p class="hint" data-i18n="export.curve.hint">Applies to everyone. The original score is always kept.</p><div id="curveBox"></div></div>
+  <div class="card"><h2 data-i18n="export.scale.h2">Grading scale</h2><div id="scaleBox"></div></div>
 </section>
-
 </main>
 
-<!-- Scan results are otherwise only a flash and a beep; announce them too. -->
 <div id="srAnnounce" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <div id="modal" hidden><div id="modalCard"></div></div>
@@ -2426,6 +2139,12 @@ I.packs.en = {
   'scan.noNameStatus': 'NO NAME on this sheet — fix it in Review',
   'scan.noNameSub': 'Sheet saved — tag it in Review',
   'scan.noSheetIn': 'No sheet found in {file}',
+  'scan.quality.showQr': 'Keep the bottom-left QR visible and hold still',
+  'scan.quality.closer': 'Move closer — the QR is too small to grade reliably',
+  'scan.quality.wholePage': 'Move back slightly — keep the whole page in view',
+  'scan.quality.straight': 'Hold the camera straighter over the page',
+  'scan.quality.steady': 'Hold still while QuickGrade locks onto the QR',
+  'scan.quality.flat': 'Flatten the page and keep its edges clear',
   'scan.noTorch': 'This camera has no controllable light.',
   'scan.okAnnounce': '{name}, {sub}.',
   'scan.okStatus': '{name} — {sub}',
@@ -22294,9 +22013,7 @@ function renderSheets(test, people, opts) {
                      .replace(/%FONT%/g, global.QG.I18N.fonts().print);
   var I = global.QG.I18N;
   return '<!doctype html><html lang="' + E(I.lang) + '" dir="' + E(I.meta(I.lang).dir) +
-    '"><head><meta charset="utf-8"><!-- QuickGrade single-file build. Source lives alongside this file;
-     rebuild with: python build.py -->
-<title>' +
+    '"><head><meta charset="utf-8"><title>' +
     E(opts.title || T('sheet.docTitle', { title: test.title })) +
     '</title><style>' + css + '</style></head><body>' +
     '<div class="toolbar noprint"><button onclick="window.print()">' +
@@ -23112,6 +22829,381 @@ global.QG.Synth = {
 };
 })(window);
 
+/* ===== js/qrpacket.js ===== */
+/* QuickGrade — qrpacket.js
+ * QG3: one bottom-left QR carries document identity and anchors geometry.
+ * The QR gives a local pose; the natural paper edges refine the full-page
+ * homography. Legacy border/ID sheets remain readable through vision.js.
+ */
+(function (global) {
+'use strict';
+var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,Sy=Q&&Q.Synth;
+if(!Q||!S||!V||!global.qrcode||!global.jsQR)return;
+
+var GEOMETRY_VERSION=3,PREFIX='QG'+GEOMETRY_VERSION;
+var QR_SIZE=0.64,QR_INSET=0.20,QR_QUIET=0.08,MIN_QR_PX=34;
+var lastDecoded=null,lastHint=null,anonCounter=0;
+
+function hex4(n){var s=(n&0xffff).toString(16).toUpperCase();while(s.length<4)s='0'+s;return s;}
+function crc16(text){var crc=0xffff;for(var i=0;i<text.length;i++){crc^=text.charCodeAt(i)<<8;for(var b=0;b<8;b++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff;}return crc;}
+function paperCode(){return S.L.paper==='a4'?'A':S.L.paper==='legal'?'G':'L';}
+function qrRect(){return{x:QR_INSET,y:S.L.page.h-QR_INSET-QR_SIZE,size:QR_SIZE};}
+function makePayload(code,page,total,paper,kind){
+  var c=String(code==null?'':code).replace(/\D/g,'');while(c.length<S.L.codeDigits)c='0'+c;c=c.slice(-S.L.codeDigits);
+  kind=kind==='K'?'K':'N';var base=[PREFIX,c,String(page),String(total),paper||paperCode(),kind].join('|');
+  return base+'|'+hex4(crc16(base));
+}
+function parsePayload(data){
+  var m=/^(QG\d+)\|(\d{3})\|(\d{1,2})\|(\d{1,2})\|([LAG])\|([NK])\|([0-9A-Fa-f]{4})$/.exec(String(data||''));
+  if(!m||m[1]!==PREFIX)return null;var base=[m[1],m[2],m[3],m[4],m[5],m[6]].join('|');
+  if(hex4(crc16(base))!==m[7].toUpperCase())return null;
+  var page=parseInt(m[3],10),total=parseInt(m[4],10);if(!page||!total||page>total||total>99)return null;
+  return{geometry:GEOMETRY_VERSION,code:m[2],page:page,total:total,paper:m[5],kind:m[6],keyMode:m[6]==='K',raw:String(data)};
+}
+function makeQr(code,pageIdx,total,kind){var q=global.qrcode(0,'M');q.addData(makePayload(code,pageIdx+1,total,null,kind));q.make();return q;}
+function qrModulesHtml(code,pageIdx,total,kind){
+  var qb=qrRect(),qr=makeQr(code,pageIdx,total,kind),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
+  var h='<div class="qgqrbox" style="left:'+qb.x+'in;top:'+qb.y+'in;width:'+qb.size+'in;height:'+qb.size+'in"></div>';
+  for(var y=0;y<mod;y++)for(var x=0;x<mod;x++)if(qr.isDark(y,x))h+='<div class="qgqrmod" style="left:'+(qb.x+QR_QUIET+x*cell)+'in;top:'+(qb.y+QR_QUIET+y*cell)+'in;width:'+cell+'in;height:'+cell+'in"></div>';
+  return h;
+}
+function cleanupRect(test){var x=S.L.idLabelX-0.08,y=0.68,bottom=S.laterTop(S.idDigitsOf(test))-0.02;return{x:x,y:y,w:S.L.page.w-0.20-x,h:Math.max(0.2,bottom-y)};}
+function cleanupHtml(test){var r=cleanupRect(test);return'<div class="qgclean" style="left:'+r.x+'in;top:'+r.y+'in;width:'+r.w+'in;height:'+r.h+'in"></div>';}
+
+var legacyRenderSheets=S.renderSheets;
+S.renderSheets=function(test,people,opts){
+  var html=legacyRenderSheets.apply(S,arguments),pages=S.layoutTest(test),total=pages.length;
+  var code=opts&&opts.form?opts.form.code:test.code,kind=opts&&opts.keyMode?'K':'N',i=0;
+  html=html.replace(/<div class="edge"[^>]*><\/div>/g,'').replace(/<div class="qrmod"[^>]*><\/div>/g,'');
+  html=html.replace('</style>','.qgclean,.qgqrbox,.qgqrmod{position:absolute}.qgclean{background:#fff;z-index:2}.qgqrbox{background:#fff;z-index:3}.qgqrmod{background:#000;z-index:4}\n</style>');
+  return html.replace(/<div class="page">/g,function(m){var pageIdx=i++%total;return m+cleanupHtml(test)+qrModulesHtml(code,pageIdx,total,kind);});
+};
+
+function grayRgba(gray,w,h,x0,y0,ww,hh,scale){
+  x0=x0||0;y0=y0||0;ww=ww||w;hh=hh||h;scale=scale||1;
+  var ow=ww*scale,oh=hh*scale,rgba=new Uint8ClampedArray(ow*oh*4),j=0;
+  for(var y=0;y<oh;y++)for(var x=0;x<ow;x++){
+    var sx=Math.min(ww-1,Math.floor(x/scale)),sy=Math.min(hh-1,Math.floor(y/scale));
+    var v=gray[(y0+sy)*w+x0+sx];rgba[j++]=v;rgba[j++]=v;rgba[j++]=v;rgba[j++]=255;
+  }
+  return{data:rgba,w:ow,h:oh};
+}
+function shifted(result,x0,y0,scale){
+  scale=scale||1;var out={data:result.data,binaryData:result.binaryData,chunks:result.chunks,version:result.version,location:{}};
+  Object.keys(result.location||{}).forEach(function(k){var p=result.location[k];out.location[k]=p&&typeof p.x==='number'?{x:p.x/scale+x0,y:p.y/scale+y0}:p;});return out;
+}
+function decodeRegion(gray,w,h,x0,y0,ww,hh,scale){
+  var im=grayRgba(gray,w,h,x0,y0,ww,hh,scale),r=null;
+  try{r=global.jsQR(im.data,im.w,im.h,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}
+  return r&&parsePayload(r.data)?shifted(r,x0||0,y0||0,scale||1):null;
+}
+function tryDecode(gray,w,h){
+  var r=decodeRegion(gray,w,h,0,0,w,h,1);if(r)return r;
+  var tw=Math.ceil(w*0.62),th=Math.ceil(h*0.62),xs=[0,Math.max(0,w-tw)],ys=[0,Math.max(0,h-th)];
+  for(var yi=0;yi<ys.length;yi++)for(var xi=0;xi<xs.length;xi++){r=decodeRegion(gray,w,h,xs[xi],ys[yi],tw,th,1);if(r)return r;}
+  /* Upscaling does not invent detail, but it stops a barely-resolved module
+   * from being lost to integer sampling inside the QR locator. */
+  for(var yi2=0;yi2<ys.length;yi2++)for(var xi2=0;xi2<xs.length;xi2++){r=decodeRegion(gray,w,h,xs[xi2],ys[yi2],tw,th,2);if(r)return r;}
+  return null;
+}
+function mul(A,B){var C=[[0,0,0],[0,0,0],[0,0,0]];for(var r=0;r<3;r++)for(var c=0;c<3;c++)for(var k=0;k<3;k++)C[r][c]+=A[r][k]*B[k][c];return C;}
+function obj(H){return[[H.a,H.b,H.c],[H.d,H.e,H.f],[H.g,H.h,1]];}
+function hom(M){var z=M[2][2];if(!isFinite(z)||Math.abs(z)<1e-12)return null;return{a:M[0][0]/z,b:M[0][1]/z,c:M[0][2]/z,d:M[1][0]/z,e:M[1][1]/z,f:M[1][2]/z,g:M[2][0]/z,h:M[2][1]/z};}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function pdist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function quadArea(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
+function qualityHint(m){
+  if(!m||!m.decoded)return'showQr';
+  if(m.pixels<MIN_QR_PX)return'closer';
+  if(m.sideRatio>2.35)return'straight';
+  if(m.pageOutside)return'wholePage';
+  if(m.refined===false)return'flat';
+  return null;
+}
+function sheetHFromQr(loc){
+  if(!loc||!loc.topLeftCorner||!loc.topRightCorner||!loc.bottomRightCorner||!loc.bottomLeftCorner)return null;
+  var Hq=V.homography([loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]);if(!Hq)return null;
+  var qb=qrRect(),inner={x:qb.x+QR_QUIET,y:qb.y+QR_QUIET,size:qb.size-QR_QUIET*2};
+  var rr=S.rect(inner.x,inner.y,inner.size,inner.size),du=rr.u1-rr.u0,dv=rr.v1-rr.v0;if(Math.abs(du)<1e-9||Math.abs(dv)<1e-9)return null;
+  return hom(mul(obj(Hq),[[1/du,0,-rr.u0/du],[0,1/dv,-rr.v0/dv],[0,0,1]]));
+}
+function sample(gray,w,h,x,y){
+  if(x<0||y<0||x>w-1||y>h-1)return 0;
+  var xi=Math.min(w-2,Math.max(0,Math.floor(x))),yi=Math.min(h-2,Math.max(0,Math.floor(y))),fx=x-xi,fy=y-yi,o=yi*w+xi;
+  var a=gray[o],b=gray[o+1],c=gray[o+w],d=gray[o+w+1];return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+}
+function edgePoints(gray,w,h,a,b,range){
+  var dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<40)return[];
+  var tx=dx/len,ty=dy/len,nx=-ty,ny=tx,pts=[];
+  var fractions=[0.16,0.24,0.32,0.40,0.50,0.60,0.68,0.76,0.84];
+  fractions.forEach(function(f){
+    var cx=a[0]+dx*f,cy=a[1]+dy*f,best=null,bestScore=0;
+    for(var s=-range;s<=range;s+=1){
+      var x1=cx+nx*(s-3),y1=cy+ny*(s-3),x2=cx+nx*(s+3),y2=cy+ny*(s+3);
+      if(x1<1||y1<1||x1>w-2||y1>h-2||x2<1||y2<1||x2>w-2||y2>h-2)continue;
+      var score=Math.abs(sample(gray,w,h,x2,y2)-sample(gray,w,h,x1,y1));
+      if(score>bestScore){bestScore=score;best=[cx+nx*s,cy+ny*s];}
+    }
+    if(best&&bestScore>=20)pts.push(best);
+  });
+  return pts;
+}
+function fitLine(pts){
+  if(pts.length<5)return null;var mx=0,my=0;pts.forEach(function(p){mx+=p[0];my+=p[1];});mx/=pts.length;my/=pts.length;
+  var xx=0,yy=0,xy=0;pts.forEach(function(p){var x=p[0]-mx,y=p[1]-my;xx+=x*x;yy+=y*y;xy+=x*y;});
+  var ang=0.5*Math.atan2(2*xy,xx-yy),dx=Math.cos(ang),dy=Math.sin(ang),nx=-dy,ny=dx;
+  return{a:nx,b:ny,c:-(nx*mx+ny*my),points:pts};
+}
+function intersect(l1,l2){var d=l1.a*l2.b-l2.a*l1.b;if(Math.abs(d)<1e-7)return null;return[(l1.b*l2.c-l2.b*l1.c)/d,(l1.c*l2.a-l2.c*l1.a)/d];}
+function qrResidual(H,loc){
+  var qb=qrRect(),inner=S.rect(qb.x+QR_QUIET,qb.y+QR_QUIET,qb.size-2*QR_QUIET,qb.size-2*QR_QUIET);
+  var want=[V.project(H,inner.u0,inner.v0),V.project(H,inner.u1,inner.v0),V.project(H,inner.u1,inner.v1),V.project(H,inner.u0,inner.v1)];
+  var got=[[loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]];
+  var sum=0;for(var i=0;i<4;i++)sum+=pdist(want[i],got[i]);return sum/4;
+}
+function refineFromPaperEdges(gray,w,h,H0,loc,qrPx){
+  var pr=S.rect(0,0,S.L.page.w,S.L.page.h);
+  var q0=[V.project(H0,pr.u0,pr.v0),V.project(H0,pr.u1,pr.v0),V.project(H0,pr.u1,pr.v1),V.project(H0,pr.u0,pr.v1)];
+  var range=Math.min(100,Math.max(28,qrPx*1.9));
+  var top=fitLine(edgePoints(gray,w,h,q0[0],q0[1],range)),right=fitLine(edgePoints(gray,w,h,q0[1],q0[2],range));
+  var bottom=fitLine(edgePoints(gray,w,h,q0[3],q0[2],range)),left=fitLine(edgePoints(gray,w,h,q0[0],q0[3],range));
+  if(!top||!right||!bottom||!left)return null;
+  var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
+  var corners=[tl,tr,br,bl],margin=3;if(corners.some(function(p){return p[0]<margin||p[1]<margin||p[0]>w-margin||p[1]>h-margin;}))return null;
+  if(quadArea(corners)<w*h*0.10)return null;
+  var hp=V.homography(tl,tr,br,bl);if(!hp)return null;
+  var fx0=S.L.fid.x0/S.L.page.w,fx1=S.L.fid.x1/S.L.page.w,fy0=S.L.fid.y0/S.L.page.h,fy1=S.L.fid.y1/S.L.page.h;
+  var ftl=V.project(hp,fx0,fy0),ftr=V.project(hp,fx1,fy0),fbr=V.project(hp,fx1,fy1),fbl=V.project(hp,fx0,fy1);
+  var H=V.homography(ftl,ftr,fbr,fbl);if(!H)return null;
+  var residual=qrResidual(H,loc);if(residual>Math.max(7,qrPx*0.22))return null;
+  return{H:H,pageQuad:corners,residual:residual};
+}
+function findPacketQr(gray,w,h){
+  lastHint=qualityHint(null);
+  var result=tryDecode(gray,w,h);if(!result)return null;var packet=parsePayload(result.data);if(!packet)return null;
+  var loc=result.location||{},sides=loc.topLeftCorner&&loc.topRightCorner&&loc.bottomRightCorner&&loc.bottomLeftCorner?[dist(loc.topLeftCorner,loc.topRightCorner),dist(loc.topRightCorner,loc.bottomRightCorner),dist(loc.bottomRightCorner,loc.bottomLeftCorner),dist(loc.bottomLeftCorner,loc.topLeftCorner)]:[];
+  var qrPx=sides.length?sides.reduce(function(a,b){return a+b;},0)/sides.length:0;
+  if(qrPx<MIN_QR_PX){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:1});return null;}
+  var sideMin=Math.min.apply(Math,sides),sideMax=Math.max.apply(Math,sides);
+  if(sideMin&&sideMax/sideMin>2.35){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin});return null;}
+  var H0=sheetHFromQr(loc);if(!H0){lastHint='steady';return null;}
+  var refined=refineFromPaperEdges(gray,w,h,H0,loc,qrPx);
+  if(!refined){
+    var pq=S.rect(0,0,S.L.page.w,S.L.page.h),rough=[V.project(H0,pq.u0,pq.v0),V.project(H0,pq.u1,pq.v0),V.project(H0,pq.u1,pq.v1),V.project(H0,pq.u0,pq.v1)];
+    var outside=rough.some(function(p){return p[0]<-4||p[1]<-4||p[0]>w+4||p[1]>h+4;});
+    lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin,pageOutside:outside,refined:false});
+    return null;
+  }
+  var H=refined.H,quad=[V.project(H,0,0),V.project(H,1,0),V.project(H,1,1),V.project(H,0,1)];
+  lastHint=null;
+  return{H:H,quad:quad,pageQuad:refined.pageQuad,white:V.whiteLevel(gray,w,h,H),markers:1,qrPacket:packet,
+    qrQuality:{pixels:Math.round(qrPx),area:quadArea(refined.pageQuad)/(w*h),edgeResidual:+refined.residual.toFixed(2)}};
+}
+var legacyFindSheet=V.findSheet;
+V.findSheet=function(gray,w,h,opts){return findPacketQr(gray,w,h)||legacyFindSheet(gray,w,h,opts);};
+
+function decodePacketFromWarp(gray,w,h,H){
+  var qb=qrRect(),im=grayRgba(gray,w,h),cv=V.warpRegion({data:im.data,width:w,height:h},H,S.rect(qb.x,qb.y,qb.size,qb.size),360);
+  var pix=cv.getContext('2d').getImageData(0,0,cv.width,cv.height),r=null;try{r=global.jsQR(pix.data,pix.width,pix.height,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}return r?parsePayload(r.data):null;
+}
+var legacyDecodeIdentity=V.decodeIdentity;
+V.decodeIdentity=function(gray,w,h,H,white,idDigits){
+  var packet=decodePacketFromWarp(gray,w,h,H);if(!packet){lastDecoded=null;return legacyDecodeIdentity(gray,w,h,H,white,idDigits);}lastDecoded={packet:packet,at:Date.now()};
+  if(packet.keyMode)return{sid:S.keySid(idDigits),code:packet.code,page:packet.page,continuation:false,idConf:1,flags:[],qrPacket:packet};
+  return{sid:null,code:packet.code,page:packet.page,continuation:packet.page>1,idConf:1,flags:[],qrPacket:packet};
+};
+
+if(Sy&&Sy.renderSynthetic){
+  var legacySynthetic=Sy.renderSynthetic;
+  Sy.renderSynthetic=function(test,pageIdx,opts){
+    S.usePaper(test);var cv=legacySynthetic.apply(Sy,arguments),ctx=cv.getContext('2d'),dpi=Sy.DPI;
+    function wipe(x,y,ww,hh){ctx.fillStyle='#fff';ctx.fillRect(Math.round(x*dpi),Math.round(y*dpi),Math.ceil(ww*dpi),Math.ceil(hh*dpi));}
+    wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15);wipe(S.L.fid.x1-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15);wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,S.L.W+0.15,0.15);wipe(S.L.fid.x0-0.075,S.L.fid.y1-0.13,S.L.W+0.15,0.22);
+    var clean=cleanupRect(test);wipe(clean.x,clean.y,clean.w,clean.h);var oldQr=S.qrRect(S.idDigitsOf(test));wipe(oldQr.x-0.02,oldQr.y-0.02,oldQr.size+0.04,oldQr.size+0.04);
+    var pages=S.layoutTest(test),qb=qrRect(),kind=opts&&S.isKeySid(opts.sid,S.idDigitsOf(test))?'K':'N',qr=makeQr(test.code,pageIdx,pages.length,kind),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
+    ctx.fillStyle='#fff';ctx.fillRect(qb.x*dpi,qb.y*dpi,qb.size*dpi,qb.size*dpi);ctx.fillStyle='#000';for(var y=0;y<mod;y++)for(var x=0;x<mod;x++)if(qr.isDark(y,x))ctx.fillRect((qb.x+QR_QUIET+x*cell)*dpi,(qb.y+QR_QUIET+y*cell)*dpi,cell*dpi+0.25,cell*dpi+0.25);return cv;
+  };
+}
+
+function decodedFor(record){if(!lastDecoded||Date.now()-lastDecoded.at>5000||!record)return null;var p=lastDecoded.packet;return p.code===record.code&&p.page===+record.page?p:null;}
+function newAnonSid(){anonCounter=(anonCounter+1)%100;return'9700'+String(Date.now()%100000000)+('0'+anonCounter).slice(-2);}
+Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,quiet:QR_QUIET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr,tryDecode:tryDecode,classifyHint:qualityHint,setHint:function(h){lastHint=h;},getHint:function(){return lastHint;}};
+
+function installPacketFlow(){
+  var Scanner=Q.Scanner;if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;var active=null,T=Q.T;
+  function normSid(s){return S.normId?S.normId(s):String(s||'');}
+  function sameStudent(a,b){var aa=normSid(a),bb=normSid(b);return!!aa&&!!bb&&aa===bb;}
+  function packetTotal(record){var p=record&&record.packet;if(p&&p.total)return+p.total;var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();return pages?pages.length:1;}
+  function defaultMissing(record){var out=[],n=packetTotal(record);for(var i=1;i<=n;i++)if(i!==+record.page)out.push(i);return out;}
+  function cloneMissing(a){return(a||[]).map(Number).filter(function(n){return n>0;});}
+  function wouldAdvance(record){if(!active||+record.page!==1||active.testId!==record.testId||!active.missing.length)return null;if(sameStudent(active.sid,record.sid)&&!active.unassigned)return null;return{name:active.name,missingPages:active.missing.slice(),sid:active.sid};}
+  function packetConflict(record){if(!active||+record.page===1||active.testId!==record.testId)return null;var form=record.form||null;if(active.code===record.code&&active.form===form)return null;return{expectedCode:active.code,gotCode:record.code,expectedForm:active.form,gotForm:form};}
+  function ensurePill(){var row=document.querySelector('#scanHud .hudrow:nth-child(2)');if(!row||document.getElementById('pillPacket'))return;var p=document.createElement('span');p.className='pill';p.id='pillPacket';p.hidden=true;var status=document.getElementById('pillStatus');row.insertBefore(p,status||null);}
+  function label(){if(!active)return'';var who=active.name||T('names.unassigned');return active.missing.length?who+' · '+T('scan.stillNeed',{pages:active.missing.join(', ')}):who+' · '+T('scan.complete');}
+  function render(warn){ensurePill();var p=document.getElementById('pillPacket');if(!p)return;p.hidden=!active;p.textContent=label();p.className='pill'+(warn?' bad':active?' ok':'');}
+  function warnAdvance(info){if(!info)return;var who=info.name||T('names.unassigned');Q.toast(who+' · '+T('scan.stillNeed',{pages:info.missingPages.join(', ')}),'err',7500);render(true);}
+  function warnConflict(info){if(!info)return;Q.toast(T('scan.clashBig')+' · '+String(info.gotCode||'?')+' ≠ '+String(info.expectedCode||'?'),'err',8000);render(true);}
+  function start(record,res){active={testId:record.testId,code:record.code,form:record.form||null,sid:normSid(record.sid)||null,name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[],unassigned:!!record.packetUnassigned};active.seen[+record.page]=true;active.missing=res&&res.missingPages?cloneMissing(res.missingPages):defaultMissing(record);}
+  function observe(record,res){if(!record||!res||res.status==='key'||record.packetVersionMismatch)return;var p=+record.page;if(p===1)start(record,res);else if(active&&active.testId===record.testId){active.seen[p]=true;if(!active.sid&&record.sid)active.sid=normSid(record.sid)||null;if(!active.name&&res.name)active.name=res.name;if(res.missingPages)active.missing=cloneMissing(res.missingPages);else active.missing=active.missing.filter(function(n){return n!==p;});}if(res.complete||(active&&active.missing.length===0))active=null;render(false);}
+  function reset(){active=null;render(false);}
+  function anonymousResult(record,res){if(!record.packetUnassigned)return res;var St=Q.App&&Q.App.State,have={},total=packetTotal(record);if(St)St.scans.forEach(function(sc){if(normSid(sc.sid)===normSid(record.sid))have[sc.page]=1;});var missing=[];for(var p=1;p<=total;p++)if(!have[p])missing.push(p);return{status:res&&res.status==='replaced'?'replaced':'ok',name:T('names.unassigned'),complete:missing.length===0,missingPages:missing,unassigned:true};}
+
+  var legacySave=Scanner.hooks.saveScan;
+  Scanner.hooks.saveScan=function(record,blobs){
+    var packet=decodedFor(record),warning=wouldAdvance(record),conflict=packetConflict(record);if(warning)warnAdvance(warning);
+    if(conflict){warnConflict(conflict);record.packetVersionMismatch=true;record.flags=(record.flags||[]).concat(['packet-version-mismatch']);var St=Q.App&&Q.App.State;if(St){St.openSid=null;St.openFor=null;}}
+    if(packet){record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper,kind:packet.kind};if(!packet.keyMode){if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}else if(packet.page>1&&!conflict&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}}}
+    return legacySave.call(Scanner.hooks,record,blobs).then(function(res){res=anonymousResult(record,res);observe(record,res);return res;});
+  };
+  var legacyReset=Scanner.resetSession;Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};ensurePill();
+
+  ['f_idDigits','f_idLabel','f_prefillId'].forEach(function(id){var n=document.getElementById(id);if(n&&n.closest('label'))n.closest('label').hidden=true;});
+  var dh=document.querySelector('[data-i18n-html="tests.sheet.digitsHint"]');if(dh)dh.hidden=true;var personal=document.getElementById('btnPrintPersonal');if(personal)personal.hidden=true;
+
+  function groupedUnresolved(){var St=Q.App&&Q.App.State,r=St&&St.results,groups={};if(!r)return groups;(r.unresolved||[]).forEach(function(sc){if(!sc.packetUnassigned||!sc.sid)return;var k=normSid(sc.sid);(groups[k]||(groups[k]=[])).push(sc);});Object.keys(groups).forEach(function(k){groups[k].sort(function(a,b){return a.page-b.page;});});return groups;}
+  function assignPacket(group,target){
+    var St=Q.App.State,targetId=normSid(target),packetId=normSid(group[0].sid),pageSet={};group.forEach(function(sc){pageSet[sc.page]=1;});
+    var dup=St.scans.filter(function(sc){return normSid(sc.sid)===targetId&&pageSet[sc.page]&&normSid(sc.sid)!==packetId;}),now=Date.now();dup.forEach(function(sc){sc.deleted=now;});
+    group.forEach(function(sc){sc.sid=targetId;sc.packetUnassigned=false;sc.packetResolvedAt=now;sc.flags=(sc.flags||[]).filter(function(f){return f!=='no-id'&&f!=='partial-id'&&f!=='no-owner'&&f!=='owner-clash';});});
+    var jobs=[Q.DB.putMany('scans',group)];if(dup.length)jobs.push(Q.DB.putMany('scans',dup));return Promise.all(jobs).then(function(){if(dup.length){St.scans=St.scans.filter(function(sc){return dup.indexOf(sc)<0;});dup.forEach(function(sc){if(St.trash.indexOf(sc)<0)St.trash.push(sc);});}if(active&&normSid(active.sid)===packetId){active.sid=targetId;active.unassigned=false;var stu=St.byId[targetId];active.name=stu&&stu.name||null;}if(St.openSid&&normSid(St.openSid)===packetId){St.openSid=targetId;St.openFor=St.test&&St.test.id;}Q.App.recompute();Q.App.route('review');var stu2=St.byId[targetId];Q.toast(T('toast.assignedTo',{name:stu2&&stu2.name||targetId}),'good');});
+  }
+  function collapseReview(){
+    var St=Q.App&&Q.App.State,r=St&&St.results,host=document.getElementById('unresolvedBox');if(!r||!host)return;var rows=[].slice.call(host.querySelectorAll('.unrow')),un=r.unresolved||[];if(rows.length!==un.length)return;
+    var groups=groupedUnresolved(),indexByScan={};un.forEach(function(sc,i){indexByScan[sc.id]=i;});Object.keys(groups).forEach(function(k){var group=groups[k],first=rows[indexByScan[group[0].id]];if(!first)return;group.slice(1).forEach(function(sc){var row=rows[indexByScan[sc.id]];if(row)row.hidden=true;});if(first.dataset.qgPacket==='1')return;first.dataset.qgPacket='1';var dim=first.querySelector('.dim');if(dim)dim.textContent=T('names.unassigned')+' · '+group.map(function(sc){return T('scan.pageTag',{n:sc.page});}).join(', ');var sel=first.querySelector('select'),assign=first.querySelector('button.go');if(assign&&sel)assign.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();if(!sel.value){Q.toast(T('toast.pickStudent'),'err');return;}assignPacket(group,sel.value);},true);});
+    var normal=0,seen={};un.forEach(function(sc){if(sc.packetUnassigned&&sc.sid)seen[normSid(sc.sid)]=1;else normal++;});var badge=document.getElementById('badgeUnres'),count=normal+Object.keys(seen).length;if(badge){badge.hidden=!count;badge.textContent=count;}
+  }
+  var review=document.getElementById('unresolvedBox');if(review&&global.MutationObserver){var mo=new MutationObserver(function(){setTimeout(collapseReview,0);});mo.observe(review,{childList:true,subtree:true});}collapseReview();
+  Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,packetConflict:packetConflict,observe:observe,reset:reset,label:label,assignPacket:assignPacket,groupedUnresolved:groupedUnresolved};
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installPacketFlow);else setTimeout(installPacketFlow,0);
+
+})(window);
+
+/* ===== js/qrpaper.js ===== */
+/* QuickGrade — qrpaper.js
+ *
+ * The QR tells us what sheet this is and which way the local print axes run.
+ * It does NOT get extrapolated across eleven inches: a one-pixel QR-corner
+ * error becomes a large answer-grid error at the far end of the page.
+ *
+ * Instead, QG3 finds the physical paper boundary itself. The QR is then used
+ * as an independent cross-check on that full-page fit. Nothing extra needs to
+ * be printed on the sheet.
+ */
+(function (global) {
+'use strict';
+var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,P=Q&&Q.QRPacket;
+if(!Q||!S||!V||!P)return;
+
+var previousFind=V.findSheet;
+var paperHint='showQr';
+
+function median(a){if(!a.length)return 0;a=a.slice().sort(function(x,y){return x-y;});var n=a.length;return n&1?a[n>>1]:(a[n/2-1]+a[n/2])/2;}
+function sample(gray,w,h,x,y){x=Math.max(0,Math.min(w-1,Math.round(x)));y=Math.max(0,Math.min(h-1,Math.round(y)));return gray[y*w+x];}
+function borderBackground(gray,w,h){
+  var out=[],bx=Math.max(3,Math.round(w*0.035)),by=Math.max(3,Math.round(h*0.035));
+  for(var x=0;x<w;x+=3){for(var y=0;y<by;y+=3)out.push(gray[y*w+x]);for(var y2=h-by;y2<h;y2+=3)out.push(gray[y2*w+x]);}
+  for(var y3=by;y3<h-by;y3+=3){for(var x2=0;x2<bx;x2+=3)out.push(gray[y3*w+x2]);for(var x3=w-bx;x3<w;x3+=3)out.push(gray[y3*w+x3]);}
+  return median(out);
+}
+function qrPaperLevel(gray,w,h,loc){
+  if(!loc||!loc.topLeftCorner)return 0;
+  var pts=[loc.topLeftCorner,loc.topRightCorner,loc.bottomRightCorner,loc.bottomLeftCorner],xs=pts.map(function(p){return p.x;}),ys=pts.map(function(p){return p.y;});
+  var x0=Math.max(0,Math.floor(Math.min.apply(null,xs)-18)),x1=Math.min(w-1,Math.ceil(Math.max.apply(null,xs)+18));
+  var y0=Math.max(0,Math.floor(Math.min.apply(null,ys)-18)),y1=Math.min(h-1,Math.ceil(Math.max.apply(null,ys)+18));
+  var bx0=Math.min.apply(null,xs),bx1=Math.max.apply(null,xs),by0=Math.min.apply(null,ys),by1=Math.max.apply(null,ys),a=[];
+  for(var y=y0;y<=y1;y+=2)for(var x=x0;x<=x1;x+=2){if(x>bx0-3&&x<bx1+3&&y>by0-3&&y<by1+3)continue;a.push(gray[y*w+x]);}
+  return median(a);
+}
+function brightRun(gray,w,h,x,y,dx,dy,threshold){
+  var good=0;for(var i=0;i<7;i++){var xx=x+dx*i,yy=y+dy*i;if(xx<0||yy<0||xx>=w||yy>=h)return false;if(sample(gray,w,h,xx,yy)>=threshold)good++;}return good>=6;
+}
+function verticalEdges(gray,w,h,threshold){
+  var top=[],bottom=[],step=Math.max(5,Math.round(w/120));
+  for(var x=2;x<w-2;x+=step){
+    for(var y=2;y<h-8;y++){if(sample(gray,w,h,x,y)<threshold&&sample(gray,w,h,x,y+2)>=threshold&&brightRun(gray,w,h,x,y+2,0,1,threshold)){top.push([x,y+1]);break;}}
+    for(var y2=h-3;y2>8;y2--){if(sample(gray,w,h,x,y2)<threshold&&sample(gray,w,h,x,y2-2)>=threshold&&brightRun(gray,w,h,x,y2-2,0,-1,threshold)){bottom.push([x,y2-1]);break;}}
+  }
+  return{top:top,bottom:bottom};
+}
+function horizontalEdges(gray,w,h,threshold){
+  var left=[],right=[],step=Math.max(5,Math.round(h/150));
+  for(var y=2;y<h-2;y+=step){
+    for(var x=2;x<w-8;x++){if(sample(gray,w,h,x,y)<threshold&&sample(gray,w,h,x+2,y)>=threshold&&brightRun(gray,w,h,x+2,y,1,0,threshold)){left.push([x+1,y]);break;}}
+    for(var x2=w-3;x2>8;x2--){if(sample(gray,w,h,x2,y)<threshold&&sample(gray,w,h,x2-2,y)>=threshold&&brightRun(gray,w,h,x2-2,y,-1,0,threshold)){right.push([x2-1,y]);break;}}
+  }
+  return{left:left,right:right};
+}
+function fitYX(points){
+  if(points.length<18)return null;
+  /* Bin first: one accidental bright object in the background must not get 80
+   * votes just because it is vertical. The paper edge contributes across the
+   * entire span, so medians by horizontal position retain it. */
+  points=points.slice().sort(function(a,b){return a[0]-b[0];});var bins=[],n=12;
+  for(var i=0;i<n;i++){var lo=Math.floor(points.length*i/n),hi=Math.floor(points.length*(i+1)/n),part=points.slice(lo,hi);if(part.length)bins.push([median(part.map(function(p){return p[0];})),median(part.map(function(p){return p[1];}))]);}
+  if(bins.length<7)return null;var mx=0,my=0;bins.forEach(function(p){mx+=p[0];my+=p[1];});mx/=bins.length;my/=bins.length;
+  var xx=0,xy=0;bins.forEach(function(p){var dx=p[0]-mx;xx+=dx*dx;xy+=dx*(p[1]-my);});if(xx<1)return null;var m=xy/xx,b=my-m*mx;
+  var residuals=bins.map(function(p){return Math.abs(p[1]-(m*p[0]+b));}),med=median(residuals),keep=bins.filter(function(p){return Math.abs(p[1]-(m*p[0]+b))<=Math.max(4,med*2.5);});
+  if(keep.length>=5){mx=0;my=0;keep.forEach(function(p){mx+=p[0];my+=p[1];});mx/=keep.length;my/=keep.length;xx=0;xy=0;keep.forEach(function(p){var dx=p[0]-mx;xx+=dx*dx;xy+=dx*(p[1]-my);});m=xy/xx;b=my-m*mx;}
+  return{kind:'yx',m:m,b:b,n:keep.length||bins.length};
+}
+function fitXY(points){var swapped=points.map(function(p){return[p[1],p[0]];}),l=fitYX(swapped);return l?{kind:'xy',m:l.m,b:l.b,n:l.n}:null;}
+function intersect(a,b){
+  if(a.kind==='yx'&&b.kind==='xy'){var d=1-a.m*b.m;if(Math.abs(d)<1e-6)return null;var x=(b.m*a.b+b.b)/d;return[x,a.m*x+a.b];}
+  if(a.kind==='xy'&&b.kind==='yx')return intersect(b,a);return null;
+}
+function area(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
+function dist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function pageToFidH(pageQuad){
+  var hp=V.homography(pageQuad[0],pageQuad[1],pageQuad[2],pageQuad[3]);if(!hp)return null;
+  var fx0=S.L.fid.x0/S.L.page.w,fx1=S.L.fid.x1/S.L.page.w,fy0=S.L.fid.y0/S.L.page.h,fy1=S.L.fid.y1/S.L.page.h;
+  return V.homography(V.project(hp,fx0,fy0),V.project(hp,fx1,fy0),V.project(hp,fx1,fy1),V.project(hp,fx0,fy1));
+}
+function qrResidual(H,loc){
+  var qb=P.rect(),q=P.quiet,inner=S.rect(qb.x+q,qb.y+q,qb.size-2*q,qb.size-2*q);
+  var want=[V.project(H,inner.u0,inner.v0),V.project(H,inner.u1,inner.v0),V.project(H,inner.u1,inner.v1),V.project(H,inner.u0,inner.v1)];
+  var got=[[loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]];
+  return(want.reduce(function(s,p,i){return s+dist(p,got[i]);},0)/4);
+}
+function findPaper(gray,w,h,result){
+  paperHint='flat';
+  var lp=result.location||{},ls=lp.topLeftCorner&&lp.topRightCorner&&lp.bottomRightCorner&&lp.bottomLeftCorner?
+    [dist([lp.topLeftCorner.x,lp.topLeftCorner.y],[lp.topRightCorner.x,lp.topRightCorner.y]),dist([lp.topRightCorner.x,lp.topRightCorner.y],[lp.bottomRightCorner.x,lp.bottomRightCorner.y]),dist([lp.bottomRightCorner.x,lp.bottomRightCorner.y],[lp.bottomLeftCorner.x,lp.bottomLeftCorner.y]),dist([lp.bottomLeftCorner.x,lp.bottomLeftCorner.y],[lp.topLeftCorner.x,lp.topLeftCorner.y])]:[];
+  var qrSize=ls.length?ls.reduce(function(a,b){return a+b;},0)/ls.length:0;
+  if(qrSize<34){paperHint='closer';return null;}
+  if(Math.max.apply(Math,ls)/Math.max(1,Math.min.apply(Math,ls))>2.35){paperHint='straight';return null;}
+  var bg=borderBackground(gray,w,h),paper=qrPaperLevel(gray,w,h,result.location);
+  if(paper<bg) { var tmp=paper;paper=bg;bg=tmp; }
+  var contrast=paper-bg;if(contrast<24){paperHint='steady';return null;}
+  var threshold=bg+contrast*0.38;
+  var ve=verticalEdges(gray,w,h,threshold),he=horizontalEdges(gray,w,h,threshold);
+  var top=fitYX(ve.top),bottom=fitYX(ve.bottom),left=fitXY(he.left),right=fitXY(he.right);
+  if(!top||!bottom||!left||!right)return null;
+  var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
+  var q=[tl,tr,br,bl],m=2;if(q.some(function(p){return p[0]<m||p[1]<m||p[0]>w-m||p[1]>h-m;})){paperHint='wholePage';return null;}
+  var ar=area(q)/(w*h);if(ar<0.12||ar>0.94)return null;
+  var ratio=(dist(tl,tr)+dist(bl,br))/(dist(tl,bl)+dist(tr,br));
+  var wantRatio=S.L.page.w/S.L.page.h;if(Math.abs(ratio-wantRatio)>0.17){paperHint='straight';return null;}
+  var H=pageToFidH(q);if(!H)return null;
+  var qrPts=[result.location.topLeftCorner,result.location.topRightCorner,result.location.bottomRightCorner,result.location.bottomLeftCorner],qrPx=(dist([qrPts[0].x,qrPts[0].y],[qrPts[1].x,qrPts[1].y])+dist([qrPts[1].x,qrPts[1].y],[qrPts[2].x,qrPts[2].y]))/2;
+  var residual=qrResidual(H,result.location);if(residual>Math.max(12,qrPx*0.48))return null;
+  return{H:H,pageQuad:q,qrQuality:{pixels:Math.round(qrPx),area:ar,edgeResidual:+residual.toFixed(2),paperContrast:Math.round(contrast)}};
+}
+
+V.findSheet=function(gray,w,h,opts){
+  var qr=P.tryDecode(gray,w,h);
+  if(qr){
+    var packet=P.parse(qr.data);if(!packet)return null;
+    var paper=findPaper(gray,w,h,qr);if(!paper){P.setHint(paperHint);return null;}P.setHint(null);
+    return{H:paper.H,quad:[V.project(paper.H,0,0),V.project(paper.H,1,0),V.project(paper.H,1,1),V.project(paper.H,0,1)],pageQuad:paper.pageQuad,
+      white:V.whiteLevel(gray,w,h,paper.H),markers:1,qrPacket:packet,qrQuality:paper.qrQuality};
+  }
+  P.setHint('showQr');return previousFind(gray,w,h,opts);
+};
+P.find=function(gray,w,h){var qr=P.tryDecode(gray,w,h);if(!qr){P.setHint('showQr');return null;}var packet=P.parse(qr.data),paper=findPaper(gray,w,h,qr);if(!packet||!paper){P.setHint(paperHint);return null;}P.setHint(null);return{H:paper.H,pageQuad:paper.pageQuad,qrPacket:packet,qrQuality:paper.qrQuality,markers:1};};
+
+})(window);
+
 /* ===== js/scan.js ===== */
 /* QuickGrade — scan.js
  * Camera capture loop, decode pipeline, accept/reject feedback, photo import.
@@ -23374,7 +23466,8 @@ function tick() {
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);
-    setStatus(T('scan.looking'));
+    var qrHint = Q.QRPacket && Q.QRPacket.getHint && Q.QRPacket.getHint();
+    setStatus(qrHint ? T('scan.quality.' + qrHint) : T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);

@@ -14,6 +14,7 @@ var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,P=Q&&Q.QRPacket;
 if(!Q||!S||!V||!P)return;
 
 var previousFind=V.findSheet;
+var paperHint='showQr';
 
 function median(a){if(!a.length)return 0;a=a.slice().sort(function(x,y){return x-y;});var n=a.length;return n&1?a[n>>1]:(a[n/2-1]+a[n/2])/2;}
 function sample(gray,w,h,x,y){x=Math.max(0,Math.min(w-1,Math.round(x)));y=Math.max(0,Math.min(h-1,Math.round(y)));return gray[y*w+x];}
@@ -83,18 +84,24 @@ function qrResidual(H,loc){
   return(want.reduce(function(s,p,i){return s+dist(p,got[i]);},0)/4);
 }
 function findPaper(gray,w,h,result){
+  paperHint='flat';
+  var lp=result.location||{},ls=lp.topLeftCorner&&lp.topRightCorner&&lp.bottomRightCorner&&lp.bottomLeftCorner?
+    [dist([lp.topLeftCorner.x,lp.topLeftCorner.y],[lp.topRightCorner.x,lp.topRightCorner.y]),dist([lp.topRightCorner.x,lp.topRightCorner.y],[lp.bottomRightCorner.x,lp.bottomRightCorner.y]),dist([lp.bottomRightCorner.x,lp.bottomRightCorner.y],[lp.bottomLeftCorner.x,lp.bottomLeftCorner.y]),dist([lp.bottomLeftCorner.x,lp.bottomLeftCorner.y],[lp.topLeftCorner.x,lp.topLeftCorner.y])]:[];
+  var qrSize=ls.length?ls.reduce(function(a,b){return a+b;},0)/ls.length:0;
+  if(qrSize<34){paperHint='closer';return null;}
+  if(Math.max.apply(Math,ls)/Math.max(1,Math.min.apply(Math,ls))>2.35){paperHint='straight';return null;}
   var bg=borderBackground(gray,w,h),paper=qrPaperLevel(gray,w,h,result.location);
   if(paper<bg) { var tmp=paper;paper=bg;bg=tmp; }
-  var contrast=paper-bg;if(contrast<24)return null;
+  var contrast=paper-bg;if(contrast<24){paperHint='steady';return null;}
   var threshold=bg+contrast*0.38;
   var ve=verticalEdges(gray,w,h,threshold),he=horizontalEdges(gray,w,h,threshold);
   var top=fitYX(ve.top),bottom=fitYX(ve.bottom),left=fitXY(he.left),right=fitXY(he.right);
   if(!top||!bottom||!left||!right)return null;
   var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
-  var q=[tl,tr,br,bl],m=2;if(q.some(function(p){return p[0]<m||p[1]<m||p[0]>w-m||p[1]>h-m;}))return null;
+  var q=[tl,tr,br,bl],m=2;if(q.some(function(p){return p[0]<m||p[1]<m||p[0]>w-m||p[1]>h-m;})){paperHint='wholePage';return null;}
   var ar=area(q)/(w*h);if(ar<0.12||ar>0.94)return null;
   var ratio=(dist(tl,tr)+dist(bl,br))/(dist(tl,bl)+dist(tr,br));
-  var wantRatio=S.L.page.w/S.L.page.h;if(Math.abs(ratio-wantRatio)>0.17)return null;
+  var wantRatio=S.L.page.w/S.L.page.h;if(Math.abs(ratio-wantRatio)>0.17){paperHint='straight';return null;}
   var H=pageToFidH(q);if(!H)return null;
   var qrPts=[result.location.topLeftCorner,result.location.topRightCorner,result.location.bottomRightCorner,result.location.bottomLeftCorner],qrPx=(dist([qrPts[0].x,qrPts[0].y],[qrPts[1].x,qrPts[1].y])+dist([qrPts[1].x,qrPts[1].y],[qrPts[2].x,qrPts[2].y]))/2;
   var residual=qrResidual(H,result.location);if(residual>Math.max(12,qrPx*0.48))return null;
@@ -105,12 +112,12 @@ V.findSheet=function(gray,w,h,opts){
   var qr=P.tryDecode(gray,w,h);
   if(qr){
     var packet=P.parse(qr.data);if(!packet)return null;
-    var paper=findPaper(gray,w,h,qr);if(!paper)return null;
+    var paper=findPaper(gray,w,h,qr);if(!paper){P.setHint(paperHint);return null;}P.setHint(null);
     return{H:paper.H,quad:[V.project(paper.H,0,0),V.project(paper.H,1,0),V.project(paper.H,1,1),V.project(paper.H,0,1)],pageQuad:paper.pageQuad,
       white:V.whiteLevel(gray,w,h,paper.H),markers:1,qrPacket:packet,qrQuality:paper.qrQuality};
   }
-  return previousFind(gray,w,h,opts);
+  P.setHint('showQr');return previousFind(gray,w,h,opts);
 };
-P.find=function(gray,w,h){var qr=P.tryDecode(gray,w,h);if(!qr)return null;var packet=P.parse(qr.data),paper=findPaper(gray,w,h,qr);if(!packet||!paper)return null;return{H:paper.H,pageQuad:paper.pageQuad,qrPacket:packet,qrQuality:paper.qrQuality,markers:1};};
+P.find=function(gray,w,h){var qr=P.tryDecode(gray,w,h);if(!qr){P.setHint('showQr');return null;}var packet=P.parse(qr.data),paper=findPaper(gray,w,h,qr);if(!packet||!paper){P.setHint(paperHint);return null;}P.setHint(null);return{H:paper.H,pageQuad:paper.pageQuad,qrPacket:packet,qrQuality:paper.qrQuality,markers:1};};
 
 })(window);

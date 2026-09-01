@@ -37,6 +37,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
     const cropped=Sy.simulateCamera(sheet1,{w:1280,h:1450,corners:[[-150,-90],[1040,30],[1150,1290],[120,1390]],noise:4,vignette:0.08}),cg=grayAt(cropped);ok('readable QR does not accept a page whose projected corners leave the frame',P.find(cg.g,cg.w,cg.h)===null);
     const tiny=Sy.simulateCamera(sheet1,{w:1280,h:1450,corners:[[520,500],[760,505],[765,845],[515,840]],noise:2,vignette:0}),tg=grayAt(tiny);ok('too-small QR/page is rejected rather than sampled optimistically',P.find(tg.g,tg.w,tg.h)===null);
+    ok('quality classifier distinguishes move closer',P.classifyHint({decoded:true,pixels:20,sideRatio:1})==='closer');
+    ok('quality classifier distinguishes missing page edges',P.classifyHint({decoded:true,pixels:50,sideRatio:1,pageOutside:true,refined:false})==='wholePage');
+    ok('quality classifier distinguishes excessive perspective',P.classifyHint({decoded:true,pixels:50,sideRatio:3})==='straight');
+    ok('quality classifier distinguishes an unrefined bent page',P.classifyHint({decoded:true,pixels:50,sideRatio:1,pageOutside:false,refined:false})==='flat');
 
     const cam2=[[155,105],[1100,135],[1060,1340],[185,1310]],sheet2=Sy.renderSynthetic(test,1,{sid:'',name:'',answers:answersFor(pages[1])}),photo2=Sy.simulateCamera(sheet2,{w:1280,h:1450,corners:cam2,noise:10,vignette:0.23}),low2=grayAt(photo2),raw2=rawQr(low2.g,low2.w,low2.h),smart2=P.tryDecode(low2.g,low2.w,low2.h);ok('QR search decodes continuation packet symbol',!!smart2&&!!P.parse(smart2.data),'raw='+(raw2?'yes':'no')+', retry='+(smart2?'yes':'no'));
     const d2=detect(photo2);ok('a continuation page is independently identified by its QR',d2&&d2.ident.code==='042'&&d2.ident.page===2&&d2.ident.continuation===true,d2?JSON.stringify({code:d2.ident.code,page:d2.ident.page,continuation:d2.ident.continuation,geometry:fidError(d2.H,cam2)}):JSON.stringify(edgeDiag(smart2,low2)));
