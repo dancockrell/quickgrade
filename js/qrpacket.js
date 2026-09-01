@@ -1,6 +1,7 @@
 /* QuickGrade — qrpacket.js
  * QG3: one bottom-left QR carries document identity and anchors geometry.
- * Legacy border/ID sheets remain readable through vision.js fallbacks.
+ * The QR gives a local pose; the natural paper edges refine the full-page
+ * homography. Legacy border/ID sheets remain readable through vision.js.
  */
 (function (global) {
 'use strict';
@@ -46,28 +47,38 @@ S.renderSheets=function(test,people,opts){
   return html.replace(/<div class="page">/g,function(m){var pageIdx=i++%total;return m+cleanupHtml(test)+qrModulesHtml(code,pageIdx,total,kind);});
 };
 
-function grayRgba(gray,w,h,x0,y0,ww,hh){
-  x0=x0||0;y0=y0||0;ww=ww||w;hh=hh||h;var rgba=new Uint8ClampedArray(ww*hh*4),j=0;
-  for(var y=0;y<hh;y++)for(var x=0;x<ww;x++){var v=gray[(y0+y)*w+x0+x];rgba[j++]=v;rgba[j++]=v;rgba[j++]=v;rgba[j++]=255;}return rgba;
+function grayRgba(gray,w,h,x0,y0,ww,hh,scale){
+  x0=x0||0;y0=y0||0;ww=ww||w;hh=hh||h;scale=scale||1;
+  var ow=ww*scale,oh=hh*scale,rgba=new Uint8ClampedArray(ow*oh*4),j=0;
+  for(var y=0;y<oh;y++)for(var x=0;x<ow;x++){
+    var sx=Math.min(ww-1,Math.floor(x/scale)),sy=Math.min(hh-1,Math.floor(y/scale));
+    var v=gray[(y0+sy)*w+x0+sx];rgba[j++]=v;rgba[j++]=v;rgba[j++]=v;rgba[j++]=255;
+  }
+  return{data:rgba,w:ow,h:oh};
 }
-function shifted(result,x0,y0){
-  var out={data:result.data,binaryData:result.binaryData,chunks:result.chunks,version:result.version,location:{}};
-  Object.keys(result.location||{}).forEach(function(k){var p=result.location[k];out.location[k]=p&&typeof p.x==='number'?{x:p.x+x0,y:p.y+y0}:p;});return out;
+function shifted(result,x0,y0,scale){
+  scale=scale||1;var out={data:result.data,binaryData:result.binaryData,chunks:result.chunks,version:result.version,location:{}};
+  Object.keys(result.location||{}).forEach(function(k){var p=result.location[k];out.location[k]=p&&typeof p.x==='number'?{x:p.x/scale+x0,y:p.y/scale+y0}:p;});return out;
+}
+function decodeRegion(gray,w,h,x0,y0,ww,hh,scale){
+  var im=grayRgba(gray,w,h,x0,y0,ww,hh,scale),r=null;
+  try{r=global.jsQR(im.data,im.w,im.h,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}
+  return r&&parsePayload(r.data)?shifted(r,x0||0,y0||0,scale||1):null;
 }
 function tryDecode(gray,w,h){
-  var r=null;try{r=global.jsQR(grayRgba(gray,w,h),w,h,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}
-  if(r&&parsePayload(r.data))return r;
+  var r=decodeRegion(gray,w,h,0,0,w,h,1);if(r)return r;
   var tw=Math.ceil(w*0.62),th=Math.ceil(h*0.62),xs=[0,Math.max(0,w-tw)],ys=[0,Math.max(0,h-th)];
-  for(var yi=0;yi<ys.length;yi++)for(var xi=0;xi<xs.length;xi++){
-    var x0=xs[xi],y0=ys[yi],rr=null;try{rr=global.jsQR(grayRgba(gray,w,h,x0,y0,tw,th),tw,th,{inversionAttempts:'attemptBoth'});}catch(e2){rr=null;}
-    if(rr&&parsePayload(rr.data))return shifted(rr,x0,y0);
-  }
+  for(var yi=0;yi<ys.length;yi++)for(var xi=0;xi<xs.length;xi++){r=decodeRegion(gray,w,h,xs[xi],ys[yi],tw,th,1);if(r)return r;}
+  /* Upscaling does not invent detail, but it stops a barely-resolved module
+   * from being lost to integer sampling inside the QR locator. */
+  for(var yi2=0;yi2<ys.length;yi2++)for(var xi2=0;xi2<xs.length;xi2++){r=decodeRegion(gray,w,h,xs[xi2],ys[yi2],tw,th,2);if(r)return r;}
   return null;
 }
 function mul(A,B){var C=[[0,0,0],[0,0,0],[0,0,0]];for(var r=0;r<3;r++)for(var c=0;c<3;c++)for(var k=0;k<3;k++)C[r][c]+=A[r][k]*B[k][c];return C;}
 function obj(H){return[[H.a,H.b,H.c],[H.d,H.e,H.f],[H.g,H.h,1]];}
 function hom(M){var z=M[2][2];if(!isFinite(z)||Math.abs(z)<1e-12)return null;return{a:M[0][0]/z,b:M[0][1]/z,c:M[0][2]/z,d:M[1][0]/z,e:M[1][1]/z,f:M[1][2]/z,g:M[2][0]/z,h:M[2][1]/z};}
 function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function pdist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
 function quadArea(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
 function sheetHFromQr(loc){
   if(!loc||!loc.topLeftCorner||!loc.topRightCorner||!loc.bottomRightCorner||!loc.bottomLeftCorner)return null;
@@ -76,24 +87,73 @@ function sheetHFromQr(loc){
   var rr=S.rect(inner.x,inner.y,inner.size,inner.size),du=rr.u1-rr.u0,dv=rr.v1-rr.v0;if(Math.abs(du)<1e-9||Math.abs(dv)<1e-9)return null;
   return hom(mul(obj(Hq),[[1/du,0,-rr.u0/du],[0,1/dv,-rr.v0/dv],[0,0,1]]));
 }
-function inside(p,w,h,m){return p[0]>=m&&p[1]>=m&&p[0]<=w-m&&p[1]<=h-m;}
+function sample(gray,w,h,x,y){
+  if(x<0||y<0||x>w-1||y>h-1)return 0;
+  var xi=Math.min(w-2,Math.max(0,Math.floor(x))),yi=Math.min(h-2,Math.max(0,Math.floor(y))),fx=x-xi,fy=y-yi,o=yi*w+xi;
+  var a=gray[o],b=gray[o+1],c=gray[o+w],d=gray[o+w+1];return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+}
+function edgePoints(gray,w,h,a,b,range){
+  var dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<40)return[];
+  var tx=dx/len,ty=dy/len,nx=-ty,ny=tx,pts=[];
+  var fractions=[0.16,0.24,0.32,0.40,0.50,0.60,0.68,0.76,0.84];
+  fractions.forEach(function(f){
+    var cx=a[0]+dx*f,cy=a[1]+dy*f,best=null,bestScore=0;
+    for(var s=-range;s<=range;s+=1){
+      var x1=cx+nx*(s-3),y1=cy+ny*(s-3),x2=cx+nx*(s+3),y2=cy+ny*(s+3);
+      if(x1<1||y1<1||x1>w-2||y1>h-2||x2<1||y2<1||x2>w-2||y2>h-2)continue;
+      var score=Math.abs(sample(gray,w,h,x2,y2)-sample(gray,w,h,x1,y1));
+      if(score>bestScore){bestScore=score;best=[cx+nx*s,cy+ny*s];}
+    }
+    if(best&&bestScore>=20)pts.push(best);
+  });
+  return pts;
+}
+function fitLine(pts){
+  if(pts.length<5)return null;var mx=0,my=0;pts.forEach(function(p){mx+=p[0];my+=p[1];});mx/=pts.length;my/=pts.length;
+  var xx=0,yy=0,xy=0;pts.forEach(function(p){var x=p[0]-mx,y=p[1]-my;xx+=x*x;yy+=y*y;xy+=x*y;});
+  var ang=0.5*Math.atan2(2*xy,xx-yy),dx=Math.cos(ang),dy=Math.sin(ang),nx=-dy,ny=dx;
+  return{a:nx,b:ny,c:-(nx*mx+ny*my),points:pts};
+}
+function intersect(l1,l2){var d=l1.a*l2.b-l2.a*l1.b;if(Math.abs(d)<1e-7)return null;return[(l1.b*l2.c-l2.b*l1.c)/d,(l1.c*l2.a-l2.c*l1.a)/d];}
+function qrResidual(H,loc){
+  var qb=qrRect(),inner=S.rect(qb.x+QR_QUIET,qb.y+QR_QUIET,qb.size-2*QR_QUIET,qb.size-2*QR_QUIET);
+  var want=[V.project(H,inner.u0,inner.v0),V.project(H,inner.u1,inner.v0),V.project(H,inner.u1,inner.v1),V.project(H,inner.u0,inner.v1)];
+  var got=[[loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]];
+  var sum=0;for(var i=0;i<4;i++)sum+=pdist(want[i],got[i]);return sum/4;
+}
+function refineFromPaperEdges(gray,w,h,H0,loc,qrPx){
+  var pr=S.rect(0,0,S.L.page.w,S.L.page.h);
+  var q0=[V.project(H0,pr.u0,pr.v0),V.project(H0,pr.u1,pr.v0),V.project(H0,pr.u1,pr.v1),V.project(H0,pr.u0,pr.v1)];
+  var range=Math.min(100,Math.max(28,qrPx*1.9));
+  var top=fitLine(edgePoints(gray,w,h,q0[0],q0[1],range)),right=fitLine(edgePoints(gray,w,h,q0[1],q0[2],range));
+  var bottom=fitLine(edgePoints(gray,w,h,q0[3],q0[2],range)),left=fitLine(edgePoints(gray,w,h,q0[0],q0[3],range));
+  if(!top||!right||!bottom||!left)return null;
+  var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
+  var corners=[tl,tr,br,bl],margin=3;if(corners.some(function(p){return p[0]<margin||p[1]<margin||p[0]>w-margin||p[1]>h-margin;}))return null;
+  if(quadArea(corners)<w*h*0.10)return null;
+  var hp=V.homography(tl,tr,br,bl);if(!hp)return null;
+  var fx0=S.L.fid.x0/S.L.page.w,fx1=S.L.fid.x1/S.L.page.w,fy0=S.L.fid.y0/S.L.page.h,fy1=S.L.fid.y1/S.L.page.h;
+  var ftl=V.project(hp,fx0,fy0),ftr=V.project(hp,fx1,fy0),fbr=V.project(hp,fx1,fy1),fbl=V.project(hp,fx0,fy1);
+  var H=V.homography(ftl,ftr,fbr,fbl);if(!H)return null;
+  var residual=qrResidual(H,loc);if(residual>Math.max(7,qrPx*0.22))return null;
+  return{H:H,pageQuad:corners,residual:residual};
+}
 function findPacketQr(gray,w,h){
   var result=tryDecode(gray,w,h);if(!result)return null;var packet=parsePayload(result.data);if(!packet)return null;
   var loc=result.location||{},sides=loc.topLeftCorner&&loc.topRightCorner&&loc.bottomRightCorner&&loc.bottomLeftCorner?[dist(loc.topLeftCorner,loc.topRightCorner),dist(loc.topRightCorner,loc.bottomRightCorner),dist(loc.bottomRightCorner,loc.bottomLeftCorner),dist(loc.bottomLeftCorner,loc.topLeftCorner)]:[];
   var qrPx=sides.length?sides.reduce(function(a,b){return a+b;},0)/sides.length:0;if(qrPx<MIN_QR_PX)return null;
-  var H=sheetHFromQr(loc);if(!H)return null;var quad=[V.project(H,0,0),V.project(H,1,0),V.project(H,1,1),V.project(H,0,1)];if(quadArea(quad)<w*h*0.07)return null;
-  var x0=Math.min(S.L.colLeft,S.L.wLeft)-0.04,x1=Math.max(S.L.wRight,S.L.fid.x1-0.35)+0.04;
-  var y0=Math.min(S.L.contentTopBase,3.30)-0.08,y1=S.L.contentBottom+0.06,core=S.rect(x0,y0,x1-x0,y1-y0);
-  var pts=[V.project(H,core.u0,core.v0),V.project(H,core.u1,core.v0),V.project(H,core.u1,core.v1),V.project(H,core.u0,core.v1)],m=Math.max(3,Math.min(w,h)*0.006);
-  if(pts.some(function(p){return !inside(p,w,h,m);} ))return null;
-  return{H:H,quad:quad,white:V.whiteLevel(gray,w,h,H),markers:1,qrPacket:packet,qrQuality:{pixels:Math.round(qrPx),area:quadArea(quad)/(w*h)}};
+  var H0=sheetHFromQr(loc);if(!H0)return null;
+  var refined=refineFromPaperEdges(gray,w,h,H0,loc,qrPx);if(!refined)return null;
+  var H=refined.H,quad=[V.project(H,0,0),V.project(H,1,0),V.project(H,1,1),V.project(H,0,1)];
+  return{H:H,quad:quad,pageQuad:refined.pageQuad,white:V.whiteLevel(gray,w,h,H),markers:1,qrPacket:packet,
+    qrQuality:{pixels:Math.round(qrPx),area:quadArea(refined.pageQuad)/(w*h),edgeResidual:+refined.residual.toFixed(2)}};
 }
 var legacyFindSheet=V.findSheet;
 V.findSheet=function(gray,w,h,opts){return findPacketQr(gray,w,h)||legacyFindSheet(gray,w,h,opts);};
 
 function decodePacketFromWarp(gray,w,h,H){
-  var qb=qrRect(),data=grayRgba(gray,w,h),cv=V.warpRegion({data:data,width:w,height:h},H,S.rect(qb.x,qb.y,qb.size,qb.size),360);
-  var im=cv.getContext('2d').getImageData(0,0,cv.width,cv.height),r=null;try{r=global.jsQR(im.data,im.width,im.height,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}return r?parsePayload(r.data):null;
+  var qb=qrRect(),im=grayRgba(gray,w,h),cv=V.warpRegion({data:im.data,width:w,height:h},H,S.rect(qb.x,qb.y,qb.size,qb.size),360);
+  var pix=cv.getContext('2d').getImageData(0,0,cv.width,cv.height),r=null;try{r=global.jsQR(pix.data,pix.width,pix.height,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}return r?parsePayload(r.data):null;
 }
 var legacyDecodeIdentity=V.decodeIdentity;
 V.decodeIdentity=function(gray,w,h,H,white,idDigits){
