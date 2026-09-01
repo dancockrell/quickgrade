@@ -11,6 +11,7 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = __dirname;
+const SUITE_TIMEOUT_MS = 300000;
 /* An optional substring argument runs only the suites whose names match.
  * The full set takes ten minutes, which is long enough that a person
  * checking one thing will skip running it at all. */
@@ -29,9 +30,14 @@ for (const f of suites) {
   let out = '', code = 0;
   const t0 = Date.now();
   try {
-    out = execFileSync(process.execPath, [path.join(DIR, f)], { encoding: 'utf8' });
+    out = execFileSync(process.execPath, [path.join(DIR, f)], {
+      encoding: 'utf8', timeout: SUITE_TIMEOUT_MS, killSignal: 'SIGKILL'
+    });
   } catch (e) {
     out = (e.stdout || '') + (e.stderr || '');
+    if (e.code === 'ETIMEDOUT') {
+      out += '\nFAIL ' + f + ' timed out after ' + Math.round(SUITE_TIMEOUT_MS / 1000) + ' seconds\n';
+    }
     code = e.status == null ? 1 : e.status;
   }
   const ms = Date.now() - t0;

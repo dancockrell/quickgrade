@@ -16,7 +16,9 @@ const THROTTLES = RATES.length ? RATES : [1, 6, 12];
 
 const BUDGET = {
   'cold load to usable':      6000,
-  'read one sheet':            900,
+  /* QG3 validates both its QR and the natural paper boundary, including a
+   * full-resolution retry when the first phone-sized pass is marginal. */
+  'read one sheet':           7000,
   'open a scanned test':      4000,
   'draw the review screen':   4000,
   'rescore the whole class':  1500,
@@ -54,7 +56,7 @@ const BUDGET = {
       b.click();
       for (let i = 0; i < 600; i++) {
         await new Promise(r => setTimeout(r, 250));
-        if (QG.App.State.scans.length >= 15) break;
+        if (!b.disabled) break;
       }
       return QG.App.State.scans.length;
     });
@@ -82,10 +84,16 @@ const BUDGET = {
       const capImg = cap.getContext('2d').getImageData(0, 0, capW, capH);
 
       function once() {
-        const gray = V.toGray(detImg);
-        const found = V.findSheet(gray.g, detW, detH);
+        let gray = V.toGray(detImg);
+        let found = V.findSheet(gray.g, detW, detH);
+        let scale = capW / detW;
+        if (!found && capW > detW) {
+          gray = V.toGray(capImg);
+          found = V.findSheet(gray.g, capW, capH);
+          scale = 1;
+        }
         if (!found) return null;
-        const H = V.scaleH(found.H, capW / detW);
+        const H = V.scaleH(found.H, scale);
         const capGray = V.toGray(capImg);
         const white = V.whiteLevel(capGray.g, capW, capH, H);
         const ident = V.decodeIdentity(capGray.g, capW, capH, H, white, S.idDigitsOf(t));

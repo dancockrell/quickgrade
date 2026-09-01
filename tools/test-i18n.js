@@ -46,14 +46,14 @@ function keysUsedInSource() {
     b.click();
     for (let i = 0; i < 120; i++) {
       await new Promise(r => setTimeout(r, 400));
-      if (QG.App.State.scans.length >= 8) break;
+      if (!b.disabled) break;
     }
     await new Promise(r => setTimeout(r, 800));
     const t = document.getElementById('toasts');
     if (t) t.innerHTML = '';
   });
   const populated = await page.evaluate(() => QG.App.State.scans.length);
-  ok('the layout checks run against a populated app', populated >= 8,
+  ok('the layout checks run against a populated app', populated >= 15,
     populated + ' scans loaded');
 
   // ---------------------------------------------------- pack integrity
