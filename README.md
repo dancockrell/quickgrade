@@ -115,7 +115,7 @@ If a student writes a usable name, that is useful human evidence. If they write 
 
 New sheets place one copier-safe QR near the **bottom-left** corner. Bottom-left avoids the common page-number/header area used by existing tests.
 
-The scanner finds the QR and uses its four corners plus its known printed size/location to project the expected full page. That gives QuickGrade the coordinate system for answer bubbles and written-response regions.
+The scanner finds the QR first, which identifies and orients the sheet. It then fits the natural paper edges near the QR-derived prediction, using the QR as an independent geometry check. That full-page fit gives QuickGrade the coordinate system for answer bubbles and written-response regions without a printed registration border.
 
 The QR also provides a known high-contrast object for quality checks. A readable QR is not automatically enough to grade a page: QuickGrade can reject the capture if the projected page leaves the camera frame or the QR/page is too small for trustworthy answer sampling.
 
