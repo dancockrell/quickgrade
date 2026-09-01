@@ -41,8 +41,11 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('new printout has no registration-border element', html.indexOf('<div class="edge"') < 0);
     ok('legacy identity QR modules are removed', html.indexOf('<div class="qrmod"') < 0);
     const boxes = (html.match(/class="qgqrbox"/g) || []).length;
+    const clean = (html.match(/class="qgclean"/g) || []).length;
     ok('there is exactly one packet QR per page', boxes === pages.length,
       boxes + ' QR boxes for ' + pages.length + ' pages');
+    ok('legacy machine-identity area is visually cleared on every page', clean === pages.length,
+      clean + ' clean panels for ' + pages.length + ' pages');
 
     function answersFor(pg) { const a={}; pg.mc.forEach(it => { a[it.q]=key[it.q]; }); return a; }
     function detect(photo) {
@@ -58,6 +61,8 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       return {found,H,cap,white,ident};
     }
 
+    /* Give synth a fake id deliberately. New paper must ignore it: there is no
+       machine student field for a child to fill in anymore. */
     const sheet1=Sy.renderSynthetic(test,0,{sid:'027',name:'Avery Nguyen',answers:answersFor(pages[0])});
     const photo1=Sy.simulateCamera(sheet1,{w:1280,h:1450,corners:[[190,120],[1080,94],[1110,1330],[160,1350]],noise:8,vignette:0.18});
     const d1=detect(photo1);
@@ -66,9 +71,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     if(d1){
       ok('QR geometry path was used instead of legacy border detection',
         d1.found.markers===1&&d1.found.qrPacket&&d1.found.qrPacket.geometry===3,'markers='+d1.found.markers);
-      ok('page one keeps transitional student ID while QR owns page identity',
-        d1.ident.code==='042'&&d1.ident.page===1&&d1.ident.sid==='027',
-        JSON.stringify({code:d1.ident.code,page:d1.ident.page,sid:d1.ident.sid}));
+      ok('page one needs no machine student identity',
+        d1.ident.code==='042'&&d1.ident.page===1&&d1.ident.sid===null&&d1.ident.flags.length===0,
+        JSON.stringify({code:d1.ident.code,page:d1.ident.page,sid:d1.ident.sid,flags:d1.ident.flags}));
       const ans=V.decodeAnswers(d1.cap.g,photo1.width,photo1.height,d1.H,d1.white,pages[0]);
       let wrong=0;pages[0].mc.forEach(it=>{if(ans.answers[it.q]!==key[it.q])wrong++;});
       ok('QR-derived geometry still reads the answer grid',wrong===0,wrong+' wrong of '+pages[0].mc.length);
