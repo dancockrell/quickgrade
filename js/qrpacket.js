@@ -10,6 +10,7 @@ if (!Q || !S || !V || !global.qrcode || !global.jsQR) return;
 
 var GEOMETRY_VERSION = 3, PREFIX = 'QG' + GEOMETRY_VERSION;
 var QR_SIZE = 0.56, QR_INSET = 0.30, QR_QUIET = 0.045, MIN_QR_PX = 34;
+var lastDecoded = null, anonCounter = 0;
 
 function hex4(n) { var s = (n & 0xffff).toString(16).toUpperCase(); while (s.length < 4) s = '0' + s; return s; }
 function crc16(text) {
@@ -47,14 +48,26 @@ function qrModulesHtml(code, pageIdx, total) {
     h += '<div class="qgqrmod" style="left:' + (qb.x + QR_QUIET + x * cell) + 'in;top:' + (qb.y + QR_QUIET + y * cell) + 'in;width:' + cell + 'in;height:' + cell + 'in"></div>';
   return h;
 }
+function cleanupRect(test) {
+  var x = S.L.idLabelX - 0.08, y = 0.68;
+  var bottom = S.laterTop(S.idDigitsOf(test)) - 0.02;
+  return { x:x, y:y, w:S.L.page.w - 0.20 - x, h:Math.max(0.2, bottom - y) };
+}
+function cleanupHtml(test) {
+  var r=cleanupRect(test);
+  return '<div class="qgclean" style="left:'+r.x+'in;top:'+r.y+'in;width:'+r.w+'in;height:'+r.h+'in"></div>';
+}
 
 var legacyRenderSheets = S.renderSheets;
 S.renderSheets = function (test, people, opts) {
   var html = legacyRenderSheets.apply(S, arguments), pages = S.layoutTest(test), total = pages.length;
   var code = opts && opts.form ? opts.form.code : test.code, i = 0;
   html = html.replace(/<div class="edge"[^>]*><\/div>/g, '').replace(/<div class="qrmod"[^>]*><\/div>/g, '');
-  html = html.replace('</style>', '.qgqrbox,.qgqrmod{position:absolute}.qgqrbox{background:#fff;z-index:3}.qgqrmod{background:#000;z-index:4}\n</style>');
-  return html.replace(/<div class="page">/g, function (m) { var pageIdx = i++ % total; return m + qrModulesHtml(code, pageIdx, total); });
+  html = html.replace('</style>', '.qgclean,.qgqrbox,.qgqrmod{position:absolute}.qgclean{background:#fff;z-index:2}.qgqrbox{background:#fff;z-index:3}.qgqrmod{background:#000;z-index:4}\n</style>');
+  return html.replace(/<div class="page">/g, function (m) {
+    var pageIdx = i++ % total;
+    return m + cleanupHtml(test) + qrModulesHtml(code, pageIdx, total);
+  });
 };
 
 function grayRgba(gray) {
@@ -103,10 +116,13 @@ function decodePacketFromWarp(gray,w,h,H){
 }
 var legacyDecodeIdentity=V.decodeIdentity;
 V.decodeIdentity=function(gray,w,h,H,white,idDigits){
-  var packet=decodePacketFromWarp(gray,w,h,H); if(!packet)return legacyDecodeIdentity(gray,w,h,H,white,idDigits);
-  var old=legacyDecodeIdentity(gray,w,h,H,white,idDigits),first=packet.page===1,flags=[];
-  if(first&&!old.sid)flags.push((old.flags||[]).indexOf('partial-id')>=0?'partial-id':'no-id');
-  return {sid:first?old.sid:null,code:packet.code,page:packet.page,continuation:!first,idConf:first?old.idConf:1,flags:flags,qrPacket:packet};
+  var packet=decodePacketFromWarp(gray,w,h,H);
+  if(!packet){lastDecoded=null;return legacyDecodeIdentity(gray,w,h,H,white,idDigits);}
+  lastDecoded={packet:packet,at:Date.now()};
+  /* New QR sheets deliberately ask the student for no machine identity. Page
+   * one may have an ordinary handwritten name, but failure to write it is not
+   * a scan error. Ownership belongs to the packet workflow, not to page ink. */
+  return {sid:null,code:packet.code,page:packet.page,continuation:packet.page>1,idConf:1,flags:[],qrPacket:packet};
 };
 
 if(Sy&&Sy.renderSynthetic){
@@ -116,6 +132,7 @@ if(Sy&&Sy.renderSynthetic){
     function wipe(x,y,ww,hh){ctx.fillStyle='#fff';ctx.fillRect(Math.round(x*dpi),Math.round(y*dpi),Math.ceil(ww*dpi),Math.ceil(hh*dpi));}
     wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15); wipe(S.L.fid.x1-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15);
     wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,S.L.W+0.15,0.15); wipe(S.L.fid.x0-0.075,S.L.fid.y1-0.13,S.L.W+0.15,0.22);
+    var clean=cleanupRect(test);wipe(clean.x,clean.y,clean.w,clean.h);
     var oldQr=S.qrRect(S.idDigitsOf(test)); wipe(oldQr.x-0.02,oldQr.y-0.02,oldQr.size+0.04,oldQr.size+0.04);
     var pages=S.layoutTest(test),qb=qrRect(),qr=makeQr(test.code,pageIdx,pages.length),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
     ctx.fillStyle='#fff';ctx.fillRect(qb.x*dpi,qb.y*dpi,qb.size*dpi,qb.size*dpi);ctx.fillStyle='#000';
@@ -124,17 +141,26 @@ if(Sy&&Sy.renderSynthetic){
   };
 }
 
+function decodedFor(record){
+  if(!lastDecoded||Date.now()-lastDecoded.at>5000||!record)return null;
+  var p=lastDecoded.packet;
+  return p.code===record.code&&p.page===+record.page?p:null;
+}
+function newAnonSid(){
+  anonCounter=(anonCounter+1)%100;
+  return '9700'+String(Date.now()%100000000)+('0'+anonCounter).slice(-2);
+}
+
 Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr};
 
 /* Packet progress ---------------------------------------------------------
- * qrpacket.js is loaded before app.js so the geometry overrides exist before
- * scanning starts. Scanner.hooks is installed by app.js later in the same
- * page load. Install the packet watcher on DOMContentLoaded, after all bottom
- * scripts have executed, so hosted and single-file builds take one path. */
+ * qrpacket.js is loaded before app.js so geometry is ready before scanning.
+ * Scanner.hooks is installed by app.js later in the same page load. Install
+ * this watcher on DOMContentLoaded after all bottom scripts have executed. */
 function installPacketFlow() {
   var Scanner=Q.Scanner;
   if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;
-  var active=null, T=Q.T;
+  var active=null,T=Q.T;
   function normSid(s){return S.normId?S.normId(s):String(s||'');}
   function sameStudent(a,b){var aa=normSid(a),bb=normSid(b);return !!aa&&!!bb&&aa===bb;}
   function packetTotal(record){var p=record&&record.packet;if(p&&p.total)return +p.total;var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();return pages?pages.length:1;}
@@ -142,7 +168,7 @@ function installPacketFlow() {
   function cloneMissing(a){return(a||[]).map(Number).filter(function(n){return n>0;});}
   function wouldAdvance(record){
     if(!active||+record.page!==1||active.testId!==record.testId||!active.missing.length)return null;
-    if(sameStudent(active.sid,record.sid))return null;
+    if(sameStudent(active.sid,record.sid)&&!active.unassigned)return null;
     return{name:active.name,missingPages:active.missing.slice(),sid:active.sid};
   }
   function ensurePill(){
@@ -166,7 +192,7 @@ function installPacketFlow() {
   }
   function start(record,res){
     active={testId:record.testId,code:record.code,form:record.form||null,sid:normSid(record.sid)||null,
-      name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[]};
+      name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[],unassigned:!!record.packetUnassigned};
     active.seen[+record.page]=true;
     active.missing=res&&res.missingPages?cloneMissing(res.missingPages):defaultMissing(record);
   }
@@ -183,16 +209,31 @@ function installPacketFlow() {
     render(false);
   }
   function reset(){active=null;render(false);}
+  function anonymousResult(record,res){
+    if(!record.packetUnassigned)return res;
+    var St=Q.App&&Q.App.State,have={},total=packetTotal(record);
+    if(St)St.scans.forEach(function(sc){if(normSid(sc.sid)===normSid(record.sid))have[sc.page]=1;});
+    var missing=[];for(var p=1;p<=total;p++)if(!have[p])missing.push(p);
+    return{status:res&&res.status==='replaced'?'replaced':'ok',name:T('names.unassigned'),
+      complete:missing.length===0,missingPages:missing,unassigned:true};
+  }
+
   var legacySave=Scanner.hooks.saveScan;
   Scanner.hooks.saveScan=function(record,blobs){
-    var warning=wouldAdvance(record);if(warning)warnAdvance(warning);
-    /* Preserve the QR page count with the stored scan. It is useful evidence
-     * when the test definition is edited later and costs almost nothing. */
-    if(record&&record.page&&record.code&&Q.QRPacket){
-      var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();
-      record.packet={geometry:GEOMETRY_VERSION,total:pages?pages.length:1,page:record.page};
+    var packet=decodedFor(record),warning=wouldAdvance(record);
+    if(warning)warnAdvance(warning);
+    if(packet){
+      record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper};
+      /* No student interaction is required on QG3 paper. Give an anonymous
+       * packet an internal owner so every continuation page stays together.
+       * The id is deliberately not on the roster, so Review/Export continue
+       * to treat ownership as unresolved rather than silently grading a guess. */
+      if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}
+      else if(packet.page>1&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}
     }
-    return legacySave.call(Scanner.hooks,record,blobs).then(function(res){observe(record,res);return res;});
+    return legacySave.call(Scanner.hooks,record,blobs).then(function(res){
+      res=anonymousResult(record,res);observe(record,res);return res;
+    });
   };
   var legacyReset=Scanner.resetSession;
   Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};
