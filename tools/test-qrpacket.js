@@ -48,13 +48,17 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       clean + ' clean panels for ' + pages.length + ' pages');
 
     function answersFor(pg) { const a={}; pg.mc.forEach(it => { a[it.q]=key[it.q]; }); return a; }
+    function grayAt(photo, maxW=960) {
+      const w=Math.min(maxW,photo.width),h=Math.round(photo.height*w/photo.width);
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      c.getContext('2d').drawImage(photo,0,0,w,h);
+      const g=V.toGray(c.getContext('2d').getImageData(0,0,w,h));
+      return {g:g.g,w,h};
+    }
     function detect(photo) {
-      const detW=Math.min(960,photo.width),detH=Math.round(photo.height*detW/photo.width);
-      const dc=document.createElement('canvas');dc.width=detW;dc.height=detH;
-      dc.getContext('2d').drawImage(photo,0,0,detW,detH);
-      const gd=V.toGray(dc.getContext('2d').getImageData(0,0,detW,detH));
-      const found=V.findSheet(gd.g,detW,detH); if(!found)return null;
-      const H=V.scaleH(found.H,photo.width/detW);
+      const low=grayAt(photo);
+      const found=V.findSheet(low.g,low.w,low.h); if(!found)return null;
+      const H=V.scaleH(found.H,photo.width/low.w);
       const cap=V.toGray(photo.getContext('2d').getImageData(0,0,photo.width,photo.height));
       const white=V.whiteLevel(cap.g,photo.width,photo.height,H);
       const ident=V.decodeIdentity(cap.g,photo.width,photo.height,H,white,S.idDigitsOf(test));
@@ -71,6 +75,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     if(d1){
       ok('QR geometry path was used instead of legacy border detection',
         d1.found.markers===1&&d1.found.qrPacket&&d1.found.qrPacket.geometry===3,'markers='+d1.found.markers);
+      ok('accepted scan records useful QR/page quality measurements',
+        d1.found.qrQuality&&d1.found.qrQuality.pixels>=34&&d1.found.qrQuality.area>=0.08,
+        JSON.stringify(d1.found.qrQuality));
       ok('page one needs no machine student identity',
         d1.ident.code==='042'&&d1.ident.page===1&&d1.ident.sid===null&&d1.ident.flags.length===0,
         JSON.stringify({code:d1.ident.code,page:d1.ident.page,sid:d1.ident.sid,flags:d1.ident.flags}));
@@ -78,6 +85,23 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       let wrong=0;pages[0].mc.forEach(it=>{if(ans.answers[it.q]!==key[it.q])wrong++;});
       ok('QR-derived geometry still reads the answer grid',wrong===0,wrong+' wrong of '+pages[0].mc.length);
     }
+
+    /* A readable QR is not permission to grade if its projected page is cut
+       off. Put the QR end inside the camera but push the opposite corner out. */
+    const cropped=Sy.simulateCamera(sheet1,{w:1280,h:1450,
+      corners:[[-150,-90],[1040,30],[1150,1290],[120,1390]],noise:4,vignette:0.08});
+    const cg=grayAt(cropped);
+    ok('readable QR does not accept a page whose projected corners leave the frame',
+      P.find(cg.g,cg.w,cg.h)===null);
+
+    /* Likewise, a distant page is not gradeable merely because a decoder gets
+       lucky. Below the QR-size floor there are too few pixels for trustworthy
+       answer sampling across the rest of the sheet. */
+    const tiny=Sy.simulateCamera(sheet1,{w:1280,h:1450,
+      corners:[[520,500],[760,505],[765,845],[515,840]],noise:2,vignette:0});
+    const tg=grayAt(tiny);
+    ok('too-small QR/page is rejected rather than sampled optimistically',
+      P.find(tg.g,tg.w,tg.h)===null);
 
     const sheet2=Sy.renderSynthetic(test,1,{sid:'',name:'',answers:answersFor(pages[1])});
     const photo2=Sy.simulateCamera(sheet2,{w:1280,h:1450,corners:[[155,105],[1100,135],[1060,1340],[185,1310]],noise:10,vignette:0.23});
