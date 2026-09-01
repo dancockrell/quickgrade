@@ -1,6 +1,6 @@
-/* Every supported paper size must print and scan correctly, and Letter must
- * come out byte-identical to the original layout so sheets printed before
- * paper support existed keep working. */
+/* Every supported paper size must print and scan correctly. New sheets use the
+ * bottom-left QR for document identity and geometry; student identity is a
+ * packet-level workflow concern, not a printed machine field. */
 const { chromium } = require('playwright');
 const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
@@ -19,20 +19,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const res = [];
     const ok = (n, c, d) => res.push({ n, pass: !!c, d });
 
-    /* Letter geometry must not drift by accident.
-     *
-     * The numbers below were the pre-paper-support constants, when the page
-     * was registered from four solid corner marks inset 0.55in. Registration
-     * is now a ruled border at 0.42in, which widens the working area and moves
-     * everything derived from it. That change was deliberate and the baseline
-     * has been re-recorded here rather than the check weakened: its job is to
-     * catch drift nobody intended, and it did exactly that.
-     *
-     * Sheets printed before the border exists will not scan against this
-     * build. There is no way around that: the geometry a scanner solves from
-     * has moved. */
+    /* The underlying answer-grid geometry remains fixed. The QR layer changes
+     * how the page transform is established without moving the answer rows. */
     S.setPaper('letter');
-    ok('Letter geometry unchanged',
+    ok('Letter answer geometry unchanged',
       L.fid.x1 === 8.08 && L.fid.y1 === 10.58 &&
       Math.abs(L.W - 7.66) < 1e-9 && Math.abs(L.H - 10.16) < 1e-9 &&
       Math.abs(L.idX0 - 5.69) < 1e-9 && Math.abs(L.idLabelX - 5.05) < 1e-9 &&
@@ -57,10 +47,8 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const pages = S.layoutTest(T);
       const dims = S.PAPERS[paper];
 
-      // nothing may spill off the sheet or into a corner-square quiet zone
       const html = S.renderSheets(T, [{ sid: '007', name: 'Ana Ruiz', cls: 'C' }], { prefill: false });
       const doc = new DOMParser().parseFromString(html, 'text/html');
-      // .page size comes from the stylesheet, not an inline style
       const cssText = doc.querySelector('style').textContent;
       const m = cssText.match(/\.page\{[^}]*width:([\d.]+)in;height:([\d.]+)in/);
       const wIn = m ? parseFloat(m[1]) : NaN, hIn = m ? parseFloat(m[2]) : NaN;
@@ -75,7 +63,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const answers = {};
       for (let q = 0; q < T.mc.count; q++) answers[q] = T.mc.key[q];
       const sheet = Sy.renderSynthetic(T, 0, { sid: '007', name: 'Ana Ruiz', answers });
-      // frame the photo to the sheet's own proportions
       const ar = dims.w / dims.h;
       const capH = Math.round(capW / ar * 1.12);
       const inset = 90;
@@ -88,11 +75,12 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const detW = 480, detH = Math.round(photo.height * detW / photo.width);
       const dc = document.createElement('canvas'); dc.width = detW; dc.height = detH;
       dc.getContext('2d').drawImage(photo, 0, 0, detW, detH);
-      S.setPaper(paper);                       // scanner must know the paper
+      S.setPaper(paper);
       const g = V.toGray(dc.getContext('2d').getImageData(0, 0, detW, detH));
       const found = V.findSheet(g.g, detW, detH);
       if (!found) { ok(paper + ': sheet detected', false, 'not found'); continue; }
-      ok(paper + ': sheet detected', true, 'aspect ' + L.aspect.toFixed(4));
+      ok(paper + ': sheet detected from QR', found.markers === 1 && found.qrPacket,
+        'markers ' + found.markers + ', aspect ' + L.aspect.toFixed(4));
 
       const H = V.scaleH(found.H, photo.width / detW);
       const cap = photo.getContext('2d').getImageData(0, 0, photo.width, photo.height);
@@ -103,13 +91,15 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       let wrong = 0;
       pages[0].mc.forEach(it => { if (ans.answers[it.q] !== T.mc.key[it.q]) wrong++; });
 
-      ok(paper + ': identity reads back',
-        S.normId(ident.sid) === '7' && ident.code === '813' && ident.page === 1,
+      ok(paper + ': QR document identity reads back',
+        ident.sid == null && ident.code === '813' && ident.page === 1 &&
+        ident.qrPacket && ident.qrPacket.geometry === 3,
         'id ' + ident.sid + ', code ' + ident.code + ', page ' + ident.page);
+      ok(paper + ': student machine identity is deliberately absent', ident.sid == null,
+        'sid ' + ident.sid);
       ok(paper + ': all ' + pages[0].mc.length + ' answers correct', wrong === 0, wrong + ' wrong');
     }
 
-    // taller paper should fit more questions per page, not the same number
     S.setPaper('letter'); const perLetter = S.mcPerPage(5);
     S.setPaper('a4');     const perA4 = S.mcPerPage(5);
     S.setPaper('legal');  const perLegal = S.mcPerPage(5);

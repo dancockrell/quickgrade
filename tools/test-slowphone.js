@@ -4,16 +4,9 @@
  *
  * Emulates a mid-range Android viewport with touch and a mobile user agent,
  * then slows the CPU through the debugger protocol and measures the work a
- * teacher actually waits for.
- *
- * On throttling: 1x is this desktop. A budget Android phone is roughly 5x to
- * 15x slower than a desktop for single-threaded JavaScript, so 6x is a fair
- * stand-in for a cheap current phone and 12x for an old one. This is a proxy,
- * not a phone. It measures compute honestly and says nothing about slow
- * storage, a weak GPU, or thermal throttling.
- *
- * Budgets are what a teacher would tolerate standing in front of a class,
- * not what is technically impressive.
+ * teacher actually waits for. QG3 correctness means the QR page/document
+ * identity survives throttling; student identity is intentionally absent from
+ * the photocopied paper.
  */
 const { chromium, devices } = require('playwright');
 const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
@@ -21,7 +14,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 const RATES = process.argv.slice(2).map(Number).filter(Boolean);
 const THROTTLES = RATES.length ? RATES : [1, 6, 12];
 
-/* seconds a teacher will put up with, at the slowest rate tested */
 const BUDGET = {
   'cold load to usable':      6000,
   'read one sheet':            900,
@@ -40,7 +32,6 @@ const BUDGET = {
   for (const rate of THROTTLES) {
     const ctx = await browser.newContext({
       ...devices['Pixel 5'],
-      /* a real teacher's phone is not in dark mode at 3am */
       colorScheme: 'light',
     });
     const page = await ctx.newPage();
@@ -69,12 +60,6 @@ const BUDGET = {
     });
     await page.waitForTimeout(400);
 
-    /* Time the decode by itself.
-     *
-     * Dividing the sample-class build by fifteen would be wrong: that build
-     * also renders each sheet and fakes a camera photo of it, work a teacher
-     * never does. What matters is one pass of the real pipeline over one
-     * frame, because that is what has to keep up with a camera. */
     const frame = await page.evaluate(async () => {
       const t = QG.App.State.test;
       const sheet = QG.Synth.renderSynthetic(t, 0, { sid: '3', name: 'Chloe Diaz', answers: {} });
@@ -86,8 +71,6 @@ const BUDGET = {
       const V = QG.Vision, S = QG.Sheet;
       S.usePaper(t);
       const pageDesc = QG.App.State.pages[0];
-
-      /* the two canvases the scanner keeps, at the sizes it uses */
       const capW = Math.min(980, photo.width), capH = Math.round(photo.height * capW / photo.width);
       const cap = document.createElement('canvas'); cap.width = capW; cap.height = capH;
       cap.getContext('2d').drawImage(photo, 0, 0, capW, capH);
@@ -107,7 +90,9 @@ const BUDGET = {
         const white = V.whiteLevel(capGray.g, capW, capH, H);
         const ident = V.decodeIdentity(capGray.g, capW, capH, H, white, S.idDigitsOf(t));
         const ans = V.decodeAnswers(capGray.g, capW, capH, H, white, pageDesc);
-        return { sid: ident.sid, page: ident.page, n: (ans.answers || []).length };
+        return { sid: ident.sid, code: ident.code, page: ident.page,
+                 qr: !!(ident.qrPacket && ident.qrPacket.geometry === 3),
+                 n: Object.keys(ans.answers || {}).length };
       }
 
       const warm = once();
@@ -117,7 +102,8 @@ const BUDGET = {
       const t0 = performance.now();
       for (let i = 0; i < N; i++) once();
       const ms = (performance.now() - t0) / N;
-      return { ms: Math.round(ms), ok: true, sid: warm.sid, page: warm.page };
+      return { ms: Math.round(ms), ok: true, sid: warm.sid, code: warm.code,
+               page: warm.page, qr: warm.qr, n: warm.n };
     });
     t['read one sheet'] = frame.ok ? frame.ms : Infinity;
 
@@ -147,7 +133,6 @@ const BUDGET = {
       return Math.round(performance.now() - t0);
     });
 
-    /* One keystroke of marking: the thing done hundreds of times in a row. */
     t['mark one answer'] = await page.evaluate(async () => {
       const btn = document.querySelector('#pointsRow .pbtn');
       if (!btn) return 0;
@@ -170,12 +155,6 @@ const BUDGET = {
       return ms;
     });
 
-    /* Nothing a teacher has to press may sit below the fold.
-     *
-     * The marking bar is content-sized: a rubric with several criteria, a
-     * comment field and a row of chips can add up to more than a phone has.
-     * This is measured rather than eyeballed because it regresses quietly
-     * every time something is added to that bar. */
     const fold = await page.evaluate(async () => {
       QG.App.route('written');
       await new Promise(r => setTimeout(r, 600));
@@ -193,7 +172,6 @@ const BUDGET = {
     await ctx.close();
   }
 
-  // ---------------------------------------------------------------- report
   const names = Object.keys(BUDGET);
   const slowest = Math.max(...THROTTLES);
 
@@ -202,8 +180,6 @@ const BUDGET = {
   console.log('  CPU throttled through the debugger protocol. 1x is this desktop;');
   console.log('  6x is about a cheap current Android, 12x an old one.\n');
 
-  /* Each measurement is reported as its own check, so the shared runner
-   * counts them instead of seeing a suite that asserted nothing. */
   const head = '       ' + 'what a teacher waits for'.padEnd(26) +
     THROTTLES.map(r => (r + 'x').padStart(9)).join('') + '     budget';
   console.log(head);
@@ -225,12 +201,11 @@ const BUDGET = {
   console.log('\n  all times in milliseconds. budget is measured against ' + slowest + 'x.');
   for (const r of results) {
     console.log('  ' + (r.rate + 'x').padEnd(5) + 'decoded ' + r.decoded + '/15 sheets' +
-      (r.frame && r.frame.ok ? ', frame read id ' + r.frame.sid + ' page ' + r.frame.page : '') +
+      (r.frame && r.frame.ok ? ', QR ' + r.frame.code + ' page ' + r.frame.page : '') +
       (r.mem ? ', heap ' + r.mem + ' MB' : '') +
       (r.errs.length ? ', ERRORS: ' + r.errs.slice(0, 2).join(' | ') : ''));
   }
 
-  /* Every marking control has to be reachable without scrolling a bar. */
   const f = results[0].fold;
   if (f) {
     console.log('  ' + (f.over <= 2 && !f.scrolls ? 'ok   ' : 'FAIL ') +
@@ -238,12 +213,12 @@ const BUDGET = {
       (f.over <= 2 ? '  all visible' : '  ' + f.over + 'px below'));
   }
 
-  /* Fast and wrong is not a pass. */
   for (const r of results) {
-    const readOk = r.frame && r.frame.ok && r.frame.sid === '003' && r.frame.page === 1;
+    const readOk = r.frame && r.frame.ok && r.frame.qr && r.frame.sid == null &&
+                   r.frame.page === 1 && !!r.frame.code;
     console.log('  ' + (readOk ? 'ok   ' : 'FAIL ') +
       ('the reader is still correct at ' + r.rate + 'x').padEnd(26) +
-      (readOk ? '  id ' + r.frame.sid + ', page ' + r.frame.page : '  MISREAD'));
+      (readOk ? '  QR ' + r.frame.code + ', page ' + r.frame.page + ', no student ID' : '  MISREAD'));
     const allIn = r.decoded === 15;
     console.log('  ' + (allIn ? 'ok   ' : 'FAIL ') +
       ('all 15 sheets read at ' + r.rate + 'x').padEnd(26) + '  ' + r.decoded + '/15');
@@ -252,7 +227,8 @@ const BUDGET = {
   const anyErr = (f && (f.over > 2 || f.scrolls)) ||
                  results.some(r => r.errs.length) ||
                  results.some(r => r.decoded !== 15) ||
-                 results.some(r => !(r.frame && r.frame.ok && r.frame.sid === '003'));
+                 results.some(r => !(r.frame && r.frame.ok && r.frame.qr &&
+                                      r.frame.sid == null && r.frame.page === 1));
   console.log('\n  ' + (over || anyErr
     ? (over + ' measurement(s) over budget' + (anyErr ? ' and something errored' : ''))
     : 'every measurement within budget at ' + slowest + 'x'));

@@ -1,12 +1,7 @@
-/* The identity mark changed from fourteen independently-thresholded squares
- * to a single QR code. The old mechanism's failure mode was a flipped bit
- * reading as confident, wrong data - a check that could not tell "misread"
- * from "correct". A QR is supposed to close that off: it either decodes to
- * exactly what was printed, or it does not decode at all. This suite proves
- * the "at all" half, because nothing else does, and because "the new code
- * works on the happy path" is not the same claim as "the new code fails
- * shut on the unhappy one".
- */
+/* The QG3 packet QR is now the single machine mark on new paper. It carries
+ * document identity and page geometry; student ownership is deliberately not
+ * encoded in the photocopied sheet. This suite sabotages the actual bottom-left
+ * QR and proves failure is closed, not guessed. */
 const { chromium } = require('playwright');
 const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
@@ -20,7 +15,7 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
   const out = await page.evaluate(async () => {
     const res = {}; const ok = (n, c, d) => res[n] = { pass: !!c, d };
-    const St = QG.App.State, S = QG.Sheet, V = QG.Vision;
+    const St = QG.App.State, S = QG.Sheet, P = QG.QRPacket;
 
     const T = { id: 'qr', title: 'QR test', className: 'M1/1', date: '2026-08-27', code: '229',
       mc: { count: 10, choices: 4, key: Array.from({ length: 10 }, (_, i) => i % 4),
@@ -41,49 +36,38 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const pages = S.layoutTest(T);
     const answers = {}; pages[0].mc.forEach(it => { answers[it.q] = T.mc.key[it.q]; });
 
-    /* ---- 1. baseline: an untouched sheet reads its own code and page ---- */
+    /* ---- 1. baseline: intact QR gives code/page, not a student ---- */
     const good = Sy.renderSynthetic(T, 0, { sid: '55', name: 'Reads Fine', answers });
     const goodPhoto = Sy.simulateCamera(good, CAM);
     await QG.Scanner.importFiles([await Sy.canvasToFile(goodPhoto, 'good.jpg')], { quiet: true });
     QG.App.recompute();
     const goodScan = St.scans[St.scans.length - 1];
-    ok('an intact QR reads the test code and page',
-      goodScan.sid === '55' && !!goodScan.code,
-      'sid=' + goodScan.sid + ' code=' + goodScan.code + ' page=' + goodScan.page);
+    ok('an intact packet QR reads test/page without inventing student ownership',
+      !!goodScan && !!goodScan.code && goodScan.page === 1 && goodScan.packetUnassigned === true,
+      goodScan ? 'sid=' + goodScan.sid + ' code=' + goodScan.code + ' page=' + goodScan.page : 'no scan');
     St.scans.length = 0;
+    QG.PacketFlow.reset();
 
-    /* ---- 2. the QR blanked to white: must be rejected, not guessed at.
-     *
-     * importFiles drops a sheet outright when the page cannot be identified
-     * at all - it never reaches Review as a "no owner" record, because that
-     * queue is for a page that IS this test but whose class number could not
-     * be read, not for something that might not be a QuickGrade sheet in
-     * this test at all. That is the pre-existing contract for an unreadable
-     * page (the old mark strip failed the same way on an all-clear strip:
-     * bitsToPage returns null when nothing is set). This proves the QR
-     * swap kept that contract rather than silently loosening it. */
-    const nId = S.idDigitsOf(T);
-    const qb = S.qrRect(nId);
+    /* ---- 2. blank the REAL QG3 bottom-left QR. ---- */
+    const qb = P.rect();
     const blankSheet = Sy.renderSynthetic(T, 0, { sid: '55', name: 'Reads Fine', answers });
     const bctx = blankSheet.getContext('2d');
     const px = qb.x / S.L.page.w * blankSheet.width;
     const py = qb.y / S.L.page.h * blankSheet.height;
     const psize = qb.size / S.L.page.w * blankSheet.width;
     bctx.fillStyle = '#fff';
-    bctx.fillRect(px - 4, py - 4, psize + 8, psize + 8);
+    bctx.fillRect(px - 6, py - 6, psize + 12, psize + 12);
     const blankPhoto = Sy.simulateCamera(blankSheet, CAM);
     const beforeBlank = St.scans.length;
     await QG.Scanner.importFiles([await Sy.canvasToFile(blankPhoto, 'blank.jpg')], { quiet: true });
     QG.App.recompute();
-    ok('a blanked QR is rejected outright, not filed as an unknown page',
+    ok('a blanked packet QR is rejected outright, not filed as an unknown page',
       St.scans.length === beforeBlank, 'before=' + beforeBlank + ' after=' + St.scans.length);
 
-    /* ---- 3. the QR replaced with a checkerboard: real ink, not this app's
-     * mark. Must be rejected rather than parsed as garbage that happens to
-     * look like a code. ---- */
+    /* ---- 3. replace the REAL QR with non-QR ink. ---- */
     const noiseSheet = Sy.renderSynthetic(T, 0, { sid: '55', name: 'Reads Fine', answers });
     const nctx = noiseSheet.getContext('2d');
-    nctx.fillStyle = '#fff'; nctx.fillRect(px - 4, py - 4, psize + 8, psize + 8);
+    nctx.fillStyle = '#fff'; nctx.fillRect(px - 6, py - 6, psize + 12, psize + 12);
     nctx.fillStyle = '#000';
     var step = psize / 12;
     for (var gy = 0; gy < 12; gy++) for (var gx = 0; gx < 12; gx++) {
@@ -93,7 +77,7 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const beforeNoise = St.scans.length;
     await QG.Scanner.importFiles([await Sy.canvasToFile(noisePhoto, 'noise.jpg')], { quiet: true });
     QG.App.recompute();
-    ok('a checkerboard where the QR belongs is rejected, not read as a page',
+    ok('a checkerboard at the packet-QR location is rejected, not parsed as a page',
       St.scans.length === beforeNoise, 'before=' + beforeNoise + ' after=' + St.scans.length);
 
     return res;

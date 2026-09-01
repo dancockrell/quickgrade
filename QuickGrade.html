@@ -1069,7 +1069,7 @@ body[data-view="written"]{--toast-bottom:150px}
       <div class="advbody row gap wrap-row">
         <button class="btn" id="btnPrintKey" data-i18n="roster.print.key">Answer-key sheet
           <span class="hint" style="margin:0" data-i18n="roster.print.keyHint">for setting the key by scanning</span></button>
-        <button class="btn" id="btnPrintPersonal" data-i18n="roster.print.personal">Personalized sheets
+        <button class="btn" id="btnPrintPersonal" data-i18n="roster.print.personal" hidden>Personalized sheets
           <span class="hint" style="margin:0" data-i18n="roster.print.personalHint">one unique page per student</span></button>
       </div>
     </details>
@@ -1113,10 +1113,6 @@ body[data-view="written"]{--toast-bottom:150px}
       <div class="hudrow">
         <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
         <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
-        <!-- Which student file the next page will join. Pages after the first
-             carry no class number, so this is the only thing on screen that
-             says where they are going. Without it the teacher finds out at the
-             end, when the pages are already filed. -->
         <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
         <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
       </div>
@@ -1197,19 +1193,7 @@ body[data-view="written"]{--toast-bottom:150px}
     <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
       <code>.xlsx</code> or <code>.csv</code> directly.</p>
 
-    <!-- "Leave out students who have nothing scanned" is checked by default,
-         and a sheet sitting in Review under "could not be matched" reads as
-         nothing scanned even though the paper is right there with the
-         student's name in the handwriting crop. Without this, that student
-         drops out of every exported gradebook with nothing on this screen
-         saying so. -->
     <p class="hint warn" id="exUnmatchedWarn" hidden></p>
-
-    <!-- A missing page is scored zero for the questions on it, which can only
-         ever cost points. Only the "full" preset has an Issues column that
-         says so; the other five gradebooks show a number with no sign that a
-         page was never scanned. Warn when the selected format is one of the
-         five and it matters for someone in the class. -->
     <p class="hint warn" id="exMissingPageWarn" hidden></p>
 
     <details id="advExport">
@@ -1269,7 +1253,6 @@ body[data-view="written"]{--toast-bottom:150px}
 
 </main>
 
-<!-- Scan results are otherwise only a flash and a beep; announce them too. -->
 <div id="srAnnounce" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <div id="modal" hidden><div id="modalCard"></div></div>
@@ -2013,7 +1996,7 @@ I.packs.en = {
   'cal.fill': 'Sheet fills the frame',
   'cal.fill.d': '{pct}% of frame width',
   'cal.found': 'Sheet found',
-  'cal.found.d': 'page border detected',
+  'cal.found.d': 'QR and paper edges detected',
   'cal.h3.bad': 'Printing check — needs attention',
   'cal.h3.ok': 'Printing check passed',
   'cal.h3.warn': 'Printing check — good, with notes',
@@ -2232,7 +2215,7 @@ I.packs.en = {
   'hdr.privacy.title': 'Where student data goes, and how to show that to your school',
 
   /* --- keyscan --- */
-  'keyscan.body': '<h3>Capture the key by scanning</h3><p>Print the <b>answer-key sheet</b> from the Roster tab (it is pre-bubbled with ID 999999), or bubble a blank sheet with ID <b>999999</b> and the correct answers.</p><p>Scan it like any other sheet — QuickGrade recognises 999999 as the key and fills this grid in.</p><p class="hint">Save this test first so the sheet carries the right test code.</p>',
+  'keyscan.body': '<h3>Capture the key by scanning</h3><p>Print the <b>answer-key sheet</b> from the Roster tab and fill the correct answers. Its QR identifies it as the key — no student number is needed.</p><p>Scan it like any other sheet and QuickGrade fills this grid in.</p><p class="hint">Save this test first so the sheet carries the right test code.</p>',
 
   /* --- level --- */
   'level.developing': 'Developing',
@@ -2340,7 +2323,7 @@ I.packs.en = {
   'roster.print.blank': 'Print the answer sheet',
   'roster.print.check': 'Check my printing',
   'roster.print.h2': 'Print answer sheets',
-  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Any uniform scale is fine &mdash; the scanner self-calibrates from the page border.',
+  'roster.print.hint': 'Print at <strong>100% / Actual size</strong>. Keep the bottom-left QR and all paper edges visible.',
   'roster.print.key': 'Answer-key sheet',
   'roster.print.keyHint': 'for setting the key by scanning',
   'roster.print.other': 'Other kinds of sheet',
@@ -2416,16 +2399,22 @@ I.packs.en = {
   'scan.pill.openNone': 'No student open',
   'scan.pill.open': 'Filing into {name}',
   'scan.noOwnerBig': 'Start with page 1',
-  'scan.noOwnerSub': 'This is page {n}. Scan the page with the class number on it first.',
+  'scan.noOwnerSub': 'This legacy page {n} has no owner. Scan its page 1 first or assign it in Review.',
   'scan.noOwnerStatus': 'No student open — scan page 1 of this test first',
   'scan.clashBig': 'Whose paper is this?',
   'scan.clashSub': 'Page {n} is already filed for the student who is open. Scan their page 1 again.',
-  'scan.clashStatus': 'That page is already filed — rescan the class number to say who this is',
+  'scan.clashStatus': 'That page is already filed — review the packet before replacing it',
   'scan.filedInto': '{name} · page {n}',
   'scan.noNameBig': 'NAME NOT FOUND',
   'scan.noNameStatus': 'NO NAME on this sheet — fix it in Review',
   'scan.noNameSub': 'Sheet saved — tag it in Review',
   'scan.noSheetIn': 'No sheet found in {file}',
+  'scan.quality.showQr': 'Keep the bottom-left QR visible and hold still',
+  'scan.quality.closer': 'Move closer — the QR is too small to grade reliably',
+  'scan.quality.wholePage': 'Move back slightly — keep the whole page in view',
+  'scan.quality.straight': 'Hold the camera straighter over the page',
+  'scan.quality.steady': 'Hold still while QuickGrade locks onto the QR',
+  'scan.quality.flat': 'Flatten the page and keep its edges clear',
   'scan.noTorch': 'This camera has no controllable light.',
   'scan.okAnnounce': '{name}, {sub}.',
   'scan.okStatus': '{name} — {sub}',
@@ -2771,7 +2760,7 @@ I.packs.en = {
   'wlist.rubricN': 'Rubric · {n}',
   'wlist.short': 'Short answer',
   'scan.idle.h2': 'Hold a sheet up to the camera',
-  'scan.idle.p': 'Fill the frame, keep it flat, and QuickGrade reads it as soon as it can see the whole page border. One beep per sheet.',
+  'scan.idle.p': 'Fill the frame, keep the paper flat, and keep the bottom-left QR and every page edge visible. One beep per sheet.',
   'scan.idle.foot': 'No camera on this device? Photograph the sheets with a phone and import the pictures instead.',
   'grade.keys.rubric': 'Keys: <kbd>1</kbd>&ndash;<kbd>9</kbd> level for the next criterion &middot; <kbd>Enter</kbd> next student &middot; <kbd>&larr;</kbd> back &middot; <kbd>S</kbd> skip',
   'ts.opt.scoreBand': 'Score summary band',
@@ -2852,7 +2841,7 @@ I.packs.ar = {
   'cal.fill': 'الورقة تملأ الإطار',
   'cal.fill.d': '{pct}% من عرض الإطار',
   'cal.found': 'عُثر على الورقة',
-  'cal.found.d': 'المربعات الأربعة في الزوايا كلها ظاهرة',
+  'cal.found.d': 'تم اكتشاف رمز QR وحواف الورقة',
   'cal.h3.bad': 'فحص الطباعة — يحتاج انتباهاً',
   'cal.h3.ok': 'فحص الطباعة ناجح',
   'cal.h3.warn': 'فحص الطباعة — جيد، مع ملاحظات',
@@ -3069,7 +3058,7 @@ I.packs.ar = {
   'hdr.privacy': 'الخصوصية',
   'hdr.privacy.title': 'أين تذهب بيانات الطلاب، وكيف تُثبت ذلك لمدرستك',
 
-  'keyscan.body': '<h3>التقاط المفتاح بالمسح</h3><p>اطبع <b>ورقة مفتاح الإجابة</b> من تبويب قائمة الطلاب (وهي مظلّلة مسبقاً بالرقم 999999)، أو ظلّل ورقة فارغة بالرقم <b>999999</b> مع الإجابات الصحيحة.</p><p>امسحها كأي ورقة أخرى — يتعرّف QuickGrade على 999999 بوصفه المفتاح ويملأ هذه الشبكة.</p><p class="hint">احفظ هذا الاختبار أولاً لتحمل الورقة رمز الاختبار الصحيح.</p>',
+  'keyscan.body': '<h3>التقاط المفتاح بالمسح</h3><p>اطبع <b>ورقة مفتاح الإجابة</b> من تبويب القائمة وحدد الإجابات الصحيحة. يعرّف رمز QR الورقة كمفتاح، ولا حاجة إلى رقم طالب.</p><p>امسحها كأي ورقة أخرى وسيملأ QuickGrade هذه الشبكة.</p><p class="hint">احفظ الاختبار أولاً ليحمل الرمز الصحيح.</p>',
 
   /* --- mastery levels --- */
   'level.developing': 'في تقدّم',
@@ -3168,7 +3157,7 @@ I.packs.ar = {
   'roster.print.blank': 'طباعة ورقة الإجابة',
   'roster.print.check': 'فحص الطباعة',
   'roster.print.h2': 'طباعة أوراق الإجابة',
-  'roster.print.hint': 'اطبع بمقياس <strong>100% / الحجم الفعلي</strong>. أي مقياس منتظم مقبول — يعاير الماسح نفسه من المربعات الأربعة في الزوايا.',
+  'roster.print.hint': 'اطبع بمقياس <strong>100% / الحجم الفعلي</strong>. أبقِ رمز QR أسفل اليسار وكل حواف الورقة ظاهرة.',
   'roster.print.key': 'ورقة مفتاح الإجابة',
   'roster.print.keyHint': 'لضبط المفتاح عن طريق المسح',
   'roster.print.other': 'أنواع أخرى من الأوراق',
@@ -3243,11 +3232,11 @@ I.packs.ar = {
   'scan.pill.openNone': 'لا يوجد طالب مفتوح',
   'scan.pill.open': 'يُحفظ في ملف {name}',
   'scan.noOwnerBig': 'ابدأ بالصفحة 1',
-  'scan.noOwnerSub': 'هذه الصفحة {n}. امسح أولاً الصفحة التي تحمل رقم الطالب.',
+  'scan.noOwnerSub': 'هذه الصفحة القديمة {n} بلا مالك. امسح الصفحة 1 أولاً أو عيّنها في المراجعة.',
   'scan.noOwnerStatus': 'لا يوجد طالب مفتوح — امسح الصفحة 1 أولاً',
   'scan.clashBig': 'لمن هذه الورقة؟',
   'scan.clashSub': 'الصفحة {n} موجودة بالفعل في ملف الطالب المفتوح. امسح صفحته الأولى مرة أخرى.',
-  'scan.clashStatus': 'هذه الصفحة مسجلة بالفعل — أعد مسح رقم الطالب',
+  'scan.clashStatus': 'هذه الصفحة مسجلة بالفعل — راجع الحزمة قبل استبدالها',
   'scan.filedInto': '{name} · صفحة {n}',
   'scan.noNameBig': 'الاسم غير موجود',
   'scan.noNameStatus': 'لا اسم على هذه الورقة — عالجها في المراجعة',
@@ -3602,7 +3591,7 @@ I.packs.ar = {
   'parse.falseWords': 'خ,خطأ,خاطئ,لا',
   'parse.pointWords': 'درجة,درجات,نقطة,نقاط',
   'scan.idle.h2': 'ارفع الورقة أمام الكاميرا',
-  'scan.idle.p': 'املأ الإطار بالورقة، وأبقِها مستوية، ويقرأها QuickGrade فور أن يرى المربعات الأربعة في الزوايا. صافرة واحدة لكل ورقة.',
+  'scan.idle.p': 'املأ الإطار، وأبقِ الورقة مستوية ورمز QR أسفل اليسار وكل الحواف ظاهرة. صافرة واحدة لكل ورقة.',
   'scan.idle.foot': 'لا كاميرا في هذا الجهاز؟ صوّر الأوراق بهاتف واستورد الصور بدلاً من ذلك.',
   'grade.keys.rubric': 'المفاتيح: <kbd>1</kbd>–<kbd>9</kbd> مستوى المعيار التالي · <kbd>Enter</kbd> الطالب التالي · <kbd>←</kbd> رجوع · <kbd>S</kbd> تخطٍ',
   'ts.opt.scoreBand': 'شريط ملخص الدرجة',
@@ -3676,7 +3665,7 @@ I.packs.hi = {
   'cal.fill': 'पत्रक फ़्रेम भरता है',
   'cal.fill.d': 'फ़्रेम की चौड़ाई का {pct}%',
   'cal.found': 'पत्रक मिल गया',
-  'cal.found.d': 'चारों कोनों के वर्ग दिख गए',
+  'cal.found.d': 'QR और कागज़ के किनारे मिल गए',
   'cal.h3.bad': 'प्रिंटिंग जाँच — ध्यान चाहिए',
   'cal.h3.ok': 'प्रिंटिंग जाँच पास',
   'cal.h3.warn': 'प्रिंटिंग जाँच — ठीक है, कुछ बातों के साथ',
@@ -3893,7 +3882,7 @@ I.packs.hi = {
   'hdr.privacy': 'निजता',
   'hdr.privacy.title': 'विद्यार्थियों का डेटा कहाँ जाता है, और यह अपने विद्यालय को कैसे दिखाएँ',
 
-  'keyscan.body': '<h3>स्कैन करके कुंजी लीजिए</h3><p>विद्यार्थी सूची टैब से <b>उत्तर-कुंजी पत्रक</b> छापिए (उसमें ID 999999 पहले से भरा होता है), या किसी खाली पत्रक पर ID <b>999999</b> और सही उत्तर भर दीजिए।</p><p>उसे किसी भी पत्रक की तरह स्कैन कीजिए — QuickGrade 999999 को कुंजी मानकर यह ग्रिड भर देता है।</p><p class="hint">पहले यह परीक्षा सहेज लीजिए ताकि पत्रक पर सही परीक्षा कोड छपे।</p>',
+  'keyscan.body': '<h3>स्कैन करके कुंजी लीजिए</h3><p>विद्यार्थी सूची टैब से <b>उत्तर-कुंजी पत्रक</b> छापिए और सही उत्तर भरिए। QR इसे कुंजी के रूप में पहचानता है; छात्र संख्या की जरूरत नहीं है।</p><p>इसे सामान्य पत्रक की तरह स्कैन करें और QuickGrade यह ग्रिड भर देगा।</p><p class="hint">सही परीक्षा कोड के लिए पहले परीक्षा सहेजें।</p>',
 
   /* --- mastery levels --- */
   'level.developing': 'विकासशील',
@@ -3992,7 +3981,7 @@ I.packs.hi = {
   'roster.print.blank': 'उत्तर-पत्रक प्रिंट करें',
   'roster.print.check': 'मेरी प्रिंटिंग जाँचें',
   'roster.print.h2': 'उत्तर-पत्रक प्रिंट करें',
-  'roster.print.hint': '<strong>100% / वास्तविक आकार</strong> पर प्रिंट करें। कोई भी एक-समान स्केल चलेगा — स्कैनर चारों कोनों के वर्गों से खुद को समायोजित कर लेता है।',
+  'roster.print.hint': '<strong>100% / वास्तविक आकार</strong> पर प्रिंट करें। नीचे-बाएँ QR और कागज़ के सभी किनारे दिखने दें।',
   'roster.print.key': 'उत्तर-कुंजी पत्रक',
   'roster.print.keyHint': 'स्कैन करके कुंजी तय करने के लिए',
   'roster.print.other': 'अन्य प्रकार के पत्रक',
@@ -4067,11 +4056,11 @@ I.packs.hi = {
   'scan.pill.openNone': 'कोई छात्र खुला नहीं',
   'scan.pill.open': '{name} की फ़ाइल में जा रहा है',
   'scan.noOwnerBig': 'पेज 1 से शुरू करें',
-  'scan.noOwnerSub': 'यह पेज {n} है। पहले वह पेज स्कैन करें जिस पर छात्र संख्या है।',
+  'scan.noOwnerSub': 'इस पुराने पेज {n} का मालिक नहीं मिला। पहले पेज 1 स्कैन करें या Review में असाइन करें।',
   'scan.noOwnerStatus': 'कोई छात्र खुला नहीं — पहले पेज 1 स्कैन करें',
   'scan.clashBig': 'यह किसका पेपर है?',
   'scan.clashSub': 'पेज {n} पहले से खुले छात्र की फ़ाइल में है। उनका पेज 1 फिर स्कैन करें।',
-  'scan.clashStatus': 'वह पेज पहले से दर्ज है — छात्र संख्या दोबारा स्कैन करें',
+  'scan.clashStatus': 'यह पेज पहले से दर्ज है — बदलने से पहले पैकेट की समीक्षा करें',
   'scan.filedInto': '{name} · पेज {n}',
   'scan.noNameBig': 'नाम नहीं मिला',
   'scan.noNameStatus': 'इस पत्रक पर नाम नहीं — समीक्षा में ठीक कीजिए',
@@ -4426,7 +4415,7 @@ I.packs.hi = {
   'parse.falseWords': 'गलत,ग़लत,नहीं',
   'parse.pointWords': 'अंक',
   'scan.idle.h2': 'कैमरे के सामने एक पत्रक पकड़िए',
-  'scan.idle.p': 'फ़्रेम भरिए, पत्रक समतल रखिए, और चारों कोनों के वर्ग दिखते ही QuickGrade उसे पढ़ लेता है। हर पत्रक पर एक बीप।',
+  'scan.idle.p': 'फ़्रेम भरें, कागज़ समतल रखें, और नीचे-बाएँ QR सहित सभी किनारे दिखाएँ। हर पत्रक पर एक बीप।',
   'scan.idle.foot': 'इस डिवाइस में कैमरा नहीं है? पत्रकों की फ़ोटो फ़ोन से लीजिए और तस्वीरें आयात कर लीजिए।',
   'grade.keys.rubric': 'कुंजियाँ: <kbd>1</kbd>–<kbd>9</kbd> अगले मानदंड का स्तर · <kbd>Enter</kbd> अगला विद्यार्थी · <kbd>←</kbd> पीछे · <kbd>S</kbd> छोड़ें',
   'ts.opt.scoreBand': 'अंक सारांश पट्टी',
@@ -4500,7 +4489,7 @@ I.packs.tl = {
   'cal.fill': 'Pinupuno ng papel ang frame',
   'cal.fill.d': '{pct}% ng lapad ng frame',
   'cal.found': 'Natagpuan ang papel',
-  'cal.found.d': 'nakita ang lahat ng apat na parisukat sa sulok',
+  'cal.found.d': 'nakita ang QR at mga gilid ng papel',
   'cal.h3.bad': 'Pagsusuri sa pag-print — may dapat ayusin',
   'cal.h3.ok': 'Pumasa ang pagsusuri sa pag-print',
   'cal.h3.warn': 'Pagsusuri sa pag-print — maayos, may paalala',
@@ -4717,7 +4706,7 @@ I.packs.tl = {
   'hdr.privacy': 'Pagkapribado',
   'hdr.privacy.title': 'Saan napupunta ang datos ng mga mag-aaral, at paano ito ipapakita sa inyong paaralan',
 
-  'keyscan.body': '<h3>Kunin ang susi sa pamamagitan ng pag-scan</h3><p>I-print ang <b>papel ng susi sa pagwawasto</b> mula sa tab na Listahan (may nakabilog na ID 999999 dito), o bilugan ang blangkong papel ng ID <b>999999</b> at ng tamang mga sagot.</p><p>I-scan ito gaya ng ibang papel — kinikilala ng QuickGrade ang 999999 bilang susi at pinupunan ang grid na ito.</p><p class="hint">I-save muna ang pagsusulit na ito para tama ang kodigong dala ng papel.</p>',
+  'keyscan.body': '<h3>Kunin ang susi sa pamamagitan ng pag-scan</h3><p>I-print ang <b>papel ng susi sa pagwawasto</b> mula sa tab na Listahan at bilugan ang tamang sagot. Tinutukoy ng QR na susi ito; hindi kailangan ang ID ng mag-aaral.</p><p>I-scan tulad ng karaniwang papel at pupunan ng QuickGrade ang grid na ito.</p><p class="hint">I-save muna ang pagsusulit para tama ang kodigo.</p>',
 
   /* --- mastery levels --- */
   'level.developing': 'Umuunlad',
@@ -4816,7 +4805,7 @@ I.packs.tl = {
   'roster.print.blank': 'I-print ang sagutang papel',
   'roster.print.check': 'Suriin ang pag-print',
   'roster.print.h2': 'I-print ang mga sagutang papel',
-  'roster.print.hint': 'I-print sa <strong>100% / Actual size</strong>. Okay ang anumang pantay na sukat — kusang nag-a-adjust ang scanner mula sa apat na parisukat sa sulok.',
+  'roster.print.hint': 'I-print sa <strong>100% / Actual size</strong>. Panatilihing nakikita ang QR sa ibabang kaliwa at lahat ng gilid ng papel.',
   'roster.print.key': 'Papel ng susi sa pagwawasto',
   'roster.print.keyHint': 'para itakda ang susi sa pamamagitan ng pag-scan',
   'roster.print.other': 'Ibang uri ng papel',
@@ -4891,11 +4880,11 @@ I.packs.tl = {
   'scan.pill.openNone': 'Walang bukas na mag-aaral',
   'scan.pill.open': 'Isinasama sa file ni {name}',
   'scan.noOwnerBig': 'Magsimula sa pahina 1',
-  'scan.noOwnerSub': 'Ito ay pahina {n}. I-scan muna ang pahinang may numero ng mag-aaral.',
+  'scan.noOwnerSub': 'Walang may-ari ang lumang pahina {n}. I-scan muna ang pahina 1 o italaga ito sa Review.',
   'scan.noOwnerStatus': 'Walang bukas na mag-aaral — i-scan muna ang pahina 1',
   'scan.clashBig': 'Kaninong papel ito?',
   'scan.clashSub': 'Nasa file na ng bukas na mag-aaral ang pahina {n}. I-scan ulit ang kanilang pahina 1.',
-  'scan.clashStatus': 'Naitala na ang pahinang iyon — i-scan ulit ang numero ng mag-aaral',
+  'scan.clashStatus': 'Naitala na ang pahinang iyon — suriin ang packet bago palitan',
   'scan.filedInto': '{name} · pahina {n}',
   'scan.noNameBig': 'WALANG PANGALAN',
   'scan.noNameStatus': 'WALANG PANGALAN sa papel na ito — ayusin sa Suriin',
@@ -5250,7 +5239,7 @@ I.packs.tl = {
   'parse.falseWords': 'MALI,HINDI,M',
   'parse.pointWords': 'puntos,puntong',
   'scan.idle.h2': 'Iharap ang papel sa kamera',
-  'scan.idle.p': 'Punuin ang frame, ipatong nang patag, at babasahin ito ng QuickGrade sa oras na makita ang apat na parisukat sa sulok. Isang beep bawat papel.',
+  'scan.idle.p': 'Punuin ang frame, panatilihing patag ang papel, at ipakita ang QR sa ibabang kaliwa at lahat ng gilid. Isang beep bawat papel.',
   'scan.idle.foot': 'Walang kamera ang device na ito? Kunan ng litrato ang mga papel gamit ang telepono at i-import ang mga larawan.',
   'grade.keys.rubric': 'Mga key: <kbd>1</kbd>–<kbd>9</kbd> antas para sa susunod na pamantayan · <kbd>Enter</kbd> susunod na mag-aaral · <kbd>←</kbd> balik · <kbd>S</kbd> laktawan',
   'ts.opt.scoreBand': 'Banda ng buod ng iskor',
@@ -5328,7 +5317,7 @@ I.packs.ru = {
   'cal.fill': 'Лист заполняет кадр',
   'cal.fill.d': '{pct}% ширины кадра',
   'cal.found': 'Лист найден',
-  'cal.found.d': 'все четыре угловых квадрата распознаны',
+  'cal.found.d': 'QR-код и края листа распознаны',
   'cal.h3.bad': 'Проверка печати — нужно внимание',
   'cal.h3.ok': 'Проверка печати пройдена',
   'cal.h3.warn': 'Проверка печати — хорошо, с замечаниями',
@@ -5559,7 +5548,7 @@ I.packs.ru = {
   'hdr.privacy': 'Конфиденциальность',
   'hdr.privacy.title': 'Куда попадают данные учеников и как показать это своей школе',
 
-  'keyscan.body': '<h3>Считать ключ сканированием</h3><p>Напечатайте <b>бланк с ключом</b> на вкладке «Список» (в нём уже закрашен номер 999999) или закрасьте на пустом бланке номер <b>999999</b> и правильные ответы.</p><p>Отсканируйте его как любой другой бланк — QuickGrade распознаёт 999999 как ключ и заполняет эту сетку.</p><p class="hint">Сначала сохраните работу, чтобы на бланке был правильный код.</p>',
+  'keyscan.body': '<h3>Считать ключ сканированием</h3><p>Напечатайте <b>бланк ключа</b> на вкладке «Список» и отметьте правильные ответы. QR-код обозначает его как ключ; номер ученика не нужен.</p><p>Отсканируйте его как обычный лист, и QuickGrade заполнит эту сетку.</p><p class="hint">Сначала сохраните работу, чтобы код теста был верным.</p>',
 
   /* --- mastery levels --- */
   'level.developing': 'Формируется',
@@ -5662,7 +5651,7 @@ I.packs.ru = {
   'roster.print.blank': 'Напечатать бланк ответов',
   'roster.print.check': 'Проверить печать',
   'roster.print.h2': 'Печать бланков ответов',
-  'roster.print.hint': 'Печатайте в <strong>100% / Реальный размер</strong>. Подойдёт любой равномерный масштаб — сканер сам калибруется по четырём угловым квадратам.',
+  'roster.print.hint': 'Печатайте в <strong>100% / Реальный размер</strong>. Нижний левый QR-код и все края листа должны быть видны.',
   'roster.print.key': 'Бланк с ключом',
   'roster.print.keyHint': 'чтобы задать ключ сканированием',
   'roster.print.other': 'Другие виды бланков',
@@ -5745,11 +5734,11 @@ I.packs.ru = {
   'scan.pill.openNone': 'Ученик не открыт',
   'scan.pill.open': 'В файл: {name}',
   'scan.noOwnerBig': 'Начните со страницы 1',
-  'scan.noOwnerSub': 'Это страница {n}. Сначала отсканируйте страницу с номером ученика.',
+  'scan.noOwnerSub': 'У старой страницы {n} нет владельца. Сначала отсканируйте страницу 1 или назначьте пакет в «Проверке».',
   'scan.noOwnerStatus': 'Ученик не открыт — сначала отсканируйте страницу 1',
   'scan.clashBig': 'Чья это работа?',
   'scan.clashSub': 'Страница {n} уже есть в файле открытого ученика. Отсканируйте его страницу 1 заново.',
-  'scan.clashStatus': 'Эта страница уже записана — отсканируйте номер ученика заново',
+  'scan.clashStatus': 'Эта страница уже записана — проверьте пакет перед заменой',
   'scan.filedInto': '{name} · страница {n}',
   'scan.noNameBig': 'ИМЯ НЕ НАЙДЕНО',
   'scan.noNameStatus': 'НЕТ ИМЕНИ на этом бланке — разберитесь в «Просмотре»',
@@ -6140,7 +6129,7 @@ I.packs.ru = {
   'parse.falseWords': 'Н,НЕВЕРНО,НЕТ,Л,ЛОЖЬ',
   'parse.pointWords': 'балл,балла,баллов,б',
   'scan.idle.h2': 'Поднесите бланк к камере',
-  'scan.idle.p': 'Заполните им кадр, держите ровно — QuickGrade прочитает его, как только увидит четыре угловых квадрата. Один сигнал на бланк.',
+  'scan.idle.p': 'Заполните кадр, держите лист ровно и покажите нижний левый QR-код со всеми краями. Один сигнал на лист.',
   'scan.idle.foot': 'На этом устройстве нет камеры? Сфотографируйте бланки телефоном и импортируйте снимки.',
   'grade.keys.rubric': 'Клавиши: <kbd>1</kbd>–<kbd>9</kbd> уровень следующего критерия · <kbd>Enter</kbd> следующий ученик · <kbd>←</kbd> назад · <kbd>S</kbd> пропустить',
   'ts.opt.scoreBand': 'Сводная строка с баллом',
@@ -6222,7 +6211,7 @@ I.packs.th = {
   'cal.fill': 'กระดาษเต็มกรอบภาพ',
   'cal.fill.d': '{pct}% ของความกว้างกรอบ',
   'cal.found': 'พบกระดาษแล้ว',
-  'cal.found.d': 'ตรวจพบสี่เหลี่ยมมุมทั้งสี่มุม',
+  'cal.found.d': 'ตรวจพบ QR และขอบกระดาษ',
   'cal.h3.bad': 'ตรวจการพิมพ์ — ต้องแก้ไข',
   'cal.h3.ok': 'ตรวจการพิมพ์ผ่าน',
   'cal.h3.warn': 'ตรวจการพิมพ์ — ใช้ได้ มีข้อสังเกต',
@@ -6432,7 +6421,7 @@ I.packs.th = {
   'hdr.privacy': 'ความเป็นส่วนตัว',
   'hdr.privacy.title': 'ข้อมูลนักเรียนไปที่ไหน และจะแสดงให้โรงเรียนดูอย่างไร',
 
-  'keyscan.body': '<h3>รับเฉลยด้วยการสแกน</h3><p>พิมพ์ <b>กระดาษเฉลย</b> จากแท็บรายชื่อนักเรียน (ฝนรหัส 999999 มาให้แล้ว) หรือฝนกระดาษเปล่าด้วยรหัส <b>999999</b> พร้อมคำตอบที่ถูก</p><p>สแกนเหมือนกระดาษแผ่นอื่น — QuickGrade รู้จัก 999999 ว่าเป็นเฉลยและจะเติมตารางนี้ให้</p><p class="hint">บันทึกข้อสอบชุดนี้ก่อน เพื่อให้กระดาษมีรหัสข้อสอบที่ถูกต้อง</p>',
+  'keyscan.body': '<h3>รับเฉลยด้วยการสแกน</h3><p>พิมพ์ <b>กระดาษเฉลย</b> จากแท็บรายชื่อแล้วฝนคำตอบที่ถูก QR ระบุว่าเป็นเฉลย จึงไม่ต้องใช้รหัสนักเรียน</p><p>สแกนเหมือนกระดาษทั่วไป แล้ว QuickGrade จะเติมตารางนี้ให้</p><p class="hint">บันทึกข้อสอบก่อนเพื่อให้รหัสข้อสอบถูกต้อง</p>',
 
   /* --- mastery levels --- */
   'level.developing': 'กำลังพัฒนา',
@@ -6529,7 +6518,7 @@ I.packs.th = {
   'roster.print.blank': 'พิมพ์กระดาษคำตอบ',
   'roster.print.check': 'ตรวจการพิมพ์ของฉัน',
   'roster.print.h2': 'พิมพ์กระดาษคำตอบ',
-  'roster.print.hint': 'พิมพ์ที่ <strong>100% / ขนาดจริง</strong> ย่อขยายเท่ากันทั้งแผ่นก็ใช้ได้ — ตัวสแกนปรับเทียบเองจากสี่เหลี่ยมทั้งสี่มุม',
+  'roster.print.hint': 'พิมพ์ที่ <strong>100% / ขนาดจริง</strong> ให้เห็น QR มุมล่างซ้ายและขอบกระดาษทุกด้าน',
   'roster.print.key': 'กระดาษเฉลย',
   'roster.print.keyHint': 'สำหรับกำหนดเฉลยด้วยการสแกน',
   'roster.print.other': 'กระดาษแบบอื่น',
@@ -6600,11 +6589,11 @@ I.packs.th = {
   'scan.pill.openNone': 'ยังไม่ได้เปิดแฟ้มนักเรียน',
   'scan.pill.open': 'เก็บเข้าแฟ้มของ {name}',
   'scan.noOwnerBig': 'เริ่มที่หน้า 1',
-  'scan.noOwnerSub': 'นี่คือหน้า {n} กรุณาสแกนหน้าที่มีเลขที่นักเรียนก่อน',
+  'scan.noOwnerSub': 'หน้าแบบเก่า {n} ยังไม่มีเจ้าของ ให้สแกนหน้า 1 ก่อนหรือกำหนดในหน้าตรวจทาน',
   'scan.noOwnerStatus': 'ยังไม่ได้เปิดแฟ้มนักเรียน — สแกนหน้า 1 ก่อน',
   'scan.clashBig': 'นี่เป็นกระดาษของใคร',
   'scan.clashSub': 'หน้า {n} อยู่ในแฟ้มของนักเรียนที่เปิดอยู่แล้ว สแกนหน้า 1 ของเขาอีกครั้ง',
-  'scan.clashStatus': 'หน้านี้บันทึกไว้แล้ว — สแกนเลขที่นักเรียนอีกครั้ง',
+  'scan.clashStatus': 'หน้านี้บันทึกไว้แล้ว — ตรวจทานชุดกระดาษก่อนแทนที่',
   'scan.filedInto': '{name} · หน้า {n}',
   'scan.noNameBig': 'ไม่พบชื่อ',
   'scan.noNameStatus': 'กระดาษแผ่นนี้ไม่มีชื่อ — จัดการในหน้าทบทวน',
@@ -6941,7 +6930,7 @@ I.packs.th = {
   'parse.falseWords': 'ผิด,เท็จ,ไม่ใช่',
   'parse.pointWords': 'คะแนน',
   'scan.idle.h2': 'ยกกระดาษขึ้นให้กล้องเห็น',
-  'scan.idle.p': 'ให้เต็มกรอบ วางให้เรียบ แล้ว QuickGrade จะอ่านทันทีที่เห็นสี่เหลี่ยมมุมครบทั้งสี่มุม หนึ่งเสียงต่อหนึ่งแผ่น',
+  'scan.idle.p': 'ให้เต็มกรอบ วางกระดาษให้เรียบ และให้เห็น QR มุมล่างซ้ายกับขอบทุกด้าน หนึ่งเสียงต่อหนึ่งแผ่น',
   'scan.idle.foot': 'เครื่องนี้ไม่มีกล้องใช่ไหม ถ่ายรูปกระดาษด้วยโทรศัพท์แล้วนำเข้ารูปภาพแทนได้',
   'grade.keys.rubric': 'ปุ่มลัด: <kbd>1</kbd>–<kbd>9</kbd> ระดับของเกณฑ์ถัดไป · <kbd>Enter</kbd> นักเรียนคนถัดไป · <kbd>←</kbd> ย้อนกลับ · <kbd>S</kbd> ข้าม',
   'ts.opt.scoreBand': 'แถบสรุปคะแนน',
@@ -7020,7 +7009,7 @@ I.packs.ko = {
   'cal.fill': '용지가 화면을 채움',
   'cal.fill.d': '화면 너비의 {pct}%',
   'cal.found': '용지를 찾음',
-  'cal.found.d': '네 모서리 사각형 모두 인식됨',
+  'cal.found.d': 'QR과 종이 가장자리 인식됨',
   'cal.h3.bad': '인쇄 점검 — 확인이 필요합니다',
   'cal.h3.ok': '인쇄 점검 통과',
   'cal.h3.warn': '인쇄 점검 — 양호, 참고 사항 있음',
@@ -7230,7 +7219,7 @@ I.packs.ko = {
   'hdr.privacy': '개인정보',
   'hdr.privacy.title': '학생 정보가 어디로 가는지, 그리고 그것을 학교에 어떻게 보여 줄지',
 
-  'keyscan.body': '<h3>스캔으로 정답표 읽어 오기</h3><p>학생 명단 탭에서 <b>정답표 용지</b>를 인쇄하거나(번호 999999가 미리 칠해져 있습니다), 빈 용지에 번호 <b>999999</b>와 정답을 칠하세요.</p><p>다른 용지와 똑같이 스캔하면 됩니다 — QuickGrade는 999999를 정답표로 인식해 이 표를 채웁니다.</p><p class="hint">용지에 올바른 시험 코드가 인쇄되도록 이 시험을 먼저 저장하세요.</p>',
+  'keyscan.body': '<h3>스캔으로 정답표 읽어 오기</h3><p>학생 명단 탭에서 <b>정답표 용지</b>를 인쇄하고 정답을 표시하세요. QR이 정답표임을 나타내므로 학생 번호는 필요 없습니다.</p><p>일반 용지처럼 스캔하면 QuickGrade가 이 표를 채웁니다.</p><p class="hint">올바른 시험 코드가 인쇄되도록 먼저 시험을 저장하세요.</p>',
 
   /* --- mastery levels --- */
   'level.developing': '향상 중',
@@ -7327,7 +7316,7 @@ I.packs.ko = {
   'roster.print.blank': '답안지 인쇄',
   'roster.print.check': '인쇄 점검',
   'roster.print.h2': '답안지 인쇄',
-  'roster.print.hint': '<strong>100% / 실제 크기</strong>로 인쇄하세요. 전체가 고르게 축소·확대되었다면 괜찮습니다 — 판독기가 네 모서리 사각형을 기준으로 스스로 보정합니다.',
+  'roster.print.hint': '<strong>100% / 실제 크기</strong>로 인쇄하세요. 왼쪽 아래 QR과 종이의 모든 가장자리가 보여야 합니다.',
   'roster.print.key': '정답표 용지',
   'roster.print.keyHint': '스캔으로 정답을 지정할 때 사용',
   'roster.print.other': '다른 종류의 용지',
@@ -7398,11 +7387,11 @@ I.packs.ko = {
   'scan.pill.openNone': '열린 학생 없음',
   'scan.pill.open': '{name} 파일에 저장',
   'scan.noOwnerBig': '1쪽부터 스캔하세요',
-  'scan.noOwnerSub': '이것은 {n}쪽입니다. 번호가 적힌 쪽을 먼저 스캔하세요.',
+  'scan.noOwnerSub': '이전 형식의 {n}쪽에 소유자가 없습니다. 먼저 1쪽을 스캔하거나 검토에서 지정하세요.',
   'scan.noOwnerStatus': '열린 학생이 없습니다 — 1쪽을 먼저 스캔하세요',
   'scan.clashBig': '이 시험지는 누구의 것입니까?',
   'scan.clashSub': '{n}쪽은 이미 열린 학생의 파일에 있습니다. 그 학생의 1쪽을 다시 스캔하세요.',
-  'scan.clashStatus': '이미 기록된 쪽입니다 — 학생 번호를 다시 스캔하세요',
+  'scan.clashStatus': '이미 기록된 쪽입니다 — 교체하기 전에 묶음을 검토하세요',
   'scan.filedInto': '{name} · {n}쪽',
   'scan.noNameBig': '이름 없음',
   'scan.noNameStatus': '이 용지에 이름이 없습니다 — 검토에서 처리하세요',
@@ -7739,7 +7728,7 @@ I.packs.ko = {
   'parse.falseWords': 'X,아니오,틀림,거짓',
   'parse.pointWords': '점,점수',
   'scan.idle.h2': '용지를 카메라에 비춰 주세요',
-  'scan.idle.p': '화면을 채우고 평평하게 잡으면, 네 모서리 사각형이 보이는 즉시 QuickGrade가 읽습니다. 한 장에 한 번 소리가 납니다.',
+  'scan.idle.p': '화면을 채우고 종이를 평평하게 잡아 왼쪽 아래 QR과 모든 가장자리를 보여 주세요. 한 장에 한 번 소리가 납니다.',
   'scan.idle.foot': '이 기기에 카메라가 없나요? 휴대폰으로 용지를 찍어 사진을 가져오셔도 됩니다.',
   'grade.keys.rubric': '단축키: <kbd>1</kbd>–<kbd>9</kbd> 다음 평가 요소의 수준 · <kbd>Enter</kbd> 다음 학생 · <kbd>←</kbd> 이전 · <kbd>S</kbd> 건너뛰기',
   'ts.opt.scoreBand': '점수 요약 띠',
@@ -23112,6 +23101,381 @@ global.QG.Synth = {
 };
 })(window);
 
+/* ===== js/qrpacket.js ===== */
+/* QuickGrade — qrpacket.js
+ * QG3: one bottom-left QR carries document identity and anchors geometry.
+ * The QR gives a local pose; the natural paper edges refine the full-page
+ * homography. Legacy border/ID sheets remain readable through vision.js.
+ */
+(function (global) {
+'use strict';
+var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,Sy=Q&&Q.Synth;
+if(!Q||!S||!V||!global.qrcode||!global.jsQR)return;
+
+var GEOMETRY_VERSION=3,PREFIX='QG'+GEOMETRY_VERSION;
+var QR_SIZE=0.72,QR_INSET=0.20,QR_QUIET=0.09,MIN_QR_PX=34;
+var lastDecoded=null,lastHint=null,anonCounter=0;
+
+function hex4(n){var s=(n&0xffff).toString(16).toUpperCase();while(s.length<4)s='0'+s;return s;}
+function crc16(text){var crc=0xffff;for(var i=0;i<text.length;i++){crc^=text.charCodeAt(i)<<8;for(var b=0;b<8;b++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff;}return crc;}
+function paperCode(){return S.L.paper==='a4'?'A':S.L.paper==='legal'?'G':'L';}
+function qrRect(){return{x:QR_INSET,y:S.L.page.h-QR_INSET-QR_SIZE,size:QR_SIZE};}
+function makePayload(code,page,total,paper,kind){
+  var c=String(code==null?'':code).replace(/\D/g,'');while(c.length<S.L.codeDigits)c='0'+c;c=c.slice(-S.L.codeDigits);
+  kind=kind==='K'?'K':'N';var base=[PREFIX,c,String(page),String(total),paper||paperCode(),kind].join('|');
+  return base+'|'+hex4(crc16(base));
+}
+function parsePayload(data){
+  var m=/^(QG\d+)\|(\d{3})\|(\d{1,2})\|(\d{1,2})\|([LAG])\|([NK])\|([0-9A-Fa-f]{4})$/.exec(String(data||''));
+  if(!m||m[1]!==PREFIX)return null;var base=[m[1],m[2],m[3],m[4],m[5],m[6]].join('|');
+  if(hex4(crc16(base))!==m[7].toUpperCase())return null;
+  var page=parseInt(m[3],10),total=parseInt(m[4],10);if(!page||!total||page>total||total>99)return null;
+  return{geometry:GEOMETRY_VERSION,code:m[2],page:page,total:total,paper:m[5],kind:m[6],keyMode:m[6]==='K',raw:String(data)};
+}
+function makeQr(code,pageIdx,total,kind){var q=global.qrcode(0,'M');q.addData(makePayload(code,pageIdx+1,total,null,kind));q.make();return q;}
+function qrModulesHtml(code,pageIdx,total,kind){
+  var qb=qrRect(),qr=makeQr(code,pageIdx,total,kind),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
+  var h='<div class="qgqrbox" style="left:'+qb.x+'in;top:'+qb.y+'in;width:'+qb.size+'in;height:'+qb.size+'in"></div>';
+  for(var y=0;y<mod;y++)for(var x=0;x<mod;x++)if(qr.isDark(y,x))h+='<div class="qgqrmod" style="left:'+(qb.x+QR_QUIET+x*cell)+'in;top:'+(qb.y+QR_QUIET+y*cell)+'in;width:'+cell+'in;height:'+cell+'in"></div>';
+  return h;
+}
+function cleanupRect(test){var x=S.L.idLabelX-0.08,y=0.68,bottom=S.laterTop(S.idDigitsOf(test))-0.02;return{x:x,y:y,w:S.L.page.w-0.20-x,h:Math.max(0.2,bottom-y)};}
+function cleanupHtml(test){var r=cleanupRect(test);return'<div class="qgclean" style="left:'+r.x+'in;top:'+r.y+'in;width:'+r.w+'in;height:'+r.h+'in"></div>';}
+
+var legacyRenderSheets=S.renderSheets;
+S.renderSheets=function(test,people,opts){
+  var html=legacyRenderSheets.apply(S,arguments),pages=S.layoutTest(test),total=pages.length;
+  var code=opts&&opts.form?opts.form.code:test.code,kind=opts&&opts.keyMode?'K':'N',i=0;
+  html=html.replace(/<div class="edge"[^>]*><\/div>/g,'').replace(/<div class="qrmod"[^>]*><\/div>/g,'');
+  html=html.replace('</style>','.qgclean,.qgqrbox,.qgqrmod{position:absolute}.qgclean{background:#fff;z-index:2}.qgqrbox{background:#fff;z-index:3}.qgqrmod{background:#000;z-index:4}\n</style>');
+  return html.replace(/<div class="page">/g,function(m){var pageIdx=i++%total;return m+cleanupHtml(test)+qrModulesHtml(code,pageIdx,total,kind);});
+};
+
+function grayRgba(gray,w,h,x0,y0,ww,hh,scale){
+  x0=x0||0;y0=y0||0;ww=ww||w;hh=hh||h;scale=scale||1;
+  var ow=ww*scale,oh=hh*scale,rgba=new Uint8ClampedArray(ow*oh*4),j=0;
+  for(var y=0;y<oh;y++)for(var x=0;x<ow;x++){
+    var sx=Math.min(ww-1,Math.floor(x/scale)),sy=Math.min(hh-1,Math.floor(y/scale));
+    var v=gray[(y0+sy)*w+x0+sx];rgba[j++]=v;rgba[j++]=v;rgba[j++]=v;rgba[j++]=255;
+  }
+  return{data:rgba,w:ow,h:oh};
+}
+function shifted(result,x0,y0,scale){
+  scale=scale||1;var out={data:result.data,binaryData:result.binaryData,chunks:result.chunks,version:result.version,location:{}};
+  Object.keys(result.location||{}).forEach(function(k){var p=result.location[k];out.location[k]=p&&typeof p.x==='number'?{x:p.x/scale+x0,y:p.y/scale+y0}:p;});return out;
+}
+function decodeRegion(gray,w,h,x0,y0,ww,hh,scale){
+  var im=grayRgba(gray,w,h,x0,y0,ww,hh,scale),r=null;
+  try{r=global.jsQR(im.data,im.w,im.h,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}
+  return r&&parsePayload(r.data)?shifted(r,x0||0,y0||0,scale||1):null;
+}
+function tryDecode(gray,w,h){
+  var r=decodeRegion(gray,w,h,0,0,w,h,1);if(r)return r;
+  var tw=Math.ceil(w*0.62),th=Math.ceil(h*0.62),xs=[0,Math.max(0,w-tw)],ys=[0,Math.max(0,h-th)];
+  for(var yi=0;yi<ys.length;yi++)for(var xi=0;xi<xs.length;xi++){r=decodeRegion(gray,w,h,xs[xi],ys[yi],tw,th,1);if(r)return r;}
+  /* Upscaling does not invent detail, but it stops a barely-resolved module
+   * from being lost to integer sampling inside the QR locator. */
+  for(var yi2=0;yi2<ys.length;yi2++)for(var xi2=0;xi2<xs.length;xi2++){r=decodeRegion(gray,w,h,xs[xi2],ys[yi2],tw,th,2);if(r)return r;}
+  return null;
+}
+function mul(A,B){var C=[[0,0,0],[0,0,0],[0,0,0]];for(var r=0;r<3;r++)for(var c=0;c<3;c++)for(var k=0;k<3;k++)C[r][c]+=A[r][k]*B[k][c];return C;}
+function obj(H){return[[H.a,H.b,H.c],[H.d,H.e,H.f],[H.g,H.h,1]];}
+function hom(M){var z=M[2][2];if(!isFinite(z)||Math.abs(z)<1e-12)return null;return{a:M[0][0]/z,b:M[0][1]/z,c:M[0][2]/z,d:M[1][0]/z,e:M[1][1]/z,f:M[1][2]/z,g:M[2][0]/z,h:M[2][1]/z};}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y);}
+function pdist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function quadArea(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
+function qualityHint(m){
+  if(!m||!m.decoded)return'showQr';
+  if(m.pixels<MIN_QR_PX)return'closer';
+  if(m.sideRatio>2.35)return'straight';
+  if(m.pageOutside)return'wholePage';
+  if(m.refined===false)return'flat';
+  return null;
+}
+function sheetHFromQr(loc){
+  if(!loc||!loc.topLeftCorner||!loc.topRightCorner||!loc.bottomRightCorner||!loc.bottomLeftCorner)return null;
+  var Hq=V.homography([loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]);if(!Hq)return null;
+  var qb=qrRect(),inner={x:qb.x+QR_QUIET,y:qb.y+QR_QUIET,size:qb.size-QR_QUIET*2};
+  var rr=S.rect(inner.x,inner.y,inner.size,inner.size),du=rr.u1-rr.u0,dv=rr.v1-rr.v0;if(Math.abs(du)<1e-9||Math.abs(dv)<1e-9)return null;
+  return hom(mul(obj(Hq),[[1/du,0,-rr.u0/du],[0,1/dv,-rr.v0/dv],[0,0,1]]));
+}
+function sample(gray,w,h,x,y){
+  if(x<0||y<0||x>w-1||y>h-1)return 0;
+  var xi=Math.min(w-2,Math.max(0,Math.floor(x))),yi=Math.min(h-2,Math.max(0,Math.floor(y))),fx=x-xi,fy=y-yi,o=yi*w+xi;
+  var a=gray[o],b=gray[o+1],c=gray[o+w],d=gray[o+w+1];return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+}
+function edgePoints(gray,w,h,a,b,range){
+  var dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<40)return[];
+  var tx=dx/len,ty=dy/len,nx=-ty,ny=tx,pts=[];
+  var fractions=[0.16,0.24,0.32,0.40,0.50,0.60,0.68,0.76,0.84];
+  fractions.forEach(function(f){
+    var cx=a[0]+dx*f,cy=a[1]+dy*f,best=null,bestScore=0;
+    for(var s=-range;s<=range;s+=1){
+      var x1=cx+nx*(s-3),y1=cy+ny*(s-3),x2=cx+nx*(s+3),y2=cy+ny*(s+3);
+      if(x1<1||y1<1||x1>w-2||y1>h-2||x2<1||y2<1||x2>w-2||y2>h-2)continue;
+      var score=Math.abs(sample(gray,w,h,x2,y2)-sample(gray,w,h,x1,y1));
+      if(score>bestScore){bestScore=score;best=[cx+nx*s,cy+ny*s];}
+    }
+    if(best&&bestScore>=20)pts.push(best);
+  });
+  return pts;
+}
+function fitLine(pts){
+  if(pts.length<5)return null;var mx=0,my=0;pts.forEach(function(p){mx+=p[0];my+=p[1];});mx/=pts.length;my/=pts.length;
+  var xx=0,yy=0,xy=0;pts.forEach(function(p){var x=p[0]-mx,y=p[1]-my;xx+=x*x;yy+=y*y;xy+=x*y;});
+  var ang=0.5*Math.atan2(2*xy,xx-yy),dx=Math.cos(ang),dy=Math.sin(ang),nx=-dy,ny=dx;
+  return{a:nx,b:ny,c:-(nx*mx+ny*my),points:pts};
+}
+function intersect(l1,l2){var d=l1.a*l2.b-l2.a*l1.b;if(Math.abs(d)<1e-7)return null;return[(l1.b*l2.c-l2.b*l1.c)/d,(l1.c*l2.a-l2.c*l1.a)/d];}
+function qrResidual(H,loc){
+  var qb=qrRect(),inner=S.rect(qb.x+QR_QUIET,qb.y+QR_QUIET,qb.size-2*QR_QUIET,qb.size-2*QR_QUIET);
+  var want=[V.project(H,inner.u0,inner.v0),V.project(H,inner.u1,inner.v0),V.project(H,inner.u1,inner.v1),V.project(H,inner.u0,inner.v1)];
+  var got=[[loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]];
+  var sum=0;for(var i=0;i<4;i++)sum+=pdist(want[i],got[i]);return sum/4;
+}
+function refineFromPaperEdges(gray,w,h,H0,loc,qrPx){
+  var pr=S.rect(0,0,S.L.page.w,S.L.page.h);
+  var q0=[V.project(H0,pr.u0,pr.v0),V.project(H0,pr.u1,pr.v0),V.project(H0,pr.u1,pr.v1),V.project(H0,pr.u0,pr.v1)];
+  var range=Math.min(100,Math.max(28,qrPx*1.9));
+  var top=fitLine(edgePoints(gray,w,h,q0[0],q0[1],range)),right=fitLine(edgePoints(gray,w,h,q0[1],q0[2],range));
+  var bottom=fitLine(edgePoints(gray,w,h,q0[3],q0[2],range)),left=fitLine(edgePoints(gray,w,h,q0[0],q0[3],range));
+  if(!top||!right||!bottom||!left)return null;
+  var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
+  var corners=[tl,tr,br,bl],margin=3;if(corners.some(function(p){return p[0]<margin||p[1]<margin||p[0]>w-margin||p[1]>h-margin;}))return null;
+  if(quadArea(corners)<w*h*0.10)return null;
+  var hp=V.homography(tl,tr,br,bl);if(!hp)return null;
+  var fx0=S.L.fid.x0/S.L.page.w,fx1=S.L.fid.x1/S.L.page.w,fy0=S.L.fid.y0/S.L.page.h,fy1=S.L.fid.y1/S.L.page.h;
+  var ftl=V.project(hp,fx0,fy0),ftr=V.project(hp,fx1,fy0),fbr=V.project(hp,fx1,fy1),fbl=V.project(hp,fx0,fy1);
+  var H=V.homography(ftl,ftr,fbr,fbl);if(!H)return null;
+  var residual=qrResidual(H,loc);if(residual>Math.max(7,qrPx*0.22))return null;
+  return{H:H,pageQuad:corners,residual:residual};
+}
+function findPacketQr(gray,w,h){
+  lastHint=qualityHint(null);
+  var result=tryDecode(gray,w,h);if(!result)return null;var packet=parsePayload(result.data);if(!packet)return null;
+  var loc=result.location||{},sides=loc.topLeftCorner&&loc.topRightCorner&&loc.bottomRightCorner&&loc.bottomLeftCorner?[dist(loc.topLeftCorner,loc.topRightCorner),dist(loc.topRightCorner,loc.bottomRightCorner),dist(loc.bottomRightCorner,loc.bottomLeftCorner),dist(loc.bottomLeftCorner,loc.topLeftCorner)]:[];
+  var qrPx=sides.length?sides.reduce(function(a,b){return a+b;},0)/sides.length:0;
+  if(qrPx<MIN_QR_PX){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:1});return null;}
+  var sideMin=Math.min.apply(Math,sides),sideMax=Math.max.apply(Math,sides);
+  if(sideMin&&sideMax/sideMin>2.35){lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin});return null;}
+  var H0=sheetHFromQr(loc);if(!H0){lastHint='steady';return null;}
+  var refined=refineFromPaperEdges(gray,w,h,H0,loc,qrPx);
+  if(!refined){
+    var pq=S.rect(0,0,S.L.page.w,S.L.page.h),rough=[V.project(H0,pq.u0,pq.v0),V.project(H0,pq.u1,pq.v0),V.project(H0,pq.u1,pq.v1),V.project(H0,pq.u0,pq.v1)];
+    var outside=rough.some(function(p){return p[0]<-4||p[1]<-4||p[0]>w+4||p[1]>h+4;});
+    lastHint=qualityHint({decoded:true,pixels:qrPx,sideRatio:sideMax/sideMin,pageOutside:outside,refined:false});
+    return null;
+  }
+  var H=refined.H,quad=[V.project(H,0,0),V.project(H,1,0),V.project(H,1,1),V.project(H,0,1)];
+  lastHint=null;
+  return{H:H,quad:quad,pageQuad:refined.pageQuad,white:V.whiteLevel(gray,w,h,H),markers:1,qrPacket:packet,
+    qrQuality:{pixels:Math.round(qrPx),area:quadArea(refined.pageQuad)/(w*h),edgeResidual:+refined.residual.toFixed(2)}};
+}
+var legacyFindSheet=V.findSheet;
+V.findSheet=function(gray,w,h,opts){return findPacketQr(gray,w,h)||legacyFindSheet(gray,w,h,opts);};
+
+function decodePacketFromWarp(gray,w,h,H){
+  var qb=qrRect(),im=grayRgba(gray,w,h),cv=V.warpRegion({data:im.data,width:w,height:h},H,S.rect(qb.x,qb.y,qb.size,qb.size),360);
+  var pix=cv.getContext('2d').getImageData(0,0,cv.width,cv.height),r=null;try{r=global.jsQR(pix.data,pix.width,pix.height,{inversionAttempts:'attemptBoth'});}catch(e){r=null;}return r?parsePayload(r.data):null;
+}
+var legacyDecodeIdentity=V.decodeIdentity;
+V.decodeIdentity=function(gray,w,h,H,white,idDigits){
+  var packet=decodePacketFromWarp(gray,w,h,H);if(!packet){lastDecoded=null;return legacyDecodeIdentity(gray,w,h,H,white,idDigits);}lastDecoded={packet:packet,at:Date.now()};
+  if(packet.keyMode)return{sid:S.keySid(idDigits),code:packet.code,page:packet.page,continuation:false,idConf:1,flags:[],qrPacket:packet};
+  return{sid:null,code:packet.code,page:packet.page,continuation:packet.page>1,idConf:1,flags:[],qrPacket:packet};
+};
+
+if(Sy&&Sy.renderSynthetic){
+  var legacySynthetic=Sy.renderSynthetic;
+  Sy.renderSynthetic=function(test,pageIdx,opts){
+    S.usePaper(test);var cv=legacySynthetic.apply(Sy,arguments),ctx=cv.getContext('2d'),dpi=Sy.DPI;
+    function wipe(x,y,ww,hh){ctx.fillStyle='#fff';ctx.fillRect(Math.round(x*dpi),Math.round(y*dpi),Math.ceil(ww*dpi),Math.ceil(hh*dpi));}
+    wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15);wipe(S.L.fid.x1-0.075,S.L.fid.y0-0.075,0.15,S.L.H+0.15);wipe(S.L.fid.x0-0.075,S.L.fid.y0-0.075,S.L.W+0.15,0.15);wipe(S.L.fid.x0-0.075,S.L.fid.y1-0.13,S.L.W+0.15,0.22);
+    var clean=cleanupRect(test);wipe(clean.x,clean.y,clean.w,clean.h);var oldQr=S.qrRect(S.idDigitsOf(test));wipe(oldQr.x-0.02,oldQr.y-0.02,oldQr.size+0.04,oldQr.size+0.04);
+    var pages=S.layoutTest(test),qb=qrRect(),kind=opts&&S.isKeySid(opts.sid,S.idDigitsOf(test))?'K':'N',qr=makeQr(test.code,pageIdx,pages.length,kind),mod=qr.getModuleCount(),cell=(qb.size-QR_QUIET*2)/mod;
+    ctx.fillStyle='#fff';ctx.fillRect(qb.x*dpi,qb.y*dpi,qb.size*dpi,qb.size*dpi);ctx.fillStyle='#000';for(var y=0;y<mod;y++)for(var x=0;x<mod;x++)if(qr.isDark(y,x))ctx.fillRect((qb.x+QR_QUIET+x*cell)*dpi,(qb.y+QR_QUIET+y*cell)*dpi,cell*dpi+0.25,cell*dpi+0.25);return cv;
+  };
+}
+
+function decodedFor(record){if(!lastDecoded||Date.now()-lastDecoded.at>5000||!record)return null;var p=lastDecoded.packet;return p.code===record.code&&p.page===+record.page?p:null;}
+function newAnonSid(){anonCounter=(anonCounter+1)%100;return'9700'+String(Date.now()%100000000)+('0'+anonCounter).slice(-2);}
+Q.QRPacket={version:GEOMETRY_VERSION,prefix:PREFIX,size:QR_SIZE,inset:QR_INSET,quiet:QR_QUIET,rect:qrRect,payload:makePayload,parse:parsePayload,crc16:crc16,find:findPacketQr,tryDecode:tryDecode,classifyHint:qualityHint,setHint:function(h){lastHint=h;},getHint:function(){return lastHint;}};
+
+function installPacketFlow(){
+  var Scanner=Q.Scanner;if(!Scanner||!Scanner.hooks||!Scanner.hooks.saveScan||Q.PacketFlow)return;var active=null,T=Q.T;
+  function normSid(s){return S.normId?S.normId(s):String(s||'');}
+  function sameStudent(a,b){var aa=normSid(a),bb=normSid(b);return!!aa&&!!bb&&aa===bb;}
+  function packetTotal(record){var p=record&&record.packet;if(p&&p.total)return+p.total;var pages=Scanner.hooks.getPages&&Scanner.hooks.getPages();return pages?pages.length:1;}
+  function defaultMissing(record){var out=[],n=packetTotal(record);for(var i=1;i<=n;i++)if(i!==+record.page)out.push(i);return out;}
+  function cloneMissing(a){return(a||[]).map(Number).filter(function(n){return n>0;});}
+  function wouldAdvance(record){if(!active||+record.page!==1||active.testId!==record.testId||!active.missing.length)return null;if(sameStudent(active.sid,record.sid)&&!active.unassigned)return null;return{name:active.name,missingPages:active.missing.slice(),sid:active.sid};}
+  function packetConflict(record){if(!active||+record.page===1||active.testId!==record.testId)return null;var form=record.form||null;if(active.code===record.code&&active.form===form)return null;return{expectedCode:active.code,gotCode:record.code,expectedForm:active.form,gotForm:form};}
+  function ensurePill(){var row=document.querySelector('#scanHud .hudrow:nth-child(2)');if(!row||document.getElementById('pillPacket'))return;var p=document.createElement('span');p.className='pill';p.id='pillPacket';p.hidden=true;var status=document.getElementById('pillStatus');row.insertBefore(p,status||null);}
+  function label(){if(!active)return'';var who=active.name||T('names.unassigned');return active.missing.length?who+' · '+T('scan.stillNeed',{pages:active.missing.join(', ')}):who+' · '+T('scan.complete');}
+  function render(warn){ensurePill();var p=document.getElementById('pillPacket');if(!p)return;p.hidden=!active;p.textContent=label();p.className='pill'+(warn?' bad':active?' ok':'');}
+  function warnAdvance(info){if(!info)return;var who=info.name||T('names.unassigned');Q.toast(who+' · '+T('scan.stillNeed',{pages:info.missingPages.join(', ')}),'err',7500);render(true);}
+  function warnConflict(info){if(!info)return;Q.toast(T('scan.clashBig')+' · '+String(info.gotCode||'?')+' ≠ '+String(info.expectedCode||'?'),'err',8000);render(true);}
+  function start(record,res){active={testId:record.testId,code:record.code,form:record.form||null,sid:normSid(record.sid)||null,name:res&&res.name||null,total:packetTotal(record),seen:{},missing:[],unassigned:!!record.packetUnassigned};active.seen[+record.page]=true;active.missing=res&&res.missingPages?cloneMissing(res.missingPages):defaultMissing(record);}
+  function observe(record,res){if(!record||!res||res.status==='key'||record.packetVersionMismatch)return;var p=+record.page;if(p===1)start(record,res);else if(active&&active.testId===record.testId){active.seen[p]=true;if(!active.sid&&record.sid)active.sid=normSid(record.sid)||null;if(!active.name&&res.name)active.name=res.name;if(res.missingPages)active.missing=cloneMissing(res.missingPages);else active.missing=active.missing.filter(function(n){return n!==p;});}if(res.complete||(active&&active.missing.length===0))active=null;render(false);}
+  function reset(){active=null;render(false);}
+  function anonymousResult(record,res){if(!record.packetUnassigned)return res;var St=Q.App&&Q.App.State,have={},total=packetTotal(record);if(St)St.scans.forEach(function(sc){if(normSid(sc.sid)===normSid(record.sid))have[sc.page]=1;});var missing=[];for(var p=1;p<=total;p++)if(!have[p])missing.push(p);return{status:res&&res.status==='replaced'?'replaced':'ok',name:T('names.unassigned'),complete:missing.length===0,missingPages:missing,unassigned:true};}
+
+  var legacySave=Scanner.hooks.saveScan;
+  Scanner.hooks.saveScan=function(record,blobs){
+    var packet=decodedFor(record),warning=wouldAdvance(record),conflict=packetConflict(record);if(warning)warnAdvance(warning);
+    if(conflict){warnConflict(conflict);record.packetVersionMismatch=true;record.flags=(record.flags||[]).concat(['packet-version-mismatch']);var St=Q.App&&Q.App.State;if(St){St.openSid=null;St.openFor=null;}}
+    if(packet){record.packet={geometry:packet.geometry,total:packet.total,page:packet.page,paper:packet.paper,kind:packet.kind};if(!packet.keyMode){if(packet.page===1&&!record.sid){record.sid=newAnonSid();record.packetUnassigned=true;record.continuation=false;}else if(packet.page>1&&!conflict&&active&&active.unassigned&&active.sid){record.sid=active.sid;record.packetUnassigned=true;record.continuation=false;}}}
+    return legacySave.call(Scanner.hooks,record,blobs).then(function(res){res=anonymousResult(record,res);observe(record,res);return res;});
+  };
+  var legacyReset=Scanner.resetSession;Scanner.resetSession=function(){reset();return legacyReset.apply(Scanner,arguments);};ensurePill();
+
+  ['f_idDigits','f_idLabel','f_prefillId'].forEach(function(id){var n=document.getElementById(id);if(n&&n.closest('label'))n.closest('label').hidden=true;});
+  var dh=document.querySelector('[data-i18n-html="tests.sheet.digitsHint"]');if(dh)dh.hidden=true;var personal=document.getElementById('btnPrintPersonal');if(personal)personal.hidden=true;
+
+  function groupedUnresolved(){var St=Q.App&&Q.App.State,r=St&&St.results,groups={};if(!r)return groups;(r.unresolved||[]).forEach(function(sc){if(!sc.packetUnassigned||!sc.sid)return;var k=normSid(sc.sid);(groups[k]||(groups[k]=[])).push(sc);});Object.keys(groups).forEach(function(k){groups[k].sort(function(a,b){return a.page-b.page;});});return groups;}
+  function assignPacket(group,target){
+    var St=Q.App.State,targetId=normSid(target),packetId=normSid(group[0].sid),pageSet={};group.forEach(function(sc){pageSet[sc.page]=1;});
+    var dup=St.scans.filter(function(sc){return normSid(sc.sid)===targetId&&pageSet[sc.page]&&normSid(sc.sid)!==packetId;}),now=Date.now();dup.forEach(function(sc){sc.deleted=now;});
+    group.forEach(function(sc){sc.sid=targetId;sc.packetUnassigned=false;sc.packetResolvedAt=now;sc.flags=(sc.flags||[]).filter(function(f){return f!=='no-id'&&f!=='partial-id'&&f!=='no-owner'&&f!=='owner-clash';});});
+    var jobs=[Q.DB.putMany('scans',group)];if(dup.length)jobs.push(Q.DB.putMany('scans',dup));return Promise.all(jobs).then(function(){if(dup.length){St.scans=St.scans.filter(function(sc){return dup.indexOf(sc)<0;});dup.forEach(function(sc){if(St.trash.indexOf(sc)<0)St.trash.push(sc);});}if(active&&normSid(active.sid)===packetId){active.sid=targetId;active.unassigned=false;var stu=St.byId[targetId];active.name=stu&&stu.name||null;}if(St.openSid&&normSid(St.openSid)===packetId){St.openSid=targetId;St.openFor=St.test&&St.test.id;}Q.App.recompute();Q.App.route('review');var stu2=St.byId[targetId];Q.toast(T('toast.assignedTo',{name:stu2&&stu2.name||targetId}),'good');});
+  }
+  function collapseReview(){
+    var St=Q.App&&Q.App.State,r=St&&St.results,host=document.getElementById('unresolvedBox');if(!r||!host)return;var rows=[].slice.call(host.querySelectorAll('.unrow')),un=r.unresolved||[];if(rows.length!==un.length)return;
+    var groups=groupedUnresolved(),indexByScan={};un.forEach(function(sc,i){indexByScan[sc.id]=i;});Object.keys(groups).forEach(function(k){var group=groups[k],first=rows[indexByScan[group[0].id]];if(!first)return;group.slice(1).forEach(function(sc){var row=rows[indexByScan[sc.id]];if(row)row.hidden=true;});if(first.dataset.qgPacket==='1')return;first.dataset.qgPacket='1';var dim=first.querySelector('.dim');if(dim)dim.textContent=T('names.unassigned')+' · '+group.map(function(sc){return T('scan.pageTag',{n:sc.page});}).join(', ');var sel=first.querySelector('select'),assign=first.querySelector('button.go');if(assign&&sel)assign.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();if(!sel.value){Q.toast(T('toast.pickStudent'),'err');return;}assignPacket(group,sel.value);},true);});
+    var normal=0,seen={};un.forEach(function(sc){if(sc.packetUnassigned&&sc.sid)seen[normSid(sc.sid)]=1;else normal++;});var badge=document.getElementById('badgeUnres'),count=normal+Object.keys(seen).length;if(badge){badge.hidden=!count;badge.textContent=count;}
+  }
+  var review=document.getElementById('unresolvedBox');if(review&&global.MutationObserver){var mo=new MutationObserver(function(){setTimeout(collapseReview,0);});mo.observe(review,{childList:true,subtree:true});}collapseReview();
+  Q.PacketFlow={get active(){return active;},wouldAdvance:wouldAdvance,packetConflict:packetConflict,observe:observe,reset:reset,label:label,assignPacket:assignPacket,groupedUnresolved:groupedUnresolved};
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installPacketFlow);else setTimeout(installPacketFlow,0);
+
+})(window);
+
+/* ===== js/qrpaper.js ===== */
+/* QuickGrade — qrpaper.js
+ *
+ * The QR tells us what sheet this is and which way the local print axes run.
+ * It does NOT get extrapolated across eleven inches: a one-pixel QR-corner
+ * error becomes a large answer-grid error at the far end of the page.
+ *
+ * Instead, QG3 finds the physical paper boundary itself. The QR is then used
+ * as an independent cross-check on that full-page fit. Nothing extra needs to
+ * be printed on the sheet.
+ */
+(function (global) {
+'use strict';
+var Q=global.QG,S=Q&&Q.Sheet,V=Q&&Q.Vision,P=Q&&Q.QRPacket;
+if(!Q||!S||!V||!P)return;
+
+var previousFind=V.findSheet;
+var paperHint='showQr';
+
+function median(a){if(!a.length)return 0;a=a.slice().sort(function(x,y){return x-y;});var n=a.length;return n&1?a[n>>1]:(a[n/2-1]+a[n/2])/2;}
+function sample(gray,w,h,x,y){x=Math.max(0,Math.min(w-1,Math.round(x)));y=Math.max(0,Math.min(h-1,Math.round(y)));return gray[y*w+x];}
+function borderBackground(gray,w,h){
+  var out=[],bx=Math.max(3,Math.round(w*0.035)),by=Math.max(3,Math.round(h*0.035));
+  for(var x=0;x<w;x+=3){for(var y=0;y<by;y+=3)out.push(gray[y*w+x]);for(var y2=h-by;y2<h;y2+=3)out.push(gray[y2*w+x]);}
+  for(var y3=by;y3<h-by;y3+=3){for(var x2=0;x2<bx;x2+=3)out.push(gray[y3*w+x2]);for(var x3=w-bx;x3<w;x3+=3)out.push(gray[y3*w+x3]);}
+  return median(out);
+}
+function qrPaperLevel(gray,w,h,loc){
+  if(!loc||!loc.topLeftCorner)return 0;
+  var pts=[loc.topLeftCorner,loc.topRightCorner,loc.bottomRightCorner,loc.bottomLeftCorner],xs=pts.map(function(p){return p.x;}),ys=pts.map(function(p){return p.y;});
+  var x0=Math.max(0,Math.floor(Math.min.apply(null,xs)-18)),x1=Math.min(w-1,Math.ceil(Math.max.apply(null,xs)+18));
+  var y0=Math.max(0,Math.floor(Math.min.apply(null,ys)-18)),y1=Math.min(h-1,Math.ceil(Math.max.apply(null,ys)+18));
+  var bx0=Math.min.apply(null,xs),bx1=Math.max.apply(null,xs),by0=Math.min.apply(null,ys),by1=Math.max.apply(null,ys),a=[];
+  for(var y=y0;y<=y1;y+=2)for(var x=x0;x<=x1;x+=2){if(x>bx0-3&&x<bx1+3&&y>by0-3&&y<by1+3)continue;a.push(gray[y*w+x]);}
+  return median(a);
+}
+function brightRun(gray,w,h,x,y,dx,dy,threshold){
+  var good=0;for(var i=0;i<7;i++){var xx=x+dx*i,yy=y+dy*i;if(xx<0||yy<0||xx>=w||yy>=h)return false;if(sample(gray,w,h,xx,yy)>=threshold)good++;}return good>=6;
+}
+function verticalEdges(gray,w,h,threshold){
+  var top=[],bottom=[],step=Math.max(5,Math.round(w/120));
+  for(var x=2;x<w-2;x+=step){
+    for(var y=2;y<h-8;y++){if(sample(gray,w,h,x,y)<threshold&&sample(gray,w,h,x,y+2)>=threshold&&brightRun(gray,w,h,x,y+2,0,1,threshold)){top.push([x,y+1]);break;}}
+    for(var y2=h-3;y2>8;y2--){if(sample(gray,w,h,x,y2)<threshold&&sample(gray,w,h,x,y2-2)>=threshold&&brightRun(gray,w,h,x,y2-2,0,-1,threshold)){bottom.push([x,y2-1]);break;}}
+  }
+  return{top:top,bottom:bottom};
+}
+function horizontalEdges(gray,w,h,threshold){
+  var left=[],right=[],step=Math.max(5,Math.round(h/150));
+  for(var y=2;y<h-2;y+=step){
+    for(var x=2;x<w-8;x++){if(sample(gray,w,h,x,y)<threshold&&sample(gray,w,h,x+2,y)>=threshold&&brightRun(gray,w,h,x+2,y,1,0,threshold)){left.push([x+1,y]);break;}}
+    for(var x2=w-3;x2>8;x2--){if(sample(gray,w,h,x2,y)<threshold&&sample(gray,w,h,x2-2,y)>=threshold&&brightRun(gray,w,h,x2-2,y,-1,0,threshold)){right.push([x2-1,y]);break;}}
+  }
+  return{left:left,right:right};
+}
+function fitYX(points){
+  if(points.length<18)return null;
+  /* Bin first: one accidental bright object in the background must not get 80
+   * votes just because it is vertical. The paper edge contributes across the
+   * entire span, so medians by horizontal position retain it. */
+  points=points.slice().sort(function(a,b){return a[0]-b[0];});var bins=[],n=12;
+  for(var i=0;i<n;i++){var lo=Math.floor(points.length*i/n),hi=Math.floor(points.length*(i+1)/n),part=points.slice(lo,hi);if(part.length)bins.push([median(part.map(function(p){return p[0];})),median(part.map(function(p){return p[1];}))]);}
+  if(bins.length<7)return null;var mx=0,my=0;bins.forEach(function(p){mx+=p[0];my+=p[1];});mx/=bins.length;my/=bins.length;
+  var xx=0,xy=0;bins.forEach(function(p){var dx=p[0]-mx;xx+=dx*dx;xy+=dx*(p[1]-my);});if(xx<1)return null;var m=xy/xx,b=my-m*mx;
+  var residuals=bins.map(function(p){return Math.abs(p[1]-(m*p[0]+b));}),med=median(residuals),keep=bins.filter(function(p){return Math.abs(p[1]-(m*p[0]+b))<=Math.max(4,med*2.5);});
+  if(keep.length>=5){mx=0;my=0;keep.forEach(function(p){mx+=p[0];my+=p[1];});mx/=keep.length;my/=keep.length;xx=0;xy=0;keep.forEach(function(p){var dx=p[0]-mx;xx+=dx*dx;xy+=dx*(p[1]-my);});m=xy/xx;b=my-m*mx;}
+  return{kind:'yx',m:m,b:b,n:keep.length||bins.length};
+}
+function fitXY(points){var swapped=points.map(function(p){return[p[1],p[0]];}),l=fitYX(swapped);return l?{kind:'xy',m:l.m,b:l.b,n:l.n}:null;}
+function intersect(a,b){
+  if(a.kind==='yx'&&b.kind==='xy'){var d=1-a.m*b.m;if(Math.abs(d)<1e-6)return null;var x=(b.m*a.b+b.b)/d;return[x,a.m*x+a.b];}
+  if(a.kind==='xy'&&b.kind==='yx')return intersect(b,a);return null;
+}
+function area(q){var a=0;for(var i=0;i<q.length;i++){var j=(i+1)%q.length;a+=q[i][0]*q[j][1]-q[j][0]*q[i][1];}return Math.abs(a)/2;}
+function dist(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);}
+function pageToFidH(pageQuad){
+  var hp=V.homography(pageQuad[0],pageQuad[1],pageQuad[2],pageQuad[3]);if(!hp)return null;
+  var fx0=S.L.fid.x0/S.L.page.w,fx1=S.L.fid.x1/S.L.page.w,fy0=S.L.fid.y0/S.L.page.h,fy1=S.L.fid.y1/S.L.page.h;
+  return V.homography(V.project(hp,fx0,fy0),V.project(hp,fx1,fy0),V.project(hp,fx1,fy1),V.project(hp,fx0,fy1));
+}
+function qrResidual(H,loc){
+  var qb=P.rect(),q=P.quiet,inner=S.rect(qb.x+q,qb.y+q,qb.size-2*q,qb.size-2*q);
+  var want=[V.project(H,inner.u0,inner.v0),V.project(H,inner.u1,inner.v0),V.project(H,inner.u1,inner.v1),V.project(H,inner.u0,inner.v1)];
+  var got=[[loc.topLeftCorner.x,loc.topLeftCorner.y],[loc.topRightCorner.x,loc.topRightCorner.y],[loc.bottomRightCorner.x,loc.bottomRightCorner.y],[loc.bottomLeftCorner.x,loc.bottomLeftCorner.y]];
+  return(want.reduce(function(s,p,i){return s+dist(p,got[i]);},0)/4);
+}
+function findPaper(gray,w,h,result){
+  paperHint='flat';
+  var lp=result.location||{},ls=lp.topLeftCorner&&lp.topRightCorner&&lp.bottomRightCorner&&lp.bottomLeftCorner?
+    [dist([lp.topLeftCorner.x,lp.topLeftCorner.y],[lp.topRightCorner.x,lp.topRightCorner.y]),dist([lp.topRightCorner.x,lp.topRightCorner.y],[lp.bottomRightCorner.x,lp.bottomRightCorner.y]),dist([lp.bottomRightCorner.x,lp.bottomRightCorner.y],[lp.bottomLeftCorner.x,lp.bottomLeftCorner.y]),dist([lp.bottomLeftCorner.x,lp.bottomLeftCorner.y],[lp.topLeftCorner.x,lp.topLeftCorner.y])]:[];
+  var qrSize=ls.length?ls.reduce(function(a,b){return a+b;},0)/ls.length:0;
+  if(qrSize<34){paperHint='closer';return null;}
+  if(Math.max.apply(Math,ls)/Math.max(1,Math.min.apply(Math,ls))>2.35){paperHint='straight';return null;}
+  var bg=borderBackground(gray,w,h),paper=qrPaperLevel(gray,w,h,result.location);
+  if(paper<bg) { var tmp=paper;paper=bg;bg=tmp; }
+  var contrast=paper-bg;if(contrast<24){paperHint='steady';return null;}
+  var threshold=bg+contrast*0.38;
+  var ve=verticalEdges(gray,w,h,threshold),he=horizontalEdges(gray,w,h,threshold);
+  var top=fitYX(ve.top),bottom=fitYX(ve.bottom),left=fitXY(he.left),right=fitXY(he.right);
+  if(!top||!bottom||!left||!right)return null;
+  var tl=intersect(top,left),tr=intersect(top,right),br=intersect(bottom,right),bl=intersect(bottom,left);if(!tl||!tr||!br||!bl)return null;
+  var q=[tl,tr,br,bl],m=2;if(q.some(function(p){return p[0]<m||p[1]<m||p[0]>w-m||p[1]>h-m;})){paperHint='wholePage';return null;}
+  var ar=area(q)/(w*h);if(ar<0.12||ar>0.94)return null;
+  var ratio=(dist(tl,tr)+dist(bl,br))/(dist(tl,bl)+dist(tr,br));
+  var wantRatio=S.L.page.w/S.L.page.h;if(Math.abs(ratio-wantRatio)>0.17){paperHint='straight';return null;}
+  var H=pageToFidH(q);if(!H)return null;
+  var qrPts=[result.location.topLeftCorner,result.location.topRightCorner,result.location.bottomRightCorner,result.location.bottomLeftCorner],qrPx=(dist([qrPts[0].x,qrPts[0].y],[qrPts[1].x,qrPts[1].y])+dist([qrPts[1].x,qrPts[1].y],[qrPts[2].x,qrPts[2].y]))/2;
+  var residual=qrResidual(H,result.location);if(residual>Math.max(12,qrPx*0.48))return null;
+  return{H:H,pageQuad:q,qrQuality:{pixels:Math.round(qrPx),area:ar,edgeResidual:+residual.toFixed(2),paperContrast:Math.round(contrast)}};
+}
+
+V.findSheet=function(gray,w,h,opts){
+  var qr=P.tryDecode(gray,w,h);
+  if(qr){
+    var packet=P.parse(qr.data);if(!packet)return null;
+    var paper=findPaper(gray,w,h,qr);if(!paper){P.setHint(paperHint);return null;}P.setHint(null);
+    return{H:paper.H,quad:[V.project(paper.H,0,0),V.project(paper.H,1,0),V.project(paper.H,1,1),V.project(paper.H,0,1)],pageQuad:paper.pageQuad,
+      white:V.whiteLevel(gray,w,h,paper.H),markers:1,qrPacket:packet,qrQuality:paper.qrQuality};
+  }
+  P.setHint('showQr');return previousFind(gray,w,h,opts);
+};
+P.find=function(gray,w,h){var qr=P.tryDecode(gray,w,h);if(!qr){P.setHint('showQr');return null;}var packet=P.parse(qr.data),paper=findPaper(gray,w,h,qr);if(!packet||!paper){P.setHint(paperHint);return null;}P.setHint(null);return{H:paper.H,pageQuad:paper.pageQuad,qrPacket:packet,qrQuality:paper.qrQuality,markers:1};};
+
+})(window);
+
 /* ===== js/scan.js ===== */
 /* QuickGrade — scan.js
  * Camera capture loop, decode pipeline, accept/reject feedback, photo import.
@@ -23374,7 +23738,8 @@ function tick() {
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);
-    setStatus(T('scan.looking'));
+    var qrHint = Q.QRPacket && Q.QRPacket.getHint && Q.QRPacket.getHint();
+    setStatus(qrHint ? T('scan.quality.' + qrHint) : T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);

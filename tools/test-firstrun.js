@@ -1,5 +1,6 @@
 /* A teacher's first minute: an empty app must hand them one thing to do and
- * end with a printable sheet. Also covers reclaiming image storage. */
+ * end with a printable sheet. Also covers the QG3 packet/review handoff and
+ * reclaiming image storage after ownership is resolved. */
 const { chromium } = require('playwright');
 const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
@@ -17,7 +18,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const res = {}; const ok = (n, c, d) => res[n] = { pass: !!c, d };
     const St = QG.App.State;
 
-    // a genuinely empty install
     ok('starts with no tests', St.tests.length === 0, St.tests.length + ' tests');
     QG.App.route('tests');
     await new Promise(r => setTimeout(r, 300));
@@ -27,15 +27,13 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('it asks three questions and no more',
       document.querySelectorAll('.firstrun .steps li').length === 3,
       document.querySelectorAll('.firstrun .steps li').length + ' steps');
-    ok('it says where the data lives',
-      /stays on this computer/i.test(panel.textContent));
+    ok('it says where the data lives', /stays on this computer/i.test(panel.textContent));
 
     const [title, cls] = panel.querySelectorAll('input');
     const key = panel.querySelector('textarea');
     const go = [...panel.querySelectorAll('button')].find(b => /make my answer sheet/i.test(b.textContent));
     ok('the main action starts disabled', go.disabled);
 
-    // fill it in the way a teacher would
     title.value = 'Unit 4 — Cell Biology';
     title.dispatchEvent(new Event('input', { bubbles: true }));
     cls.value = 'Biology P3';
@@ -55,7 +53,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('it reports what it read back',
       /5 answers/.test(panel.textContent), (panel.textContent.match(/\d+ answers[^,]*,[^.]*/) || [''])[0].trim());
 
-    // printing opens a window; stub it so the test stays headless
     let printed = null;
     window.open = function (u, n) {
       printed = { opened: true };
@@ -66,28 +63,26 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     await new Promise(r => setTimeout(r, 900));
 
     const t = St.test;
-    ok('a test now exists and is selected', !!t && t.title === 'Unit 4 — Cell Biology',
-      t && t.title);
+    ok('a test now exists and is selected', !!t && t.title === 'Unit 4 — Cell Biology', t && t.title);
     ok('the class came across', (t.classes || [])[0] === 'Biology P3', (t.classes || [])[0]);
     ok('the key was applied', JSON.stringify(t.mc.key) === '[1,2,0,3,4]', JSON.stringify(t.mc.key));
     ok('the question count was worked out', t.mc.count === 5, t.mc.count);
     ok('the number of choices was worked out', t.mc.choices === 5, t.mc.choices);
     ok('question wording was kept from the paste',
       (t.mc.text || [])[0] === 'What powers the cell?', JSON.stringify((t.mc.text || [])[0]));
-
     ok('it went straight to a printable sheet', !!(printed && printed.opened));
     ok('the sheet is a real answer sheet',
-      !!printed.html && printed.html.indexOf('class="page"') > 0 &&
-      printed.html.indexOf('Unit 4') > 0,
+      !!printed.html && printed.html.indexOf('class="page"') > 0 && printed.html.indexOf('Unit 4') > 0,
       printed.html ? printed.html.length + ' bytes of HTML' : 'nothing');
+    ok('the first sheet uses the new bottom-left packet QR',
+      printed.html && printed.html.indexOf('qgqrbox') > 0 && printed.html.indexOf('class="edge"') < 0);
 
-    ok('the guided panel is replaced by the normal screen',
-      !document.querySelector('.firstrun'));
+    ok('the guided panel is replaced by the normal screen', !document.querySelector('.firstrun'));
     ok('the next-step strip now takes over',
       document.querySelectorAll('#workflow .step').length > 0,
       document.querySelectorAll('#workflow .step').length + ' steps');
 
-    // ---------------- storage upkeep ----------------
+    // ---------------- packet ownership + storage upkeep ----------------
     await QG.DB.putMany('students', [{ sid: '1', name: 'Ann Lee', cls: 'Biology P3' }]);
     St.students = await QG.DB.all('students');
     await new Promise(r => { const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r; document.head.appendChild(s); });
@@ -95,8 +90,27 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const sheet = Sy.renderSynthetic(t, 0, { sid: '1', name: 'Ann Lee', answers: { 0:1,1:2,2:0,3:3,4:4 } });
     const photo = Sy.simulateCamera(sheet, { w: 1280, h: 1450,
       corners: [[190,120],[1090,120],[1090,1330],[190,1330]], noise: 8, vignette: 0.15 });
-    await QG.Scanner.importFiles([await Sy.canvasToFile(photo, 'a.jpg')]);
+    await QG.Scanner.importFiles([await Sy.canvasToFile(photo, 'a.jpg')], { quiet: true });
     QG.App.recompute();
+    ok('a QG3 scan is captured without pretending to know the student',
+      St.scans.length === 1 && St.scans[0].packetUnassigned === true,
+      St.scans.length ? 'sid=' + St.scans[0].sid : 'no scan');
+
+    QG.App.route('review');
+    await new Promise(r => setTimeout(r, 500));
+    const row = [...document.querySelectorAll('#unresolvedBox .unrow')].find(r => !r.hidden);
+    const sel = row && row.querySelector('select');
+    const assign = row && row.querySelector('button.go');
+    ok('Review offers one ownership repair for the packet', !!row && !!sel && !!assign);
+    if (sel && assign) {
+      sel.value = '1';
+      assign.click();
+      await new Promise(r => setTimeout(r, 500));
+    }
+    ok('one Review action assigns the captured packet to Ann',
+      St.scans.length === 1 && St.scans[0].sid === '1' && !St.scans[0].packetUnassigned,
+      St.scans.length ? 'sid=' + St.scans[0].sid : 'no scan');
+
     const blobsBefore = (await QG.DB.all('blobs')).length;
     ok('scanning stored some images', blobsBefore > 0, blobsBefore + ' images');
 
@@ -107,7 +121,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     ok('review offers to reclaim the image space', !!free,
       document.querySelector('#storageBox') ? document.querySelector('#storageBox').textContent.slice(0, 60) : '');
 
-    const scoreBefore = St.results.rows.find(r => r.sid === '1').total;
+    const ann = St.results.rows.find(r => r.sid === '1');
+    const scoreBefore = ann && ann.total;
+    ok('Ann has a scored row after ownership is resolved', !!ann && scoreBefore === 5,
+      ann ? scoreBefore + '/5' : 'missing row');
     await QG.DB.delMany('blobs', (function () {
       var ids = []; St.scans.forEach(function (sc) {
         if (sc.nameCrop) ids.push(sc.nameCrop);

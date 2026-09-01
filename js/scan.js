@@ -259,7 +259,8 @@ function tick() {
   if (!found) {
     Scanner.pending = null;
     drawOverlay(null);
-    setStatus(T('scan.looking'));
+    var qrHint = Q.QRPacket && Q.QRPacket.getHint && Q.QRPacket.getHint();
+    setStatus(qrHint ? T('scan.quality.' + qrHint) : T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);
