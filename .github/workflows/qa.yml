@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - qr-packet-scanning
   pull_request:
 
 permissions:
