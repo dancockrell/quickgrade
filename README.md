@@ -1,606 +1,464 @@
 # QuickGrade
 
-**A paper-test grader for teachers who do not have one.**
+**A paper-test grader built around the way teachers actually use paper.**
 
-Scan tests with any camera — a laptop webcam, a phone, or photos you have already
-taken. It grades the multiple choice, collects the written answers for you to mark
-quickly, and exports to Excel, Sheets, Word or Docs.
+QuickGrade scans paper tests with a webcam, phone camera, or imported photos. It grades multiple choice, collects written answers for fast marking, and exports to Excel, Sheets, Word or Docs.
 
-Marking sheets by machine has existed for decades. Access to it has not: the tools
-that do this are sold per teacher or per school, need a live internet connection,
-and put student records on someone else's servers. Most teachers in the world have
-never had one.
+It needs no account, subscription, backend, or live internet connection after it loads. Student records stay on the teacher's device unless the teacher deliberately exports or sends them somewhere.
 
-QuickGrade needs no account, no subscription, no server and no internet connection
-after it loads. It runs on a five-year-old laptop, a phone, US Letter or A4.
+The interface speaks **English, العربية, हिन्दी, Tagalog, Русский, ไทย and 한국어**. The language reaches the printed paper, graded student sheets, and exports as well as the interface.
 
-The interface speaks **English, العربية, हिन्दी, Tagalog, Русский, ไทย and
-한국어**, and picks your language from the browser the first time it opens —
-someone who cannot read English should not have to find a menu labelled
-"Language".
+---
 
-The language reaches the paper, not just the screen. The words printed on the
-answer sheet, the print dialog, the graded sheet the student takes home and the
-Word export all follow it. Right-to-left mirrors the interface but never the
-answer sheet, because the scanner reads bubbles by position and there is one
-geometry only. Fonts, leading, name sorting and date formatting follow the
-chosen language too. Every printed word can still be overridden by hand, for a
-language we do not ship or for your school's own terms.
+## The physical workflow
 
-Adding a language is one file: copy `js/lang/en.js`, translate the right-hand
-side, and `tools/test-i18n.js` will tell you if you missed a key, dropped a
-`{placeholder}`, or wrote something that overflows a phone screen.
+QuickGrade is designed for schools where an office printer can make a master but a photocopier does the classroom volume.
 
-**No student's name or score ever leaves the device it was scanned on.** That is
-not a policy you have to trust — there is no server for the data to go to. See
-[What happens to student data](#what-happens-to-student-data), written so you can
-show it to whoever has to approve it.
+1. Create the test and paste the answer key.
+2. Print **one master** at 100% / Actual size.
+3. Photocopy that master for the class.
+4. Students answer the test. They do **not** have to bubble a student ID for QuickGrade.
+5. Collect one student's physical test packet.
+6. Scan page 1, then the rest of that student's pages.
+7. Move to the next student's packet.
+8. If QuickGrade cannot determine whose packet it is, it keeps the whole packet together and you assign it once in **Review**.
+
+The paper has one small machine mark: a **QR code in the bottom-left corner**. There are no scanner corner squares, registration border, page-number bubbles, or student-ID bubble matrix on new sheets.
+
+The QR identifies the document, not the child. It contains the test/version code, page number, total pages, paper/layout revision and an integrity check. The QR's known physical position also gives the scanner its geometry.
+
+That separation is deliberate: one photocopied master cannot contain a different printed student identity on every copy. QuickGrade never pretends otherwise.
 
 ---
 
 ## Start it
 
-**On your computer (webcam):** double-click **`Start QuickGrade.bat`**.
-Your browser opens at `http://localhost:8080`. This is the way to run it.
+### Computer with webcam
 
-**On your phone (phone camera):** double-click **`Start QuickGrade for Phone.bat`**,
-then type the `https://192.168.x.x:8443` address it prints into your phone's browser.
-Phone and computer must be on the same Wi-Fi. Your phone will warn that the
-certificate isn't trusted — that's normal for a server on your own computer;
-tap **Advanced → Proceed**.
+Double-click **`Start QuickGrade.bat`**. The browser opens at `http://localhost:8080`.
 
-> Why the fuss: browsers only allow camera access over `https://` or `localhost`.
-> That's a browser rule, not a QuickGrade one. If you'd rather not deal with it,
-> use **Import photos** instead — snap the sheets with your phone's normal camera
-> app and drop the pictures in. Same accuracy, just not live.
+### Phone camera
 
-### Put it on the web instead (recommended for a school)
+Double-click **`Start QuickGrade for Phone.bat`**, then open the `https://192.168.x.x:8443` address it prints on a phone connected to the same Wi-Fi.
 
-QuickGrade is a static page. Upload this folder to any web host — a school web
-server, GitHub Pages, Netlify, anything that serves files over `https://` — and
-every launcher problem disappears:
+The browser may warn about the local certificate. That is normal for a server running on your own computer. You can also avoid the live-camera path entirely: photograph the tests with the phone's normal camera app and use **Import photos**.
 
-- teachers open a **URL**, nothing to install, nothing to run
-- the **camera works everywhere**, including phones, with no certificate warning
-- it works on locked-down district laptops that block `.bat` files
-- **Add to Home Screen** installs it, and it keeps working with no network
+### Hosted HTTPS — recommended for a school
 
-Student data still never leaves the device — there is no server side. The host
-only ever sends the app's own files; scores, rosters and images stay in the
-browser's storage on the teacher's machine.
+QuickGrade is a static app. Put the folder on a school web server, GitHub Pages, Netlify, or another HTTPS static host.
 
-### The single-file version
+That gives teachers a normal URL, removes launcher/certificate friction, allows camera access on phones, works on locked-down laptops, and can be installed as a PWA. Once cached, the app keeps working offline.
 
-**`QuickGrade.html`** is the whole app — styles, code, everything — in one file
-with nothing to load alongside it. Email it, put it on a USB stick, double-click
-it anywhere. Rebuild it after editing the source with `python build.py`.
+Hosting does **not** create a QuickGrade backend. The host serves the application files; rosters, scans, scores and comments remain in the teacher's browser storage.
 
-Double-clicking works, but with limits the app will tell you about in an amber
-banner: **the camera cannot open** (browsers forbid it on `file://` pages) and
-scanned images are dropped on reload. Scores, rosters, keys and answers still
-save normally. Use it to set up tests, grade, and export; use the `.bat` when you
-want to scan.
+### Single-file version
+
+`QuickGrade.html` is a generated, self-contained build. Rebuild it after source changes with:
+
+```bash
+python build.py
+```
+
+The source version is preferred for development and hosted use. The single-file build is useful for USB drives, email and offline grading. Browsers do not permit live camera access from ordinary `file://` pages, so use imported photos or the local/hosted version when scanning.
 
 ---
 
-## See it working without a printer
-
-Press **Sample class** on the Tests screen. QuickGrade builds a class of eight,
-renders their answer sheets, photographs them in software and reads them back —
-through exactly the same detection and scoring a camera feeds. Nothing is faked:
-the scores, the flagged double-mark, the unmatched sheet and the mastery
-breakdown all come out of the real reader. It takes about two seconds.
-
-Delete the test afterwards and nothing is left behind.
-
 ## The first minute
 
-Open it with nothing set up and it asks three things — what the test is called,
-which class it is for, and your answer key — then hands you a sheet to
-photocopy. Everything else stays out of the way until you need it.
+On an empty install QuickGrade asks only:
 
-## The five-minute version
+1. What is the test called?
+2. Which class is it for?
+3. What is the answer key?
 
-1. **Tests → + New test.** Give it a title and a class, then press
-   **Paste my answer key** and paste the key in whatever form you already have
-   it. QuickGrade works out how many questions there are and how many choices
-   each has, shows you what it read, and changes nothing until you accept it.
-2. **Roster.** Make a class, paste your student names one per line. Each gets a
-   short class number automatically.
-3. **Roster → Print blank sheets.** Print **one** master, then run it through the
-   copier for the whole class. Students bubble their class number and write their
-   name. Print at **100% / Actual size**.
-4. Students take the test.
-5. **Scan.** Hold each sheet up to the camera. Green flash + rising beep = in.
-   Keep going; you don't press anything between sheets.
-6. **Review.** Anything the reader wasn't sure about is waiting there with a
-   photo of the actual paper. Confirm or correct it in one click.
-7. **Grade.** Written answers come up one question at a time for the whole class.
-   Press a number key, it saves and jumps to the next student.
-8. **Export.** Gradebook to Excel/Sheets, top sheets to Word/Docs.
+Paste the key in the form you already have. QuickGrade infers question count and choice count, shows what it understood, and creates the photocopy master.
 
-### One master sheet, photocopied
+It does not require a roster before you can create or print a test.
 
-Office printers are not made for classroom volume, so QuickGrade is built around
-printing **one** blank master and copying it. That's why students bubble a short
-class number rather than having their name pre-printed: a pre-printed sheet is a
-unique page per student, which cannot be photocopied in bulk.
+---
 
-Class numbers are short on purpose — a 3-digit number is three bubbles and a few
-seconds. You can set 2, 3, 4 or 6 digits per test under **Answer-sheet options**,
-and rename the label (e.g. "SEAT NUMBER") to match whatever your class already
-uses.
+## Five-minute version
 
-Pre-printing each student's ID is still available for small runs — it is the most
-reliable option when you can afford a unique page per student — but it is off by
-default.
+1. **Tests → + New test.** Enter a title/class and use **Paste my answer key**.
+2. Add a roster if you want names in Review/exports. Roster import accepts pasted names or messy gradebook CSVs.
+3. **Roster → Print the answer sheet.** Print one master and photocopy it for the class.
+4. Students take the test normally.
+5. **Scan.** Pick up one student's packet. Scan page 1 and then every other page from that same packet.
+6. If another page 1 appears before the current packet is complete, QuickGrade warns which pages are still missing.
+7. **Review.** Uncertain marks and unassigned packets are grouped for correction. Assigning an anonymous multi-page packet assigns every page together.
+8. **Grade.** Mark written answers one question across the class at a time.
+9. **Export.** Send scores to your gradebook or produce student hand-back sheets.
+
+---
+
+## One master, photocopied
+
+The normal QuickGrade workflow never requires unique per-student printing.
+
+Every copy of page 1 is intentionally identical when it leaves the photocopier. Every copy of page 2 is identical, and so on. The QR therefore contains only facts that are genuinely known before the test is handed out:
+
+- QuickGrade geometry/layout revision
+- test/version code
+- page number
+- total pages
+- paper size family
+- normal sheet vs answer-key sheet
+- checksum
+
+Student ownership is established at the **packet level while scanning**, not by adding machine bureaucracy for the student.
+
+If a student writes a usable name, that is useful human evidence. If they write nothing, QuickGrade still captures the complete packet. It does not discard later pages and does not silently invent a student. The packet waits in Review until the teacher assigns it once.
+
+---
+
+## How the QR is used
+
+New sheets place one copier-safe QR near the **bottom-left** corner. Bottom-left avoids the common page-number/header area used by existing tests.
+
+The scanner finds the QR and uses its four corners plus its known printed size/location to project the expected full page. That gives QuickGrade the coordinate system for answer bubbles and written-response regions.
+
+The QR also provides a known high-contrast object for quality checks. A readable QR is not automatically enough to grade a page: QuickGrade can reject the capture if the projected page leaves the camera frame or the QR/page is too small for trustworthy answer sampling.
+
+The QR payload has an integrity check. A damaged code should either decode correctly or fail; it must not quietly become a plausible different test/page.
+
+Old QuickGrade sheets that used the previous registration-border/ID system remain supported through the legacy scanner path. New paper uses the QR path first.
+
+---
+
+## Scanning packets
+
+For a multi-page test, think in terms of a physical packet rather than independent loose sheets.
+
+**Normal flow**
+
+```text
+Student A: page 1 → page 2 → page 3
+Student B: page 1 → page 2 → page 3
+Student C: page 1 → page 2 → page 3
+```
+
+Pages inside the current packet do not have to be perfectly ordered. If page 3 arrives before page 2, QuickGrade can accept it and continue to show that page 2 is still missing.
+
+What should not happen silently is starting another student's page 1 while pages from the current packet are missing. QuickGrade warns before the teacher loses track of the physical packet.
+
+A continuation page from another test/version is also refused as a continuation of the active packet. A valid QR for version B does not get filed into an open version A packet simply because both versions belong to the same test.
+
+### If the student identity is unknown
+
+That is a valid state, not a scanning failure.
+
+QuickGrade gives the physical packet a temporary internal identity, keeps its pages together, and shows **one** unresolved packet in Review. The temporary identifier is not presented as though it were a student number.
+
+Assign that Review item to a roster student once and every page in the packet moves together.
+
+---
+
+## Scan feedback
+
+The teacher should not have to understand computer vision. Feedback is about what to do next.
+
+Typical states are:
+
+| Situation | What QuickGrade does |
+|---|---|
+| Page accepted | green feedback / success sound |
+| Packet complete | completion chime |
+| Still missing pages | shows the page numbers still needed |
+| New page 1 before current packet is complete | warns before moving on |
+| Different test/version continuation | refuses automatic packet ownership and sends it to Review |
+| Packet student unknown | keeps packet together for one Review assignment |
+| Duplicate page | keeps/replaces according to the existing duplicate-scan rule |
+| QR/page too small or page cropped | does not grade optimistically |
+| Different test | refuses to mix it into the selected test |
+
+**Speak** can announce useful scan feedback when the teacher is looking at the paper rather than the screen.
+
+---
 
 ## Making a test out of what you already have
 
-You should never have to retype an answer key. Press **Paste my answer key** and
-give it whatever you have:
+You should not have to retype an answer key. **Paste my answer key** accepts common forms such as:
 
-```
+```text
 1. B            1) b           1 - B         1,B          B C A D E
 2. C            2) c           2 - C         2,C          BCADE
 3. A            3) a           3 - A         3,A          B
                                                           C
-1. What powers the cell?   B        True                  A
-2. Which organelle folds protein? C False
+1. What powers the cell? B      True
+2. Which organelle folds protein? C  False
 ```
 
-All of those work, along with tabs pasted straight out of a spreadsheet, upper
-or lower case, out-of-order numbering, and Word's curly dashes. It infers the
-number of questions and the number of choices, warns about gaps and duplicates,
-shows you exactly what it read, and only applies it when you say so. Prose is
-refused rather than guessed at.
+It also accepts tabs copied from a spreadsheet, upper/lower case, numbered T/F, Word punctuation and other ordinary formatting. It warns about gaps/duplicates and rejects prose it cannot confidently interpret rather than guessing.
 
-If you paste the questions along with the key, it offers to keep the wording too
-and prints it on the graded sheet students get back.
+If question wording is included, QuickGrade can keep it for graded student sheets.
 
-**Paste my questions** does the same for written questions —
-`Explain osmosis (5 points)`, `Name three organelles - 6 pts`, or a bare line
-worth 5 by default.
+**Paste my questions** handles written questions and point values, for example:
 
-## How a sheet gets recognised
+```text
+Explain osmosis. (5 points)
+Name three organelles - 6 pts
+Compare mitosis and meiosis
+```
 
-The four black squares in the corners tell the scanner where the page is, at any
-angle, upside down, hand-held, under bad classroom light. Everything else is
-read from fixed positions relative to those squares.
-
-Identity comes from the **ID bubbles**, not from handwriting — that's what makes
-it instant and reliable. Handwriting is still captured, but as evidence for you
-rather than as something the machine tries to read.
-
-**If the ID can't be read**, QuickGrade does not guess: red flash, low buzzer,
-`NAME NOT FOUND` on screen, and the sheet lands in **Review** with a photo of
-whatever the student wrote in the name box, so you can look at it and assign the
-sheet in one click.
-
-Other things it warns about:
-
-| What happens | Signal |
-|---|---|
-| Sheet accepted | green flash, rising two-note beep |
-| Page 2, 3… accepted | green flash, soft click |
-| That student is now complete | green flash, three-note chime |
-| No ID / unreadable ID | **red flash, low buzzer**, sheet queued in Review |
-| ID not on your roster | **red flash, low buzzer**, sheet queued in Review |
-| Sheet already scanned | amber flash, single tone, newest scan replaces the old |
-| Sheet is for a different test | red pill, sheet is *not* stored |
-
-Turn on **Speak** to have it read each student's name aloud — useful when you're
-feeding sheets and not looking at the screen.
+A written question without an explicit value defaults to 5 points.
 
 ---
 
-## Multiple pages
+## Two versions of the same test
 
-A test is as many pages as it needs — multiple choice flows across pages, then
-written questions get their own pages. Every page carries the same ID block plus
-its own page-number bubble, so **pages can be scanned in any order**, mixed
-between students, whenever. QuickGrade reassembles each student's test and tells
-you which pages are still missing.
+Create version B by rearranging the questions in your own test document, then use **+ Add a second version** and paste version B's key.
+
+Each version has its own QR test/version code. The scanner uses the code in the QR to select the correct answer key automatically.
+
+Packets from version A and B can be interleaved between students. What QuickGrade will not do is silently splice a continuation page from version B into an already-open version A packet.
+
+Version-specific scoring rules remain independent: dropping or correcting a bad question on version B does not alter version A.
+
+---
+
+## Reviewing uncertain marks
+
+QuickGrade saves crops of marks it could not read cleanly. Review shows the actual paper rather than only a confidence number.
+
+Typical reasons include:
+
+- more than one answer bubble appears filled
+- a mark is faint or partly erased
+- a nominally blank answer looks suspicious
+- a packet has not yet been assigned to a student
+- a page conflicts with the currently open packet/version
+
+Confirm or correct the result once and it stops asking.
+
+Review can also show missing pages before an incomplete test is exported as a confident low score.
 
 ---
 
 ## Grading written answers
 
-After scanning, **Grade** shows one question at a time across the entire class —
-Q1 for everyone, then Q2. That's the fast way: you stay in one mental frame
-instead of re-reading the question 30 times.
+**Grade** shows one written question across the class before moving to the next question. That keeps the teacher in one marking frame instead of repeatedly switching rubrics.
 
-| Key | Does |
+Common keys:
+
+| Key | Action |
 |---|---|
-| `0`–`9` | award that many points, save, next student |
+| `0`–`9` | award points, save, next |
 | `.` | half point |
 | `F` / `Z` | full credit / zero |
 | `Enter` | save and next |
-| `←` | back |
-| `S` | skip, leave ungraded |
+| `←` | previous |
+| `S` | skip |
 
-**Blind** is on by default, hiding names while you grade. Quick-comment chips
-save you retyping the same feedback; add your own with **+ add**.
+**Blind** hides student names while marking. Quick-comment chips reduce repetitive typing.
+
+Written questions can also use a rubric with criterion levels; the resulting points feed the same grading/export pipeline.
 
 ---
 
-## Marking against a rubric
+## Objectives and item analysis
 
-A written question can be marked against criteria instead of pulling a number
-out of the air. In the test editor press **Rubric** on any written question,
-set the levels once — *Not yet / Partly / Fully* by default — and list the
-criteria one per line. The question total follows automatically.
+Questions can be tagged with standards/objectives/topics. Paste mappings such as:
 
-Marking is then one keystroke per criterion: press `1`, `2` or `3` and it fills
-the next unmarked criterion, moving to the next student when the last one is
-done. `Backspace` takes back the last mark. The running total is shown as you go.
-
-The points land in exactly the same place as a hand-typed mark, so nothing else
-changes — and the student's graded sheet shows which level they got on each
-criterion, so they can see where the marks went.
-
-## What the class has not got
-
-Tag each question with what it tests — a standard, an objective, a topic — and
-a percentage turns into something you can act on.
-
-Press **Paste my objectives** in the test editor and give it whichever form you
-keep them in:
-
-```
-Cells: 1-8              1-8  Cells           1. Cells
-Transport: 9-16         9-16 Transport       2. Cells
-Energy: 17-24, 30       17-24, 30 Energy     3. Transport
+```text
+Cells: 1-8
+Transport: 9-16
+Energy: 17-24, 30
 ```
 
-Bare lines in question order work too. It tells you how many questions were
-tagged and which were missed, and changes nothing until you accept it.
+QuickGrade reports weak objectives, can include mastery information on graded sheets, and adds objective-level information to item-analysis exports.
 
-Then:
+Dropping a bad question removes it from both scoring and its objective statistics.
 
-- **Review** lists every objective, weakest first, with how many students are
-  secure, developing or not yet there.
-- Each student's **graded sheet** gains a short table of what they have and
-  haven't got, and a "worth another look" line.
-- The **item-analysis workbook** gains a Mastery sheet: a column per objective,
-  a class row, and each student's weakest area.
+---
 
-A question that has been dropped stops counting toward its objective, so
-correcting a bad question never makes an objective look worse than it was.
+## Fixing a bad question after the test
 
-## Two versions of the same test
+Nothing needs rescanning. In Review a question can be changed to:
 
-Scramble the question order in your own test document, save it as version B,
-then in the test editor press **+ Add a second version** and paste that version's
-answer key. Each version gets its own printed code and prints its own sheets
-with a large **A** or **B** in the corner.
+- drop the question
+- accept another answer
+- give everyone credit
+- change its point value
 
-That is all the setup. When you scan, **the printed code tells QuickGrade which
-key to use** — you can feed a shuffled pile of A and B sheets through in any
-order and never say which is which. Scores are directly comparable, and Review
-gains a column showing which version each student sat.
+The app previews how many students are affected. The original student responses remain unchanged; only the scoring rule changes, so the adjustment is reversible.
 
-Every version can be corrected independently: dropping a bad question on
-version B leaves version A untouched.
+Curves are available on Export: add raw points, add percentage points, or scale the top score to 100%.
 
-## Fixing a bad question, after the test
-
-Question 7 turns out to be ambiguous. Nobody has to rescan anything.
-
-**Review** lists every question with how the class did on it, worst first to the
-eye — a red bar means most of the class missed it. Click any question and choose:
-
-- **Drop it** — it stops counting for everyone and the test is out of less.
-- **Accept another answer** — both letters now score.
-- **Give everyone the points** — regardless of what they put.
-- **Change what it is worth** — one question can be worth more than the others.
-
-Every score in the class updates immediately, and the dialog tells you how many
-students the change affects before you commit to it. It is all stored as a rule
-on the test, so the answers themselves are never touched and you can undo any of
-it later.
-
-A **curve** sits on the Export screen — add points, add percentage points, or
-scale so the top score is 100%. The uncurved score is always kept.
-
-## Deleting things
-
-Deleting scans is reversible. They move to a recoverable list at the top of
-Review until you empty it, and the images are kept so a restore is complete.
+---
 
 ## Exports
 
-### Getting scores into your gradebook
+### Gradebook
 
-On the Export screen, tell QuickGrade **which gradebook you use**. It remembers,
-and lays the columns out the way that program expects. Then one button:
+Choose a gradebook format once and QuickGrade remembers it.
 
-- **Download for my gradebook** — an `.xlsx` file. Import it from your
-  gradebook's own upload screen.
-- **Copy — paste into Google Sheets** — open a sheet, click the first cell,
-  paste. Nothing to install, nothing to authorise, no add-on. This is also the
-  practical route to Google Classroom, which does not accept a grade file
-  directly: land the scores in Sheets first.
+- **Download for my gradebook** — `.xlsx`
+- **Copy — paste into Google Sheets** — tabular clipboard output
+- `.csv` is also available
 
-Starting points are included for LMS-style (Canvas, Schoology, Moodle),
-SIS-style (PowerSchool, Infinite Campus, Skyward), Google Classroom / Sheets,
-a name-and-percent minimum, per-question analysis, and the full gradebook.
+Built-in layouts are starting points for common LMS/SIS workflows. District import formats vary, so column order/headings can be changed and saved as a custom layout.
 
-They are honestly labelled as *starting points*. Gradebook import screens are
-configured per district and we will not pretend to know yours. Which is why the
-next part exists.
+An optional **Send to a web address** action posts rows as JSON to an endpoint explicitly configured by the school. It is off unless a teacher enters an address and uses it.
 
-### If your gradebook wants something different
+### Graded student sheets
 
-Under **More options ▸ Change the columns** you can add, remove, reorder and
-rename any column, watch a live preview of your real data, and save the result
-as your own layout. It is then picked automatically forever after.
+Export one hand-back page per student to `.docx` or print/PDF. Options include missed questions only, question text, objective, class statistics, written comments, signatures and footer notes.
 
-Nobody has to wait for us to ship support for their software. A tech coach can
-set it up once and share the layout with a department via **Export backup**.
+### Item analysis
 
-Also there, and genuinely optional: **Send to a web address** posts the same rows
-as JSON to an endpoint your school controls. Most schools will never touch this.
+The workbook includes per-question results, response distributions, raw answers, written scores and mastery information where configured.
 
-### Other files
-
-**Graded top sheets** — one page per student in `.docx`: the score band, then
-every question with what they answered, what was correct, and the points. Not
-the test format — a table you can read at a glance.
-
-You decide what else goes on that page. Toggles for: only the questions they
-missed, question text, topic/standard, what percent of the class got each one
-right, class average, rank, written-answer comments, a blank comment box,
-teacher / parent / student-corrections signature lines, and a footer note of your
-own.
-
-**Roster import** — Roster ▸ *Import CSV file* takes a gradebook export as-is:
-a header row, extra columns, quoted fields, `Last, First` and an email column are
-all handled. It fills the paste box so you can check it before saving.
-
-**Item analysis** — `.xlsx` with per-question difficulty, which wrong answer
-attracted people, plus raw responses and all written scores.
-
-### Will they open properly?
-
-Yes — and this is checked, not assumed. The `.xlsx` and `.docx` writers here are
-hand-built, and the self-test opens every generated file the way Excel and Word
-do: it walks the ZIP central directory, verifies every CRC, parses every XML
-part, and confirms the internal relationships resolve. Word gets a paragraph in
-every table cell and a proper `sectPr`; Excel gets a real styles part with
-matching counts, legal unique sheet names, and no dangling style references.
-
-For Google: upload the `.xlsx` and open with Sheets, or the `.docx` and open with
-Docs. For CSV in Sheets use **File ▸ Import ▸ Upload**. Names beginning with
-`=` or `+` are escaped so a spreadsheet can't turn one into a formula.
+The hand-built `.xlsx`/`.docx` writers are tested by validating their ZIP/XML structure, CRCs, relationships and required Office document parts.
 
 ---
 
-## Outside the United States
+## Roster import
 
-Set **Paper size** on the test to **A4** and the whole sheet is rebuilt for it —
-corner squares, bubble grid and answer columns all reposition, and the scanner
-adapts automatically because both read the same geometry. US Legal is there too.
-A4 fits 87 multiple-choice questions on a page, Letter 104, Legal 152.
+Roster entry is optional for creating/printing/scanning a test but useful for assigning anonymous packets and exporting grades.
 
-Every word printed on the sheet is editable per test: the NAME and CLASS box
-labels, the ID heading, the PAGE row, the "how to fill this in" heading, the
-three bubble examples and the advice line. Set them once and duplicate the test
-as a template. Student names are captured as an image, so any script — accented,
-Cyrillic, CJK — works without configuration.
+Paste one student per line or import a gradebook CSV/TSV. QuickGrade tolerates header rows, extra columns, quoted `Last, First` names, IDs and email columns, and lets you inspect the parsed result before saving it.
 
-Letter geometry is unchanged from earlier versions, so sheets printed before
-paper support existed still scan correctly. There is an automated test asserting
-exactly that.
+---
 
-## One test, several periods
+## Paper sizes and languages
 
-List the classes separated by commas — `Biology P1, Biology P3, Biology P5` — and
-the test covers all of them: one answer key, one test code, one master sheet.
-The roster is the union, sheets print grouped by class, and the gradebook and
-review table gain a Class column so you can filter or hand back period by period.
+QuickGrade supports US Letter, A4 and US Legal. The renderer and scanner share the same geometry source, so answer positions adapt to the selected paper.
+
+The QG3 QR payload includes the paper/layout family so the printed document carries the geometry information the scanner needs.
+
+Printed wording can be localized or overridden per test. Student handwriting is stored as image evidence rather than requiring OCR, so names/scripts do not need special scanner support.
+
+Legacy sheets remain readable through the old geometry path.
+
+---
 
 ## Printing
 
-**Check it once.** Scan ▸ *Check my printing* (or Roster ▸ *Check my printing*)
-reads one freshly printed blank sheet and tells you whether your printer, paper
-and lighting are good — it verifies the pre-printed test code and page number
-read back correctly and that no blank bubble is being read as filled. Nothing is
-recorded. Do this the first time you print on a new copier and you will never
-wonder whether a bad scan was the printer.
+Print at **100% / Actual size**. Make one good master, then use the photocopier for classroom volume.
 
-Print at **100% / Actual size**, margins **None**. A uniform shrink is harmless —
-the scanner calibrates from the corner squares — but *don't* let the printer add
-a border, and don't write over the corner squares or fold across them.
+The one machine mark to protect is the **bottom-left QR**. Do not crop it, cover it with a staple, or fold directly through it.
 
-- **Blank sheets** — the default. Print one, photocopy the rest.
-- **Personalized sheets** — name and ID pre-printed. Most reliable, but it is a
-  unique page per student, so only practical for small runs.
-- **Answer-key sheet** — pre-bubbled with ID `999999`. Scan it and QuickGrade
-  fills in the answer key by itself. `999999` is reserved for this.
+The QR is deliberately inset from the physical page edge and includes a copier-safe white quiet zone around the black modules.
+
+### Check my printing
+
+Use **Check my printing** with a fresh blank copy when changing printer/copier settings. The check verifies that the document QR/page can be read and that blank answer bubbles are not being mistaken for filled answers.
+
+If a capture is too distant, cropped or geometrically implausible, the scanner should reject it rather than grading from a weak transform.
+
+### Answer-key sheet
+
+The answer-key sheet uses the same bottom-left QR. A field inside the QR marks it as a key sheet; it no longer depends on a magic student-ID bubble value.
+
+---
+
+## Sample class
+
+**Sample class** generates a small roster, renders answer sheets, photographs them in software, and sends the images through the real scanner/scoring path.
+
+It exists so a teacher or reviewer can exercise the product without a printer/camera. The synthetic camera path is also used heavily by automated QA.
+
+Because normal QG3 paper contains no printed student identity, the demo resolves its own synthetic packets to its known synthetic roster after scanning. That shortcut is demo-only; real packets are assigned through the normal Review workflow when ownership is unknown.
 
 ---
 
 ## What happens to student data
 
-Written for the person who has to sign off on it, and short enough to read.
+- **No account, backend or telemetry.** QuickGrade is static application files.
+- **Student data stays in the browser** on the teacher's device.
+- **Nothing is transmitted by default.** The optional explicit “send scores to a web address” export is the exception and has no destination until the teacher supplies one.
+- **Works offline** after the hosted/PWA copy has been cached.
+- **Exports are deliberate.** Files go to the teacher's Downloads folder like ordinary files.
+- **Deleting is real.** Removing tests/scans removes their stored records/images according to the app's delete/recovery workflow.
+- **The source is public**, so the behavior can be inspected rather than taken on trust.
 
-- **Nothing is transmitted unless a teacher sets up an address and presses send.**
-  QuickGrade is a web page with no back end. It has no login, no analytics, no
-  error reporting and no update check, and it ships with nowhere to send anything.
-  The one exception is Export's optional "send scores to a web address", for a
-  school that already has somewhere to receive results automatically. It starts
-  switched off and does nothing until someone types an address in.
-- **Everything stays in the browser** on the teacher's own device, in that
-  browser's local storage: the roster, the scanned images, the scores.
-- **It keeps working with the network switched off.** That is the simplest way to
-  confirm the first two points — turn off the wifi and use it normally.
-- **The teacher chooses when anything leaves.** Exported files land in the
-  Downloads folder like any other file. Sending one anywhere is a separate,
-  deliberate act.
-- **Deleting is real.** Removing a test removes its scans and images. Clearing the
-  browser's site data removes everything.
-- **The source is public.** Any of the above can be checked rather than believed —
-  the whole reader is about six thousand lines of plain JavaScript.
+There is a trade-off: no backend means no automatic cross-device sync or server recovery. Use **Export backup** regularly. Clearing browser site data or losing the device can otherwise remove local records.
 
-The trade-off, stated plainly: because there is no server, there is also no
-central gradebook, no automatic sync between teachers, and no way to recover data
-if a device is lost or its browser data is cleared. **Export backup** is the
-answer to that, and the app reminds you if it has been a while.
+Scanned images are the largest storage item. Review can reclaim image storage after the paper has been dealt with while retaining answers, scores and comments.
 
-## For the person who has to approve it
+---
 
-- **No account, no backend, no telemetry.** The app is static files. Nothing is
-  sent anywhere by default, and there is no address built into it.
-- **Student data stays on the teacher's device**, in that browser's storage.
-  Names, scores and scanned images leave it only if a teacher enters a web
-  address under Export and presses send. That feature starts switched off; if
-  nobody opens it, nothing is ever transmitted.
-- **Works fully offline** once loaded.
-- **No per-scan or per-teacher licensing.** Nothing expires.
-- Scan results are announced to screen readers, every control is labelled, and
-  status is never conveyed by colour alone.
+## Deleting scans
 
-The trade-off to be explicit about: because there is no backend, there is also
-no central gradebook, no cross-teacher reporting, and no recovery if a teacher
-wipes their browser. Regular **Export backup** is the mitigation, and the app
-nags if it has been more than a week.
-
-## How big does this get
-
-Measured, not guessed. A full secondary load — 150 students, three pages each,
-450 scanned sheets with images, a 50-question test:
-
-| | |
-|---|---|
-| decode one sheet | 22 ms (fast enough for ~46 camera frames a second) |
-| open the test, loading every sheet | 49 ms |
-| rescore the whole class | 2 ms |
-| draw the review screen | 157 ms |
-| build the Excel gradebook | 11 ms |
-| build 150 graded top sheets | 45 ms |
-| storage used | 96 MB of the ~6 GB the browser allows |
-
-The scanned images are the only large thing, and they stop being useful once a
-test is handed back. **Review** shows how much space a test's images take and
-offers to reclaim it — every score, answer and comment is kept.
-
-## Where the data lives
-
-In this browser, on this computer (IndexedDB). Nothing is uploaded.
-
-That also means: clearing browser data wipes it, and a different browser or
-computer won't see it. Use **Export backup** on the Tests screen for a portable
-`.json` of tests, rosters, scans and grades. Scanned images stay local and are
-not in the backup — scores and answers are.
+Deleting scans is reversible initially: they move to the recoverable area in Review and keep their image data so a restore is complete. Permanent purge removes the scan and associated blobs.
 
 ---
 
 ## Files
 
-```
-QuickGrade.html            single-file build - everything inlined
-index.html                 the app (loads css/ and js/)
-build.py                   regenerates QuickGrade.html from the source
-serve.py                   launcher (http, or --https for phones)
-Start QuickGrade.bat       double-click to run
+```text
+QuickGrade.html            generated single-file build
+index.html                 source app shell
+build.py                   rebuilds QuickGrade.html and service-worker cache
+serve.py                   local launcher
+Start QuickGrade.bat
 Start QuickGrade for Phone.bat
-selftest.html              open it to verify everything still works
-selftest-storage.html      verifies the file:// storage fallback
-css/app.css                the interface
-js/sheet.js                sheet geometry - printer and scanner share it
-js/vision.js               corner detection, perspective, bubble reading
-js/scan.js                 camera loop and accept/reject feedback
-js/ooxml.js                ZIP + xlsx/docx writers
-js/lib.js                  storage, audio, dom helpers
+selftest.html              legacy geometry + file/export self-test
+selftest-storage.html      file:// storage fallback test
+css/app.css                interface styles
+js/sheet.js                canonical answer-sheet geometry
+js/vision.js               legacy detection + perspective + bubble reading
+js/qrpacket.js             QG3 QR geometry, packet continuity, Review grouping
+js/scan.js                 camera/import loop and feedback
+js/scoring.js              scoring/version logic
+js/ooxml.js                xlsx/docx writer
 js/app.js                  state, editors, grading, exports
-js/synth.js                test-only sheet/camera simulator
+js/synth.js                synthetic paper/camera generator
 ```
 
-Edit files under `js/` and `css/`, then run `python build.py` to refresh
-`QuickGrade.html`. Both stay in sync that way.
-
-### The tests
-
-`selftest.html` — 26 checks. Renders answer sheets from the shared geometry,
-photographs them in software at five angles (including upside down and steep
-perspective), decodes them through the real pipeline, confirms the printed HTML
-sheet lines up with what the scanner samples to within 0.0002", checks nothing
-printed encroaches on the corner squares, and validates every generated Office
-file by walking its ZIP directory and CRCs the way Excel and Word do.
-
-`selftest-storage.html` — 11 checks. Turns IndexedDB off, the way a `file://`
-page does, and confirms the fallback still reads and writes correctly.
-
-Both should be all green.
-
----
-
-## If something goes wrong
-
-**Camera won't start.** You're probably on `http://` and not `localhost`. Use the
-phone launcher, or use **Import photos**.
-
-**Sheet won't lock on.** Get all four corner squares in frame with a little
-margin. Avoid glare across the page — tilt it rather than the camera. Move
-closer if the sheet is small in the frame.
-
-**Reads the wrong answer.** Students should fill bubbles solidly and erase
-cleanly. Two marks on one question is reported as a double-mark and scored
-incorrect, not guessed at; it's flagged in Review and on the top sheet.
-
-**"Wrong test — sheet is code NNN".** That sheet belongs to a different test.
-Each test has its own 3-digit code printed on the sheet; QuickGrade refuses to
-mix them.
-
-**Numbers look off.** Check the answer key is complete — the key is row 2 of the
-gradebook export, so it's easy to eyeball.
+`selftest.html` intentionally exercises the legacy sheet geometry. That is useful: QG3 can evolve while previously printed QuickGrade sheets continue to have a dedicated compatibility test.
 
 ---
 
 ## Checking a change
 
+Install Playwright dependencies in `tools/`, start QuickGrade on port 5200, then:
+
+```bash
+cd tools
+npm test
 ```
+
+or from the repository root:
+
+```bash
 node tools/check.js
 ```
 
-Runs every suite and prints one number. It discovers suites rather than
-reading a list, because the one time a suite was left out of a hand-written
-list it sat broken for a whole session while everything else reported green.
+The runner discovers `test-*.js` suites, reports suites that assert nothing, and distinguishes hardware-required skips from passing tests.
 
-A suite that needs hardware you do not have exits 2 and is reported as
-skipped: not counted as passing, not counted as failing, and never invisible.
-A suite that runs but asserts nothing is called out too.
+Scanner work has a fast regression gate in GitHub Actions before the longer full suite. It covers QR geometry/corruption, packet continuity, anonymous packet assignment, paper sizes, versions and first-run workflow.
 
-```
+Useful focused tools include:
+
+```bash
 node tools/walkthrough.js <outDir> [lang] [width]
-```
-
-Photographs the whole teacher journey. The suites cannot tell you that a
-screen is confusing; this is for looking at it.
-
-```
 node tools/test-slowphone.js [throttle...]
-```
-
-Runs the app on a phone viewport with the CPU throttled, and measures the
-work a teacher waits for. 1x is your desktop; 6x is about a cheap current
-Android and 12x an old one. At 30x, slower than any real phone, reading a
-sheet still takes 324ms.
-
-```
 node tools/test-android.js
 ```
 
-Runs it in Chrome on a real Android build over adb, if you have an emulator
-or device attached. That is a compatibility check, not a speed one: an
-emulator runs on your desktop CPU and is usually faster than a cheap phone.
+`test-slowphone.js` checks the scanner and teacher interactions under CPU throttling. `test-android.js` uses a real/emulated Android Chrome through adb when hardware is available.
+
+GitHub Actions also runs `build.py` so `QuickGrade.html`, `sw.js`, the service-worker cache hash and precache list cannot silently drift from source.
+
+---
+
+## If something goes wrong
+
+**Camera won't start.** Use localhost/HTTPS or import photos. Browsers restrict live camera access on insecure/file pages.
+
+**Sheet won't read.** Keep the bottom-left QR visible, include the whole page in frame, flatten severe bends and move closer if the page is tiny in the camera view.
+
+**Wrong test/version warning.** The QR belongs to a different test or version. QuickGrade refuses to splice it into the current packet.
+
+**Missing pages warning.** Finish scanning the current student's physical packet before starting the next one, or deliberately set the incomplete packet aside and resolve it in Review.
+
+**Student unknown.** Nothing has been lost. The whole packet is kept together. Assign the single unresolved packet in Review.
+
+**Reads the wrong answer.** Students should fill answer bubbles solidly and erase changes cleanly. Multiple/faint marks are flagged rather than silently guessed where confidence is poor.
+
+---
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE). Use it, change it, translate it, put it on your
-school's website, build something else out of it. Attribution is the only
-condition.
-
-If you adapt it for your country, your school system or your language, that is
-exactly what it is for.
+MIT — see [LICENSE](LICENSE). Use it, change it, translate it, host it for a school, or adapt it to another education system.
