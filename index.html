@@ -273,10 +273,6 @@
       <div class="hudrow">
         <span class="pill" id="pillTest" data-i18n="scan.pill.noTest">No test</span>
         <span class="pill" id="pillCount" data-i18n="scan.pill.sheets">0 sheets</span>
-        <!-- Which student file the next page will join. Pages after the first
-             carry no class number, so this is the only thing on screen that
-             says where they are going. Without it the teacher finds out at the
-             end, when the pages are already filed. -->
         <span class="pill" id="pillOpen" data-i18n="scan.pill.openNone">No student open</span>
         <span class="pill" id="pillStatus" data-i18n="scan.pill.idle">Idle</span>
       </div>
@@ -357,19 +353,7 @@
     <p class="hint" id="exHint" data-i18n-html="export.hint">Downloads an Excel file. Most gradebooks import
       <code>.xlsx</code> or <code>.csv</code> directly.</p>
 
-    <!-- "Leave out students who have nothing scanned" is checked by default,
-         and a sheet sitting in Review under "could not be matched" reads as
-         nothing scanned even though the paper is right there with the
-         student's name in the handwriting crop. Without this, that student
-         drops out of every exported gradebook with nothing on this screen
-         saying so. -->
     <p class="hint warn" id="exUnmatchedWarn" hidden></p>
-
-    <!-- A missing page is scored zero for the questions on it, which can only
-         ever cost points. Only the "full" preset has an Issues column that
-         says so; the other five gradebooks show a number with no sign that a
-         page was never scanned. Warn when the selected format is one of the
-         five and it matters for someone in the class. -->
     <p class="hint warn" id="exMissingPageWarn" hidden></p>
 
     <details id="advExport">
@@ -429,7 +413,6 @@
 
 </main>
 
-<!-- Scan results are otherwise only a flash and a beep; announce them too. -->
 <div id="srAnnounce" class="visually-hidden" role="status" aria-live="assertive" aria-atomic="true"></div>
 <div id="toasts" role="status" aria-live="polite"></div>
 <div id="modal" hidden><div id="modalCard"></div></div>
@@ -453,6 +436,7 @@
 <script src="js/sheet.js"></script>
 <script src="js/vision.js"></script>
 <script src="js/synth.js"></script>
+<script src="js/qrpacket.js"></script>
 <script src="js/scan.js"></script>
 <script src="js/privacy.js"></script>
 <script src="js/app.js"></script>
