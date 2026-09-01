@@ -15,11 +15,13 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const S = QG.Sheet, V = QG.Vision, Sy = QG.Synth, P = QG.QRPacket;
     ok('QR packet module loaded by the app', !!P && P.version === 3, P && P.prefix);
 
-    const key = Array.from({length: 100}, (_, i) => i % 5);
+    /* Keep this comfortably above one-page capacity. The exact number that
+       fits is layout-dependent, so a boundary-sized fixture is a bad test. */
+    const key = Array.from({length: 180}, (_, i) => i % 5);
     const test = {
       id:'qrpacket', title:'Geometry Test', className:'Biology P3', classes:['Biology P3'],
       date:'2026-09-01', code:'042',
-      mc:{count:100,choices:5,key:key,points:1,text:[],options:[],topic:[],rules:{}},
+      mc:{count:180,choices:5,key:key,points:1,text:[],options:[],topic:[],rules:{}},
       written:[],curve:{kind:'none',value:0},
       options:{prefillId:false,idDigits:3,paper:'letter',wPerPage:2,instructions:'',
         scale:[[90,'A'],[80,'B'],[70,'C'],[0,'F']],footer:'',topsheet:{}}
@@ -65,8 +67,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       return {found,H,cap,white,ident};
     }
 
-    /* Give synth a fake id deliberately. New paper must ignore it: there is no
-       machine student field for a child to fill in anymore. */
     const sheet1=Sy.renderSynthetic(test,0,{sid:'027',name:'Avery Nguyen',answers:answersFor(pages[0])});
     const photo1=Sy.simulateCamera(sheet1,{w:1280,h:1450,corners:[[190,120],[1080,94],[1110,1330],[160,1350]],noise:8,vignette:0.18});
     const d1=detect(photo1);
@@ -86,17 +86,12 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       ok('QR-derived geometry still reads the answer grid',wrong===0,wrong+' wrong of '+pages[0].mc.length);
     }
 
-    /* A readable QR is not permission to grade if its projected page is cut
-       off. Put the QR end inside the camera but push the opposite corner out. */
     const cropped=Sy.simulateCamera(sheet1,{w:1280,h:1450,
       corners:[[-150,-90],[1040,30],[1150,1290],[120,1390]],noise:4,vignette:0.08});
     const cg=grayAt(cropped);
     ok('readable QR does not accept a page whose projected corners leave the frame',
       P.find(cg.g,cg.w,cg.h)===null);
 
-    /* Likewise, a distant page is not gradeable merely because a decoder gets
-       lucky. Below the QR-size floor there are too few pixels for trustworthy
-       answer sampling across the rest of the sheet. */
     const tiny=Sy.simulateCamera(sheet1,{w:1280,h:1450,
       corners:[[520,500],[760,505],[765,845],[515,840]],noise:2,vignette:0});
     const tg=grayAt(tiny);
