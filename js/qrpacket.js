@@ -93,7 +93,14 @@ function sheetHFromQr(location) {
   var p0=location.topLeftCorner,p1=location.topRightCorner,p2=location.bottomRightCorner,p3=location.bottomLeftCorner;
   if(!p0||!p1||!p2||!p3)return null;
   var Hq=V.homography([p0.x,p0.y],[p1.x,p1.y],[p2.x,p2.y],[p3.x,p3.y]); if(!Hq)return null;
-  var qb=qrRect(), rr=S.rect(qb.x,qb.y,qb.size,qb.size), du=rr.u1-rr.u0,dv=rr.v1-rr.v0;
+  /* jsQR reports the outside corners of the black QR SYMBOL, not the outside
+   * of the white quiet-zone box we print around it. Mapping those corners to
+   * qrRect() made the inferred whole page too small by the quiet-zone ratio,
+   * which was enough to move almost every answer sample onto the wrong spot.
+   * Quiet zone is decode margin only; geometry comes from the inner symbol. */
+  var qb=qrRect();
+  var symbol={x:qb.x+QR_QUIET,y:qb.y+QR_QUIET,size:qb.size-QR_QUIET*2};
+  var rr=S.rect(symbol.x,symbol.y,symbol.size,symbol.size),du=rr.u1-rr.u0,dv=rr.v1-rr.v0;
   if(Math.abs(du)<1e-9||Math.abs(dv)<1e-9)return null;
   return matrixObj(mul(objMatrix(Hq),[[1/du,0,-rr.u0/du],[0,1/dv,-rr.v0/dv],[0,0,1]]));
 }
