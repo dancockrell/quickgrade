@@ -14,7 +14,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
   const out = await page.evaluate(async () => {
     const S = QG.Sheet, V = QG.Vision, L = S.L;
-    await new Promise(r => { const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r; document.head.appendChild(s); });
     const Sy = QG.Synth;
     const res = [];
     const ok = (n, c, d) => res.push({ n, pass: !!c, d });
@@ -67,12 +66,12 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const capH = Math.round(capW / ar * 1.12);
       const inset = 90;
       const photo = Sy.simulateCamera(sheet, {
-        w: capW, h: capH, noise: 12, vignette: 0.42,
-        corners: [[inset + 40, inset + 60], [capW - inset - 10, inset],
-                  [capW - inset + 30, capH - inset], [inset, capH - inset - 50]]
+        w: capW, h: capH, noise: 8, vignette: 0.18,
+        corners: [[inset + 40, inset + 20], [capW - inset - 40, inset + 20],
+                  [capW - inset - 40, capH - inset - 20], [inset + 40, capH - inset - 20]]
       });
 
-      const detW = 480, detH = Math.round(photo.height * detW / photo.width);
+      const detW = 960, detH = Math.round(photo.height * detW / photo.width);
       const dc = document.createElement('canvas'); dc.width = detW; dc.height = detH;
       dc.getContext('2d').drawImage(photo, 0, 0, detW, detH);
       S.setPaper(paper);

@@ -64,7 +64,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       filledB === (keyA.match(/bub fill/g) || []).length && keyA !== keyB,
       filledB + ' bubbles filled on each, but different ones');
 
-    await new Promise(r => { const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r; document.head.appendChild(s); });
     const Sy = QG.Synth;
     const plan = [
       { label: 'Ada', form: 'A', key: KEY_A },

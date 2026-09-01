@@ -85,7 +85,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     // ---------------- packet ownership + storage upkeep ----------------
     await QG.DB.putMany('students', [{ sid: '1', name: 'Ann Lee', cls: 'Biology P3' }]);
     St.students = await QG.DB.all('students');
-    await new Promise(r => { const s = document.createElement('script'); s.src = 'js/synth.js'; s.onload = r; document.head.appendChild(s); });
     const Sy = QG.Synth;
     const sheet = Sy.renderSynthetic(t, 0, { sid: '1', name: 'Ann Lee', answers: { 0:1,1:2,2:0,3:3,4:4 } });
     const photo = Sy.simulateCamera(sheet, { w: 1280, h: 1450,
