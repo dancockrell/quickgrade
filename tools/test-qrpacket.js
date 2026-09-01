@@ -15,8 +15,6 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     const S = QG.Sheet, V = QG.Vision, Sy = QG.Synth, P = QG.QRPacket;
     ok('QR packet module loaded by the app', !!P && P.version === 3, P && P.prefix);
 
-    /* Keep this comfortably above one-page capacity. The exact number that
-       fits is layout-dependent, so a boundary-sized fixture is a bad test. */
     const key = Array.from({length: 180}, (_, i) => i % 5);
     const test = {
       id:'qrpacket', title:'Geometry Test', className:'Biology P3', classes:['Biology P3'],
@@ -57,6 +55,11 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       const g=V.toGray(c.getContext('2d').getImageData(0,0,w,h));
       return {g:g.g,w,h};
     }
+    function rawQr(gray,w,h) {
+      const rgba=new Uint8ClampedArray(gray.length*4);
+      for(let i=0,j=0;i<gray.length;i++,j+=4){rgba[j]=rgba[j+1]=rgba[j+2]=gray[i];rgba[j+3]=255;}
+      try { return jsQR(rgba,w,h,{inversionAttempts:'attemptBoth'}); } catch(e) { return null; }
+    }
     function detect(photo) {
       const low=grayAt(photo);
       const found=V.findSheet(low.g,low.w,low.h); if(!found)return null;
@@ -69,6 +72,14 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
     const sheet1=Sy.renderSynthetic(test,0,{sid:'027',name:'Avery Nguyen',answers:answersFor(pages[0])});
     const photo1=Sy.simulateCamera(sheet1,{w:1280,h:1450,corners:[[190,120],[1080,94],[1110,1330],[160,1350]],noise:8,vignette:0.18});
+    const low1=grayAt(photo1);
+    const raw1=rawQr(low1.g,low1.w,low1.h);
+    ok('raw jsQR can decode the photographed packet symbol',
+      !!raw1 && !!P.parse(raw1.data), raw1 ? raw1.data : 'raw decode failed');
+    const packetFind1=P.find(low1.g,low1.w,low1.h);
+    ok('decoded QR also passes QuickGrade page validation',
+      !!packetFind1, packetFind1 ? JSON.stringify(packetFind1.qrQuality) : 'page validation rejected it');
+
     const d1=detect(photo1);
     ok('the single QR locates a photographed page',!!d1,
       d1&&d1.found.qrQuality?d1.found.qrQuality.pixels+'px QR':'not found');
@@ -76,7 +87,7 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       ok('QR geometry path was used instead of legacy border detection',
         d1.found.markers===1&&d1.found.qrPacket&&d1.found.qrPacket.geometry===3,'markers='+d1.found.markers);
       ok('accepted scan records useful QR/page quality measurements',
-        d1.found.qrQuality&&d1.found.qrQuality.pixels>=34&&d1.found.qrQuality.area>=0.08,
+        d1.found.qrQuality&&d1.found.qrQuality.pixels>=36&&d1.found.qrQuality.area>=0.08,
         JSON.stringify(d1.found.qrQuality));
       ok('page one needs no machine student identity',
         d1.ident.code==='042'&&d1.ident.page===1&&d1.ident.sid===null&&d1.ident.flags.length===0,
@@ -100,6 +111,10 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
 
     const sheet2=Sy.renderSynthetic(test,1,{sid:'',name:'',answers:answersFor(pages[1])});
     const photo2=Sy.simulateCamera(sheet2,{w:1280,h:1450,corners:[[155,105],[1100,135],[1060,1340],[185,1310]],noise:10,vignette:0.23});
+    const low2=grayAt(photo2);
+    const raw2=rawQr(low2.g,low2.w,low2.h);
+    ok('raw jsQR decodes continuation packet symbol',
+      !!raw2 && !!P.parse(raw2.data), raw2 ? raw2.data : 'raw decode failed');
     const d2=detect(photo2);
     ok('a continuation page is independently identified by its QR',
       d2&&d2.ident.code==='042'&&d2.ident.page===2&&d2.ident.continuation===true,
