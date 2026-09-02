@@ -83,6 +83,17 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   }
   await browser.close();
 
+  /* The app itself is a screen, not a photocopy master. Its audit must keep
+   * geometry checks without flooding the report with paper-only warnings. */
+  let screenOut = '';
+  try {
+    screenOut = execFileSync(process.execPath,
+      [path.join(__dirname, 'look.js'), BASE + '/index.html', '--screen', '--json', '--quiet'],
+      { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  } catch (e) { screenOut = e.stdout || ''; }
+  let screenReport = null;
+  try { screenReport = JSON.parse(screenOut); } catch (e) {}
+
   /* The QR is the authoritative printed anchor, so verify its physical box
    * and also prove the removed border has not returned. */
   let failed = 0, checks = 0;
@@ -104,6 +115,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       geom.count === 1 && !geom.oldEdge,
       geom.count + ' QR box, old border ' + (geom.oldEdge ? 'present' : 'absent'));
   }
+  guard('screen mode omits photocopy-only findings',
+    !!screenReport && !screenReport.findings.some(x => ['faint', 'tiny', 'blank'].includes(x.kind)),
+    screenReport ? JSON.stringify(screenReport.counts) : 'could not read screen report');
   for (const { sh, f } of files) {
     let out = '';
     try {
