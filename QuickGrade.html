@@ -25599,6 +25599,12 @@ function renderForms() {
     ? T('ver.addNamed', { letter: nextFormLetter() }) : T('tests.ver.add');
 }
 
+on($('#btnAddForm'), 'click', function () {
+  editing.forms = editing.forms || [];
+  editing.forms.push({ id: nextFormLetter(), code: unusedCode(), key: [], rules: {} });
+  renderForms();
+});
+
 /* ========================================================= rubric setup ==
  * One shared set of levels across all criteria — that is how classroom
  * rubrics are usually written, and it keeps marking to one keystroke per

@@ -13,6 +13,19 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   await page.goto(BASE + '/index.html', { waitUntil: 'networkidle' });
   await page.waitForTimeout(800);
 
+  await page.click('#btnNewTest');
+  const added = await page.evaluate(() => {
+    const before = document.querySelector('#formsList input').value;
+    document.getElementById('btnAddForm').click();
+    return { before, ids: [...document.querySelectorAll('#formsList .vtag')].map(e => e.textContent),
+      codes: [...document.querySelectorAll('#formsList input')].map(e => e.value),
+      label: document.getElementById('btnAddForm').textContent };
+  });
+  console.log((added.ids.join(',') === 'A,B' && added.codes[1] !== added.before &&
+    /C/.test(added.label) ? 'PASS  ' : 'FAIL  ') +
+    'Add a second version creates one distinct version and advances the label');
+  await page.click('#btnCancelTest');
+
   const out = await page.evaluate(async () => {
     const res = {}; const ok = (n, c, d) => res[n] = { pass: !!c, d };
     const SC = QG.Scoring, S = QG.Sheet;
@@ -141,7 +154,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   for (const [k, v] of Object.entries(out)) {
     console.log((v.pass ? 'PASS  ' : 'FAIL  ') + k + (v.d != null ? '  — ' + v.d : ''));
   }
-  const bad = Object.values(out).filter(v => !v.pass).length;
+  const addFailed = !(added.ids.join(',') === 'A,B' && added.codes[1] !== added.before &&
+    /C/.test(added.label));
+  const bad = Object.values(out).filter(v => !v.pass).length + (addFailed ? 1 : 0);
   console.log('\n' + (bad ? bad + ' FAILED' : 'all ' + Object.keys(out).length + ' passed'));
   if (errs.length) console.log('page errors:', errs.slice(0, 5));
   await browser.close();
