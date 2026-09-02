@@ -27,15 +27,9 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
       opts: { questionsOnSheet: true, idDigits: 2 }, count: 12, choices: 4, written: 0, text: true }
   ];
 
-  /* Measure the registration border off a rendered sheet.
-   *
-   * This used to read the corner brackets back out of cornerBars(). When the
-   * page moved to a ruled border that function went away, the probe returned
-   * undefined, and the guard reported "NaN, NaN clear of the threshold" and
-   * PASSED - because NaN < 0.10 is false. A check whose input has vanished
-   * should be the loudest thing in the run, not the quietest. */
+  /* Measure the one remaining machine mark off a rendered QG3 sheet. */
   const geom = await page.evaluate(() => {
-    const S = QG.Sheet;
+    const S = QG.Sheet, P = QG.QRPacket;
     S.setPaper('a4');
     const t = { id: 't', title: 'Border probe', className: '', date: '', code: '117',
       mc: { count: 4, choices: 4, key: [], points: 1, text: [], options: [], topic: [], rules: {} },
@@ -44,20 +38,19 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
     host.innerHTML = S.renderSheets(t, [{ sid: '07', name: '' }], {});
     document.body.appendChild(host);
     const pg = host.querySelector('.page');
-    const edge = host.querySelector('.edge');
-    if (!pg || !edge) { host.remove(); return { missing: true }; }
-    const pr = pg.getBoundingClientRect(), er = edge.getBoundingClientRect();
-    const cs = getComputedStyle(edge);
+    const qr = host.querySelector('.qgqrbox');
+    const oldEdge = host.querySelector('.edge');
+    if (!pg || !qr) { host.remove(); return { missing: true }; }
+    const pr = pg.getBoundingClientRect(), qrRect = qr.getBoundingClientRect();
     const pxPerIn = pr.width / S.L.page.w;
+    const want = P.rect();
     const g = {
-      /* where the border sits, in inches, against the rectangle the scanner
-       * solves the page from */
-      offX: Math.abs((er.left - pr.left) / pxPerIn - S.L.fid.x0),
-      offY: Math.abs((er.top - pr.top) / pxPerIn - S.L.fid.y0),
-      widthIn: er.width / pxPerIn,
-      expectWidthIn: S.L.W,
-      ruleIn: parseFloat(cs.borderTopWidth) / pxPerIn,
-      footIn: parseFloat(cs.borderBottomWidth) / pxPerIn
+      offX: Math.abs((qrRect.left - pr.left) / pxPerIn - want.x),
+      offY: Math.abs((qrRect.top - pr.top) / pxPerIn - want.y),
+      sizeIn: qrRect.width / pxPerIn,
+      expectSizeIn: want.size,
+      oldEdge: !!oldEdge,
+      count: host.querySelectorAll('.qgqrbox').length
     };
     host.remove();
     return g;
@@ -90,53 +83,41 @@ const BASE = process.env.QG_BASE || 'http://127.0.0.1:5200';
   }
   await browser.close();
 
-  /* The registration border is the one thing on the page the whole system
-   * depends on, so it is measured off a rendered sheet rather than trusted.
-   *
-   * Three properties, each of which has actually broken:
-   *   - it sits on the fiducial rectangle. Every other coordinate is relative
-   *     to that, so an offset here skews the whole page.
-   *   - the rule is thick enough to survive the downscale the detector works
-   *     on. A hairline came out at six tenths of a pixel and vanished, taking
-   *     the sheet with it.
-   *   - the foot rule is heavier than the rest, because that difference is
-   *     the only thing telling an upright page from an upside-down one.
-   */
+  /* The app itself is a screen, not a photocopy master. Its audit must keep
+   * geometry checks without flooding the report with paper-only warnings. */
+  let screenOut = '';
+  try {
+    screenOut = execFileSync(process.execPath,
+      [path.join(__dirname, 'look.js'), BASE + '/index.html', '--screen', '--json', '--quiet'],
+      { encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
+  } catch (e) { screenOut = e.stdout || ''; }
+  let screenReport = null;
+  try { screenReport = JSON.parse(screenOut); } catch (e) {}
+
+  /* The QR is the authoritative printed anchor, so verify its physical box
+   * and also prove the removed border has not returned. */
   let failed = 0, checks = 0;
   function guard(name, pass, detail) {
     checks++;
     if (pass) { console.log('  ok   ' + name + '  - ' + detail); }
     else { failed++; console.log('  FAIL ' + name + '  - ' + detail); }
   }
-  if (geom.missing || geom.ruleIn === undefined || !isFinite(geom.ruleIn)) {
-    /* Say so loudly. A probe that returns nothing used to leave NaN in the
-     * comparison, and NaN < threshold is false, so the guard passed. */
-    guard('border geometry could be measured', false,
+  if (geom.missing || geom.sizeIn === undefined || !isFinite(geom.sizeIn)) {
+    guard('QR geometry could be measured', false,
           'the probe returned nothing to measure');
   } else {
-    guard('border sits on the geometry the scanner solves from',
+    guard('QR sits at the authoritative bottom-left geometry',
       geom.offX < 0.01 && geom.offY < 0.01 &&
-      Math.abs(geom.widthIn - geom.expectWidthIn) < 0.01,
-      'offset ' + (Math.max(geom.offX, geom.offY) * 1000).toFixed(1) + ' thou, width ' +
-      geom.widthIn.toFixed(3) + 'in against ' + geom.expectWidthIn.toFixed(3) + 'in');
-
-    /* At 480 across, a sheet filling the frame gives about 58 pixels to the
-     * inch. Two pixels is the floor for a line that has to be found; 0.0347in
-     * gives two. Anything under 0.030in is asking to disappear. */
-    /* The floor is where evidence puts it, not where the current value
-     * happens to land. A border at 0.69px is not found at all (a page held
-     * far back, before the higher-resolution retry existed). At 1.81px every
-     * suite passes. The boundary between those has not been measured, so the
-     * floor sits at 1.5 and the border is drawn thick enough to clear it by
-     * a wide margin rather than by a hundredth of a pixel, which is what the
-     * first attempt at this check did. */
-    const pxAtDetection = geom.ruleIn * 58;
-    guard('border survives the detection downscale', pxAtDetection >= 1.5,
-      geom.ruleIn.toFixed(4) + 'in is ' + pxAtDetection.toFixed(2) + 'px at 480 across');
-
-    guard('the foot rule is heavier than the others', geom.footIn > geom.ruleIn * 1.6,
-      geom.footIn.toFixed(4) + 'in against ' + geom.ruleIn.toFixed(4) + 'in');
+      Math.abs(geom.sizeIn - geom.expectSizeIn) < 0.01,
+      'offset ' + (Math.max(geom.offX, geom.offY) * 1000).toFixed(1) + ' thou, size ' +
+      geom.sizeIn.toFixed(3) + 'in against ' + geom.expectSizeIn.toFixed(3) + 'in');
+    guard('sheet has one machine mark and no registration border',
+      geom.count === 1 && !geom.oldEdge,
+      geom.count + ' QR box, old border ' + (geom.oldEdge ? 'present' : 'absent'));
   }
+  guard('screen mode omits photocopy-only findings',
+    !!screenReport && !screenReport.findings.some(x => ['faint', 'tiny', 'blank'].includes(x.kind)),
+    screenReport ? JSON.stringify(screenReport.counts) : 'could not read screen report');
   for (const { sh, f } of files) {
     let out = '';
     try {

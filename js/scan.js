@@ -130,6 +130,16 @@ function setStatus(t, kind) {
   p.textContent = t;
   p.className = 'pill' + (kind ? ' ' + kind : '');
 }
+
+function scanQualityText(hint) {
+  if (hint === 'showQr') return T('scan.quality.showQr');
+  if (hint === 'closer') return T('scan.quality.closer');
+  if (hint === 'wholePage') return T('scan.quality.wholePage');
+  if (hint === 'straight') return T('scan.quality.straight');
+  if (hint === 'steady') return T('scan.quality.steady');
+  if (hint === 'flat') return T('scan.quality.flat');
+  return null;
+}
 /* Which student file the next page will join.
  *
  * Pages after the first carry no class number, so they are filed by whichever
@@ -260,7 +270,7 @@ function tick() {
     Scanner.pending = null;
     drawOverlay(null);
     var qrHint = Q.QRPacket && Q.QRPacket.getHint && Q.QRPacket.getHint();
-    setStatus(qrHint ? T('scan.quality.' + qrHint) : T('scan.looking'));
+    setStatus(scanQualityText(qrHint) || T('scan.looking'));
     return;
   }
   drawOverlay(found.quad, detW, true);
@@ -271,6 +281,14 @@ function tick() {
   var capGray = V.toGray(capImg);
   var white = V.whiteLevel(capGray.g, capW, capH, Hcap);
   var ident = V.decodeIdentity(capGray.g, capW, capH, Hcap, white, S.idDigitsOf(test));
+  if (found.qrPacket) {
+    ident.sid = null;
+    ident.code = found.qrPacket.code;
+    ident.page = found.qrPacket.page;
+    ident.continuation = found.qrPacket.page > 1;
+    ident.flags = [];
+    ident.qrPacket = found.qrPacket;
+  }
 
   if (ident.page == null) { setStatus(T('scan.pageUnclear')); Scanner.pending = null; return; }
 
@@ -440,6 +458,7 @@ function accept(ctx) {
     answers: ctx.ans.answers, states: ctx.ans.states, confs: ctx.ans.confs,
     flags: ident.flags.slice(), checks: {}, overrides: {},
     code: ident.code,
+    qrPacket: ident.qrPacket || null,
     form: ctx.form && !ctx.form.primary ? ctx.form.id : null,
     ts: Date.now(), thumb: thumb, written: {}, nameCrop: null, classCrop: null, pageImg: null
   };
@@ -617,6 +636,17 @@ Scanner.importFiles = function (files, opts) {
         S.usePaper(test);
         var gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
         var found = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+        if ((!found || !found.qrPacket) && capW > detW) {
+          var lowFound = found, lowW = detW, lowH = detH;
+          detW = capW; detH = capH;
+          Scanner.det.width = detW; Scanner.det.height = detH;
+          Scanner.detCtx.drawImage(Scanner.cap, 0, 0, detW, detH);
+          gray = V.toGray(Scanner.detCtx.getImageData(0, 0, detW, detH));
+          var highFound = V.findSheet(gray.g, detW, detH, { minAreaFrac: 0.10 });
+          if (highFound && highFound.qrPacket) found = highFound;
+          else if (lowFound) { found = lowFound; detW = lowW; detH = lowH; }
+          else found = highFound;
+        }
         if (!found) { failCount++; Q.toast(T('scan.noSheetIn', { file: file.name }), 'err'); return; }
 
         var H = V.scaleH(found.H, capW / detW);
@@ -624,6 +654,14 @@ Scanner.importFiles = function (files, opts) {
         var capGray = V.toGray(capImg);
         var white = V.whiteLevel(capGray.g, capW, capH, H);
         var ident = V.decodeIdentity(capGray.g, capW, capH, H, white, S.idDigitsOf(test));
+        if (found.qrPacket) {
+          ident.sid = null;
+          ident.code = found.qrPacket.code;
+          ident.page = found.qrPacket.page;
+          ident.continuation = found.qrPacket.page > 1;
+          ident.flags = [];
+          ident.qrPacket = found.qrPacket;
+        }
         if (ident.page == null || ident.page > pages.length) {
           failCount++; Q.toast(T('scan.pageUnreadableIn', { file: file.name }), 'err'); return;
         }

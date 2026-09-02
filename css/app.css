@@ -207,7 +207,7 @@ label{
   margin-bottom:14px;letter-spacing:.005em;
 }
 label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var(--text)}
-.sel{width:auto;min-width:150px}
+.sel{width:auto;min-width:150px;max-width:100%}
 .sel:empty{display:none}
 .sel.sm{height:30px;padding:0 26px 0 10px;font-size:12.5px;min-width:120px;
   background-position:calc(100% - 13px) 13px, calc(100% - 8px) 13px}
@@ -232,6 +232,10 @@ label>input,label>select,label>textarea{margin-top:5px;font-weight:400;color:var
   .row.between{flex-wrap:wrap}
   .row.between>h1,.row.between>h2{width:100%;margin-bottom:2px}
   .row.between>.row{flex-wrap:wrap}
+  /* Translated export actions can be longer than the viewport. Let large
+     action buttons become two lines instead of preserving desktop nowrap. */
+  .wrap-row>.btn.big{max-width:100%;height:auto;min-height:52px;padding-block:10px;
+    white-space:normal;text-align:center}
 }
 .row.end{justify-content:flex-end}
 .wrap-row{flex-wrap:wrap}

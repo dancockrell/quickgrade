@@ -69,6 +69,14 @@ if (built) {
     after.sw === before.sw ? 'in sync' : 'was stale — build.py changed it');
   ok('QuickGrade.html is up to date', after.out === before.out,
     after.out === before.out ? 'in sync' : 'was stale — build.py changed it');
+
+  /* A second build must be byte-for-byte stable. This specifically catches
+   * cache hashes that depend on generated output or checkout line endings and
+   * otherwise make Actions commit a new bundle after every green run. */
+  execFileSync(usedPython, ['build.py'], { cwd: ROOT, encoding: 'utf8', stdio: 'pipe' });
+  const stable = read('sw.js') === after.sw && read('QuickGrade.html') === after.out;
+  ok('a second build is idempotent', stable,
+    stable ? 'byte-for-byte stable' : 'generated output changed on an identical second build');
 }
 
 const sw = read('sw.js');

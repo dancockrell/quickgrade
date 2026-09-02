@@ -286,6 +286,13 @@ function layoutTest(test) {
   var nMc = test.mc.count || 0;
   var written = test.written || [];
   var qOnSheet = questionsOnSheet(test);
+  /* Question wording makes each row tall enough to reach the bottom-left QR.
+   * Keep the final row wholly above that authoritative machine mark. Plain
+   * bubble rows remain narrow enough to use the normal content boundary. */
+  var packetQr = global.QG && global.QG.QRPacket && global.QG.QRPacket.rect && global.QG.QRPacket.rect();
+  var mcBottom = qOnSheet && packetQr
+    ? Math.min(L.contentBottom, packetQr.y - L.rowPitch * 0.52)
+    : L.contentBottom;
   var perPage = qOnSheet ? rowsPerCol() : mcPerPage(choices);
   var rows = rowsPerCol(), cols = qOnSheet ? 1 : colsPerPage(choices);
   var cw = colWidth(choices);
@@ -304,8 +311,9 @@ function layoutTest(test) {
    */
   function planPages(total) {
     function capacity(pageIdx) {
-      var t = pageIdx === 0 ? L.contentTop : laterTop(idDigitsOf(test));
-      var r = Math.floor((L.contentBottom - t) / L.rowPitch) + 1;
+      var t = pageIdx === 0 ? L.contentTop
+        : laterTop(idDigitsOf(test)) + (qOnSheet ? L.rowPitch * 0.45 : 0);
+      var r = Math.floor((mcBottom - t) / L.rowPitch) + 1;
       return qOnSheet ? r : r * cols;
     }
     var n = 0, left = total;
@@ -330,8 +338,9 @@ function layoutTest(test) {
     var mc = [];
     /* Page 1 carries the name box and the filling guide; the pages after
      * it carry neither, so their grid starts higher and holds more. */
-    var top = pages.length === 0 ? L.contentTop : laterTop(idDigitsOf(test));
-    rows = Math.floor((L.contentBottom - top) / L.rowPitch) + 1;
+    var top = pages.length === 0 ? L.contentTop
+      : laterTop(idDigitsOf(test)) + (qOnSheet ? L.rowPitch * 0.45 : 0);
+    rows = Math.floor((mcBottom - top) / L.rowPitch) + 1;
     perPage = qOnSheet ? rows : rows * cols;
     var take = Math.min(plan[pages.length] || perPage, nMc - q);
     /* Spread the questions evenly rather than filling column 1 to the brim and

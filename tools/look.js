@@ -1,6 +1,6 @@
 /* look.js - eyes for printed and rendered pages.
  *
- *   node tools/look.js <file-or-url> [--out DIR] [--json] [--quiet]
+ *   node tools/look.js <file-or-url> [--out DIR] [--json] [--quiet] [--screen]
  *
  * Why this exists. Every layout defect found in this project so far was found
  * by a person noticing it, not by a test: writing rules that were 78% white
@@ -36,9 +36,10 @@ const OUT = (function () {
 })();
 const JSON_ONLY = ARGS.indexOf('--json') >= 0;
 const QUIET = ARGS.indexOf('--quiet') >= 0;
+const SCREEN = ARGS.indexOf('--screen') >= 0;
 
 if (!TARGET) {
-  console.log('usage: node tools/look.js <file-or-url> [--out DIR] [--json]');
+  console.log('usage: node tools/look.js <file-or-url> [--out DIR] [--json] [--quiet] [--screen]');
   process.exit(2);
 }
 
@@ -397,6 +398,9 @@ function blankInPage(arg) {
   findings = findings.concat(await page.evaluate(collisionsInPage, cfg));
   findings = findings.concat(await page.evaluate(escapedInPage, pageSel));
   findings = findings.concat(await page.evaluate(blankInPage, { sel: pageSel, cfg }));
+  /* Screen controls do not need to survive a photocopier and ordinary app
+   * whitespace is not wasted paper. Keep geometry failures in both modes. */
+  if (SCREEN) findings = findings.filter(f => !['faint', 'tiny', 'blank'].includes(f.kind));
   findings.sort((a, b) => b.weight - a.weight || a.rect.y - b.rect.y);
 
   /* ---- annotated screenshot: every finding boxed and numbered ---- */

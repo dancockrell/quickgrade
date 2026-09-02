@@ -46,7 +46,7 @@ function keysUsedInSource() {
     b.click();
     for (let i = 0; i < 120; i++) {
       await new Promise(r => setTimeout(r, 400));
-      if (QG.App.State.scans.length >= 15) break;
+      if (!b.disabled) break;
     }
     await new Promise(r => setTimeout(r, 800));
     const t = document.getElementById('toasts');
