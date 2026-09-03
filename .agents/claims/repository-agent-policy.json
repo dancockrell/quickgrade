@@ -3,9 +3,9 @@
   "task_id": "repository-agent-policy",
   "agent": "codex-root",
   "summary": "Establish the no-fork operating standard and shared work ledger",
-  "status": "active",
+  "status": "completed",
   "claimed_at": "2026-09-03T13:36:27Z",
-  "updated_at": "2026-09-03T13:36:27Z",
+  "updated_at": "2026-09-03T13:49:33Z",
   "paths": ["AGENTS.md", ".agents/"],
   "symbols": [],
   "coordination": {
@@ -14,7 +14,11 @@
     "notes": "One identical universal policy is being installed in every distinct shared repository."
   },
   "completion": {
-    "commit": null,
-    "checks": []
+    "commit": "fd67c02",
+    "checks": [
+      "claim JSON parse: passed",
+      "git diff --check: passed",
+      "root AGENTS.md discovery and first-line policy: passed"
+    ]
   }
 }
