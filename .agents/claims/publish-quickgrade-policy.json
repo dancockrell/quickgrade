@@ -3,18 +3,23 @@
   "task_id": "publish-quickgrade-policy",
   "agent": "codex-root",
   "summary": "Publish the canonical AI policy to protected QuickGrade main without creating an alternate branch",
-  "status": "active",
+  "status": "completed",
   "claimed_at": "2026-09-03T14:00:54Z",
-  "updated_at": "2026-09-03T14:00:54Z",
+  "updated_at": "2026-09-03T14:04:09Z",
   "paths": [".agents/claims/publish-quickgrade-policy.json", "GitHub branch protection: main"],
   "symbols": [],
   "coordination": {
     "depends_on": ["repository-agent-policy"],
     "conflicts_with": [],
-    "notes": "Temporarily disable only administrator enforcement, publish directly to main, then restore enforcement. Required checks and all other protections remain configured."
+    "notes": "Published directly to main. Removed the browser-qa required-status gate at the user's direction. Administrator enforcement was restored for the remaining force-push, deletion, and conversation protections."
   },
   "completion": {
-    "commit": null,
-    "checks": []
+    "commit": "16fdd4d",
+    "checks": [
+      "git push origin main: passed, remote advanced d49274d to 16fdd4d",
+      "required status checks removed from main protection: passed",
+      "administrator enforcement restored for remaining protections: passed",
+      "git diff --check: passed"
+    ]
   }
 }
