@@ -11,8 +11,18 @@ const fs = require('fs');
 const path = require('path');
 
 const DIR = process.env.QG_CHECK_DIR || __dirname;
-const SUITE_TIMEOUT_MS = 300000;
+const DEFAULT_SUITE_TIMEOUT_MS = 300000;
+const SUITE_TIMEOUTS_MS = new Map([
+  /* This suite deliberately exercises cold loads and repeated scans on a
+   * throttled browser. Its own per-operation budgets decide whether the app
+   * is fast enough; the runner only needs to leave enough room to report all
+   * of them instead of killing the process first. */
+  ['test-slowphone.js', 420000]
+]);
 const HARDWARE_SKIP_SUITES = new Set(['test-android.js']);
+function suiteTimeoutMs(file) {
+  return SUITE_TIMEOUTS_MS.get(file) || DEFAULT_SUITE_TIMEOUT_MS;
+}
 /* An optional substring argument runs only the suites whose names match.
  * The full set takes ten minutes, which is long enough that a person
  * checking one thing will skip running it at all. */
@@ -30,14 +40,15 @@ console.log('QuickGrade — full check\n');
 for (const f of suites) {
   let out = '', code = 0;
   const t0 = Date.now();
+  const timeoutMs = suiteTimeoutMs(f);
   try {
     out = execFileSync(process.execPath, [path.join(DIR, f)], {
-      encoding: 'utf8', timeout: SUITE_TIMEOUT_MS, killSignal: 'SIGKILL'
+      encoding: 'utf8', timeout: timeoutMs, killSignal: 'SIGKILL'
     });
   } catch (e) {
     out = (e.stdout || '') + (e.stderr || '');
     if (e.code === 'ETIMEDOUT') {
-      out += '\nFAIL ' + f + ' timed out after ' + Math.round(SUITE_TIMEOUT_MS / 1000) + ' seconds\n';
+      out += '\nFAIL ' + f + ' timed out after ' + Math.round(timeoutMs / 1000) + ' seconds\n';
     }
     code = e.status == null ? 1 : e.status;
   }

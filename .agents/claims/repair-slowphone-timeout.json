@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "task_id": "repair-slowphone-timeout",
+  "agent": "codex-root",
+  "summary": "Let the slow-phone suite finish without weakening its performance budgets",
+  "status": "active",
+  "claimed_at": "2026-09-07T15:53:57Z",
+  "updated_at": "2026-09-07T15:53:57Z",
+  "paths": [
+    "tools/check.js",
+    ".agents/claims/repair-slowphone-timeout.json"
+  ],
+  "symbols": ["suiteTimeoutMs"],
+  "coordination": {
+    "depends_on": [],
+    "conflicts_with": [],
+    "notes": "The live main run 33764762763 passed every fast scanner gate, then the generic runner killed test-slowphone.js at 300 seconds. The suite's internal performance budgets remain unchanged."
+  },
+  "completion": {
+    "commit": null,
+    "checks": []
+  }
+}
